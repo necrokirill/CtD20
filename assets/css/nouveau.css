@@ -709,6 +709,7 @@ body.mode-table .table-mode-only {
   footer,
   aside,
   #kiths-interactive-area,
+  #houses-interactive-area,
   #desktop-popover,
   #sheet-backdrop,
   #bottom-sheet,
@@ -726,6 +727,7 @@ body.mode-table .table-mode-only {
   .nouveau-panel,
   .mech-card,
   .print-kith-card,
+  .print-house-card,
   .callout-sidebar,
   .callout-mechanics {
     background: #ffffff !important;
@@ -740,6 +742,7 @@ body.mode-table .table-mode-only {
   .nouveau-hero-arch::after,
   .nouveau-panel::after,
   .print-kith-card::after,
+  .print-house-card::after,
   .callout-sidebar::after {
     content: "";
     position: absolute;

@@ -232,11 +232,14 @@ class AdminRequestHandler(SimpleHTTPRequestHandler):
             manifest = json.loads((CONTENT_DIR / "manifest.json").read_text(encoding="utf-8"))
             lexicon = json.loads((CONTENT_DIR / "lexicon.json").read_text(encoding="utf-8"))
             kiths = json.loads((CONTENT_DIR / "kiths.json").read_text(encoding="utf-8"))
+            houses_path = CONTENT_DIR / "houses.json"
+            houses = json.loads(houses_path.read_text(encoding="utf-8")) if houses_path.exists() else []
             images = list_all_images()
             self._send_json({
                 "manifest": manifest,
                 "lexicon": lexicon,
                 "kiths": kiths,
+                "houses": houses,
                 "images": images,
                 "git": get_git_status_payload(),
             })
@@ -323,6 +326,22 @@ class AdminRequestHandler(SimpleHTTPRequestHandler):
                     k["auraRgb"] = f"{int(hx[0:2],16)}, {int(hx[2:4],16)}, {int(hx[4:6],16)}"
             (CONTENT_DIR / "kiths.json").write_text(
                 json.dumps(kiths, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+            stats = build_site()
+            self._send_json({"ok": True, "stats": stats})
+            return
+
+        if path == "/api/houses":
+            houses = body.get("houses")
+            if not isinstance(houses, list):
+                self._send_json({"error": "Ожидался массив houses"}, 400)
+                return
+            for h in houses:
+                hx = (h.get("auraHex") or "#8b6bbf").strip().lstrip("#")
+                if len(hx) == 6:
+                    h["auraRgb"] = f"{int(hx[0:2],16)}, {int(hx[2:4],16)}, {int(hx[4:6],16)}"
+            (CONTENT_DIR / "houses.json").write_text(
+                json.dumps(houses, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
             )
             stats = build_site()
             self._send_json({"ok": True, "stats": stats})

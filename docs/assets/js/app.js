@@ -8,10 +8,11 @@
 (function () {
   'use strict';
 
-  const BUNDLE = window.CTD_BUNDLE || { lexicon: [], kiths: [], volumes: [], search: [] };
+  const BUNDLE = window.CTD_BUNDLE || { lexicon: [], kiths: [], houses: [], volumes: [], search: [] };
   const ROOT = document.documentElement.getAttribute('data-root') || './';
   const LEXICON = BUNDLE.lexicon || [];
   const KITHS = BUNDLE.kiths || [];
+  const HOUSES = BUNDLE.houses || [];
   const LEX_MAP = Object.fromEntries(LEXICON.map((item) => [item.id, item]));
 
   /* ------------------------------------------------------------------------
@@ -23,8 +24,46 @@
   });
   PATTERN_LIST.sort((a, b) => b.text.length - a.text.length);
 
-  // Preserve case sensitivity for ambiguous capitalized words like "Банк" / "Тропы"
-  const CASE_SENSITIVE_WORDS = new Set(['Банк', 'Тропы', 'Троп', 'Тропам']);
+  // Preserve case sensitivity for ambiguous capitalized words like "Банк" / "Тропы" / mechanic terms
+  const CASE_SENSITIVE_WORDS = new Set([
+    'Банк',
+    'Тропы',
+    'Троп',
+    'Тропам',
+    'Титул',
+    'Титула',
+    'Титулу',
+    'Титулом',
+    'Титуле',
+    'Воспоминания',
+    'Воспоминаний',
+    'Воспоминаниям',
+    'Воспоминаниями',
+    'Воспоминаниях',
+    'Вдохновение',
+    'Вдохновения',
+    'Вдохновением',
+    'Вдохновении',
+    'Восхищение',
+    'Восхищения',
+    'Восхищением',
+    'Восхищении',
+    'Восхищению',
+    'Опустошение',
+    'Опустошения',
+    'Опустошением',
+    'Опустошении',
+    'Опустошению',
+    'Владычество',
+    'Владычества',
+    'Владычеством',
+    'Владычеству',
+    'Владычестве',
+    'Отблески',
+    'Отблесков',
+    'Отблесками',
+    'Отблесках'
+  ]);
   const EXACT_LOOKUP = new Map();
   const LOWER_LOOKUP = new Map();
   PATTERN_LIST.forEach((p) => {
@@ -128,6 +167,10 @@
     kithDetailTab: 'essence', // 'essence' | 'powers' | 'seemings' | 'stereotypes'
     kithAffinityFilter: 'all',
     kithViewMode: 'arcana',   // 'arcana' | 'scroll'
+    selectedHouseId: HOUSES[0] ? HOUSES[0].id : 'gwydion',
+    houseDetailTab: 'lore',   // 'lore' | 'powers' | 'factions' | 'members'
+    houseCourtFilter: 'all',
+    houseViewMode: 'arcana',  // 'arcana' | 'scroll'
     tableMode: localStorage.getItem('ctd20_table_mode') === '1',
     forceSheet: false,
     seeming: 'wilder',
@@ -664,6 +707,486 @@
                 <p><strong class="text-[#d8b979]">Разгул:</strong> ${linkifyHTML(formatInlineMd(k.revelry))}</p>
                 <p><strong class="text-[#d8b979]">Высвобождение:</strong> ${linkifyHTML(formatInlineMd(k.unleashing))}</p>
               </div>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  /* ------------------------------------------------------------------------
+     3B. WIDGET: 14-HOUSE HERALDIC STAINED-GLASS GALLERY
+     ------------------------------------------------------------------------ */
+  function initHousesGallery() {
+    const mount = document.getElementById('houses-widget-mount');
+    if (!mount || !HOUSES.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qHouse = params.get('house');
+    if (qHouse && HOUSES.some((h) => h.id === qHouse)) {
+      state.selectedHouseId = qHouse;
+    }
+
+    const seelieCount = HOUSES.filter((h) => h.court === 'Благой').length;
+    const unseelieCount = HOUSES.filter((h) => h.court === 'Неблагой').length;
+    const courtFilters = [
+      { id: 'all', label: `Все Дома (${HOUSES.length})` },
+      { id: 'Благой', label: `☀ Благой Двор (${seelieCount})` },
+      { id: 'Неблагой', label: `☽ Неблагой Двор (${unseelieCount})` }
+    ];
+
+    mount.innerHTML = `
+      <section id="houses-arcana" class="space-y-6 my-8">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Сияющее Воинство · Гербовая галерея</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Четырнадцать Благородных Домов
+            </h2>
+          </div>
+          <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
+            <button type="button" id="hview-arcana" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ✦ Гербовые Витражи
+            </button>
+            <button type="button" id="hview-scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ☰ Книжный свиток
+            </button>
+          </div>
+        </div>
+
+        <!-- Court Filter Pills -->
+        <div id="houses-filter-bar" class="no-print flex flex-wrap items-center gap-1.5">
+          <span class="text-[11px] uppercase tracking-wider text-[#a69f90] mr-1">Двор:</span>
+          ${courtFilters
+            .map(
+              (cf) => `
+            <button type="button" data-hcourt="${cf.id}" class="house-court-btn px-3 py-1 rounded-full text-xs border transition">
+              ${cf.label}
+            </button>
+          `
+            )
+            .join('')}
+        </div>
+
+        <!-- Interactive Heraldic Mode -->
+        <div id="houses-interactive-area" class="space-y-6">
+          <div id="houses-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"></div>
+          <div id="house-spotlight" class="nouveau-panel p-5 sm:p-8 scroll-mt-24" aria-live="polite"></div>
+        </div>
+
+        <!-- Continuous Scroll Reading Mode -->
+        <div id="houses-scroll-area" class="hidden space-y-8"></div>
+
+        <!-- Print-Only Expansion -->
+        <div id="print-houses-container" class="print-only space-y-4"></div>
+      </section>
+    `;
+
+    document.getElementById('hview-arcana').addEventListener('click', () => {
+      state.houseViewMode = 'arcana';
+      syncHouseViewMode();
+    });
+    document.getElementById('hview-scroll').addEventListener('click', () => {
+      state.houseViewMode = 'scroll';
+      syncHouseViewMode();
+    });
+
+    mount.querySelectorAll('.house-court-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.houseCourtFilter = btn.getAttribute('data-hcourt');
+        const visible =
+          state.houseCourtFilter === 'all'
+            ? HOUSES
+            : HOUSES.filter((h) => h.court === state.houseCourtFilter);
+        if (visible.length && !visible.some((h) => h.id === state.selectedHouseId)) {
+          state.selectedHouseId = visible[0].id;
+        }
+        renderHousesGrid();
+        selectHouse(state.selectedHouseId, false);
+      });
+    });
+
+    renderHousesGrid();
+    selectHouse(state.selectedHouseId, false);
+    renderHousesScrollArea();
+    syncHouseViewMode();
+  }
+
+  function syncHouseViewMode() {
+    const arcanaArea = document.getElementById('houses-interactive-area');
+    const scrollArea = document.getElementById('houses-scroll-area');
+    const filterBar = document.getElementById('houses-filter-bar');
+    const bArc = document.getElementById('hview-arcana');
+    const bScr = document.getElementById('hview-scroll');
+    if (!arcanaArea || !scrollArea) return;
+
+    const isArc = state.houseViewMode === 'arcana';
+    arcanaArea.classList.toggle('hidden', !isArc);
+    filterBar.classList.toggle('hidden', !isArc);
+    scrollArea.classList.toggle('hidden', isArc);
+
+    bArc.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      isArc ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+    bScr.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      !isArc ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+  }
+
+  function renderHousesGrid() {
+    const grid = document.getElementById('houses-grid');
+    if (!grid) return;
+
+    document.querySelectorAll('.house-court-btn').forEach((btn) => {
+      const active = btn.getAttribute('data-hcourt') === state.houseCourtFilter;
+      btn.className = `house-court-btn px-3 py-1 rounded-full text-xs border transition ${
+        active
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+
+    const filtered =
+      state.houseCourtFilter === 'all'
+        ? HOUSES
+        : HOUSES.filter((h) => h.court === state.houseCourtFilter);
+
+    grid.innerHTML = filtered
+      .map((h) => {
+        const rgb = h.auraRgb || hexToRgbStr(h.auraHex);
+        const courtIcon = h.court === 'Благой' ? '☀' : '☽';
+        return `
+          <button
+            type="button"
+            id="house-card-${h.id}"
+            data-house-card="${h.id}"
+            class="tarot-card group text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0dba8] ${
+              h.id === state.selectedHouseId ? 'active' : ''
+            }"
+            style="--card-aura: ${h.auraHex}; --card-aura-rgb: ${rgb};"
+          >
+            <span class="tarot-foil" aria-hidden="true"></span>
+            <div class="relative z-10 w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center mb-2.5 border transition-transform duration-300 group-hover:scale-105"
+                 style="color: ${h.auraHex}; border-color: rgba(${rgb}, 0.52); background: radial-gradient(circle, rgba(${rgb}, 0.19), rgba(11, 17, 15, 0.76));">
+              <div class="w-8 h-8">${h.emblem || ''}</div>
+            </div>
+            <h3 class="relative z-10 font-nouveau text-lg sm:text-xl font-semibold text-[#f0eadc] leading-tight">
+              ${h.ru}
+            </h3>
+            <div class="relative z-10 text-[10px] uppercase tracking-[0.15em] text-[#a69f90] mt-0.5">
+              ${h.en}
+            </div>
+            <div class="relative z-10 my-2 w-9 h-px" style="background: linear-gradient(90deg, transparent, ${h.auraHex}, transparent);"></div>
+            <p class="relative z-10 lore-only text-[11px] text-[#a69f90] leading-snug mb-2.5 line-clamp-2">
+              ${h.tagline || ''}
+            </p>
+            <span class="relative z-10 mt-auto inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] border"
+                  style="border-color: rgba(${rgb}, 0.45); background: rgba(${rgb}, 0.12); color: #f0eadc;">
+              <span style="color: ${h.auraHex};">${courtIcon}</span>
+              ${h.court} Двор
+            </span>
+          </button>
+        `;
+      })
+      .join('');
+
+    grid.querySelectorAll('[data-house-card]').forEach((btn) => {
+      btn.addEventListener('click', () => selectHouse(btn.getAttribute('data-house-card'), true));
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        btn.style.setProperty('--mx', `${(((e.clientX - rect.left) / rect.width) * 100).toFixed(1)}%`);
+        btn.style.setProperty('--my', `${(((e.clientY - rect.top) / rect.height) * 100).toFixed(1)}%`);
+      });
+    });
+  }
+
+  function selectHouse(houseId, scrollToPanel = false) {
+    const h = HOUSES.find((item) => item.id === houseId);
+    if (!h) return;
+
+    state.selectedHouseId = houseId;
+    if (state.tableMode && state.houseDetailTab === 'lore') {
+      state.houseDetailTab = 'powers';
+    }
+
+    document.querySelectorAll('[data-house-card]').forEach((el) => {
+      el.classList.toggle('active', el.getAttribute('data-house-card') === houseId);
+    });
+
+    const rgb = h.auraRgb || hexToRgbStr(h.auraHex);
+    document.documentElement.style.setProperty('--aura-hex', h.auraHex);
+    document.documentElement.style.setProperty('--aura-rgb', rgb);
+
+    renderHouseSpotlight();
+
+    if (scrollToPanel) {
+      const panel = document.getElementById('house-spotlight');
+      if (panel) {
+        const rect = panel.getBoundingClientRect();
+        if (rect.top < 60 || rect.top > window.innerHeight * 0.65) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    }
+  }
+
+  function renderHouseSpotlight() {
+    const spot = document.getElementById('house-spotlight');
+    if (!spot) return;
+    const h = HOUSES.find((item) => item.id === state.selectedHouseId);
+    if (!h) return;
+    const rgb = h.auraRgb || hexToRgbStr(h.auraHex);
+    const courtIcon = h.court === 'Благой' ? '☀' : '☽';
+
+    const tabs = [
+      { id: 'lore', label: 'Летопись и Изгнание' },
+      { id: 'powers', label: 'Дар и Изъян' },
+      { id: 'factions', label: `Ордена и Общества (${(h.factions || []).length})` },
+      { id: 'members', label: `Знаменитые лица (${(h.notableMembers || []).length})` }
+    ];
+
+    let bodyHTML = '';
+
+    if (state.houseDetailTab === 'lore') {
+      const firstLore = (h.lore && h.lore[0]) || '';
+      const restLore = (h.lore || []).slice(1);
+      bodyHTML = `
+        <div class="space-y-5">
+          ${
+            h.oath
+              ? `<div class="rounded-xl border p-4 sm:p-5 space-y-1.5"
+                      style="border-color: rgba(${rgb}, 0.42); background: linear-gradient(145deg, rgba(${rgb}, 0.11), rgba(11, 17, 15, 0.78));">
+                   <div class="text-[10px] uppercase tracking-[0.22em]" style="color: ${h.auraHex};">✦ Священная Клятва Дома</div>
+                   <blockquote class="font-nouveau italic text-lg sm:text-xl text-[#f0dba8]/95 leading-snug">
+                     ${linkifyHTML(formatInlineMd(h.oath))}
+                   </blockquote>
+                 </div>`
+              : ''
+          }
+          <div class="clearfix text-sm sm:text-[15.5px] text-[#f0eadc]/92 space-y-3.5 leading-relaxed">
+            ${
+              firstLore
+                ? `<p><span class="drop-cap" aria-hidden="true">${firstLore.charAt(0)}</span>${linkifyHTML(
+                    formatInlineMd(firstLore.slice(1))
+                  )}</p>`
+                : ''
+            }
+            ${restLore.map((p) => `<p>${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div class="rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/58 p-4 sm:p-5 space-y-2">
+              <div class="text-[11px] uppercase tracking-[0.18em] text-[#d8b979]">Исход из Аркадии · Exile</div>
+              <p class="text-xs sm:text-[13.8px] text-[#f0eadc]/88 leading-relaxed">${linkifyHTML(formatInlineMd(h.exile || ''))}</p>
+            </div>
+            <div class="rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/58 p-4 sm:p-5 space-y-2.5">
+              <div class="text-[11px] uppercase tracking-[0.18em] text-[#d8b979]">Геральдическая справка</div>
+              <p class="text-xs sm:text-[13.6px] text-[#f0eadc]/88 leading-relaxed">
+                <strong class="text-[#f0dba8]">Произношение:</strong> ${h.pronunciation || h.en}
+              </p>
+              <p class="text-xs sm:text-[13.6px] text-[#f0eadc]/88 leading-relaxed">
+                <strong class="text-[#f0dba8]">Прозвища при дворах:</strong> ${linkifyHTML(formatInlineMd(h.nicknames || ''))}
+              </p>
+              <p class="text-xs sm:text-[13.6px] text-[#f0eadc]/88 leading-relaxed">
+                <strong class="text-[#f0dba8]">Судьба в летописи:</strong> ${linkifyHTML(formatInlineMd(h.wave || ''))}
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (state.houseDetailTab === 'powers') {
+      bodyHTML = `
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="rounded-xl border p-4 sm:p-5 space-y-3.5"
+                 style="border-color: rgba(${rgb}, 0.46); background: linear-gradient(160deg, rgba(${rgb}, 0.10), rgba(11, 17, 15, 0.78));">
+              <div class="flex items-center justify-between border-b border-[#d8b979]/15 pb-2">
+                <h4 class="font-nouveau text-xl sm:text-2xl font-semibold text-[#f0dba8]">Дар Дома</h4>
+                <span class="text-[10px] uppercase tracking-[0.18em] text-[#a69f90]">House Boon</span>
+              </div>
+              <div class="space-y-2.5">
+                <div class="text-sm font-semibold" style="color: ${h.auraHex};">✦ ${(h.boon && h.boon.name) || 'Дар Дома'}</div>
+                ${((h.boon && h.boon.paragraphs) || [])
+                  .map(
+                    (p) =>
+                      `<p class="text-xs sm:text-[13.8px] text-[#f0eadc]/92 leading-relaxed">${linkifyHTML(
+                        formatInlineMd(p)
+                      )}</p>`
+                  )
+                  .join('')}
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-[#a83b4a]/48 p-4 sm:p-5 flex flex-col justify-between gap-4"
+                 style="background: linear-gradient(160deg, rgba(168, 59, 74, 0.11), rgba(11, 17, 15, 0.80));">
+              <div class="space-y-2.5">
+                <div class="flex items-center justify-between border-b border-[#a83b4a]/28 pb-2">
+                  <h4 class="font-nouveau text-xl sm:text-2xl font-semibold text-[#e6989f]">Изъян Дома</h4>
+                  <span class="text-[10px] uppercase tracking-[0.18em] text-[#a69f90]">House Flaw</span>
+                </div>
+                <div class="text-sm font-semibold text-[#e6989f]">◈ ${(h.flaw && h.flaw.name) || 'Изъян Дома'}</div>
+                ${((h.flaw && h.flaw.paragraphs) || [])
+                  .map(
+                    (p) =>
+                      `<p class="text-xs sm:text-[13.8px] text-[#f0eadc]/92 leading-relaxed">${linkifyHTML(
+                        formatInlineMd(p)
+                      )}</p>`
+                  )
+                  .join('')}
+              </div>
+              <div class="pt-3 border-t border-[#d8b979]/15 text-xs text-[#a69f90]">
+                <strong class="text-[#d8b979]">Условие присяги:</strong> требует хотя бы <strong>1 точки</strong> Дополнения «${linkifyText('Титул')}» (от оруженосца и выше).
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (state.houseDetailTab === 'factions') {
+      bodyHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          ${(h.factions || [])
+            .map(
+              (f) => `
+            <div class="rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/60 p-4 space-y-1.5">
+              <div class="flex flex-wrap items-baseline justify-between gap-1.5">
+                <div class="font-nouveau text-xl font-semibold text-[#f0dba8]">${f.name}</div>
+                <span class="text-[10px] uppercase tracking-wider text-[#a69f90]">${f.en || ''}</span>
+              </div>
+              <p class="text-xs sm:text-[13.6px] text-[#f0eadc]/88 leading-relaxed">${linkifyHTML(
+                formatInlineMd(f.desc)
+              )}</p>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      `;
+    } else {
+      bodyHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          ${(h.notableMembers || [])
+            .map(
+              (m) => `
+            <div class="rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/58 p-4 space-y-1.5">
+              <div class="text-sm font-semibold" style="color: ${h.auraHex};">✦ ${m.name}</div>
+              <p class="text-xs sm:text-[13.5px] text-[#f0eadc]/88 leading-relaxed">${linkifyHTML(
+                formatInlineMd(m.desc)
+              )}</p>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      `;
+    }
+
+    spot.innerHTML = `
+      <div class="spotlight-anim relative z-10 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#d8b979]/20">
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0 border"
+                 style="color: ${h.auraHex}; border-color: rgba(${rgb}, 0.55); background: radial-gradient(circle, rgba(${rgb}, 0.22), rgba(11, 17, 15, 0.82));">
+              <div class="w-8 h-8">${h.emblem || ''}</div>
+            </div>
+            <div>
+              <div class="flex flex-wrap items-baseline gap-2.5">
+                <h3 class="font-nouveau text-3xl sm:text-4xl font-semibold text-[#f0eadc] leading-none">${h.ru}</h3>
+                <span class="text-xs uppercase tracking-[0.18em] text-[#a69f90]">${h.en}</span>
+              </div>
+              <p class="lore-only text-xs text-[#a69f90] mt-1">${h.tagline || ''}</p>
+            </div>
+          </div>
+
+          <div class="inline-flex items-center gap-2 self-start sm:self-center px-3.5 py-1.5 rounded-full border text-xs"
+               style="border-color: rgba(${rgb}, 0.50); background: rgba(${rgb}, 0.13); color: #f0eadc;">
+            <span style="color: ${h.auraHex};">${courtIcon}</span>
+            <strong style="color: ${h.auraHex};">${h.courtNote || `${h.court} Двор`}</strong>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5" role="tablist">
+          ${tabs
+            .map((t) => {
+              const active = state.houseDetailTab === t.id;
+              return `
+                <button type="button" data-htab="${t.id}"
+                  class="px-3.5 py-1.5 rounded-full text-xs font-medium border transition ${
+                    active
+                      ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+                      : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc] hover:border-[#d8b979]/55'
+                  }">
+                  ${t.label}
+                </button>
+              `;
+            })
+            .join('')}
+        </div>
+
+        <div>${bodyHTML}</div>
+      </div>
+    `;
+
+    spot.querySelectorAll('[data-htab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.houseDetailTab = btn.getAttribute('data-htab');
+        renderHouseSpotlight();
+      });
+    });
+  }
+
+  function renderHousesScrollArea() {
+    const area = document.getElementById('houses-scroll-area');
+    if (!area) return;
+    area.innerHTML = HOUSES.map((h) => {
+      const rgb = h.auraRgb || hexToRgbStr(h.auraHex);
+      const courtIcon = h.court === 'Благой' ? '☀' : '☽';
+      return `
+        <article id="house-${h.id}" class="nouveau-panel p-6 sm:p-8 space-y-5 scroll-mt-24">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#d8b979]/20 pb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center border"
+                   style="color:${h.auraHex}; border-color:rgba(${rgb},0.5); background:rgba(${rgb},0.14);">
+                <div class="w-6 h-6">${h.emblem || ''}</div>
+              </div>
+              <div>
+                <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc]">${h.ru} <span class="text-sm font-sans font-normal text-[#a69f90]">(${h.en})</span></h3>
+                <div class="text-xs text-[#a69f90]">${h.nicknames || ''}</div>
+              </div>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs border" style="border-color:rgba(${rgb},0.45); color:${h.auraHex};">
+              ${courtIcon} ${h.courtNote || `${h.court} Двор`} · ${h.wave || ''}
+            </span>
+          </div>
+          <div class="lore-only space-y-3 text-sm leading-relaxed">
+            <blockquote class="font-nouveau italic text-lg text-[#f0dba8] border-l-2 pl-3.5" style="border-color:${h.auraHex};">${linkifyHTML(formatInlineMd(h.oath))}</blockquote>
+            ${(h.lore || []).map((p) => `<p>${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+            <div class="rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/50 p-3.5">
+              <div class="text-xs font-semibold text-[#d8b979] mb-1">Исход из Аркадии</div>
+              <p class="text-xs leading-relaxed">${linkifyHTML(formatInlineMd(h.exile || ''))}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-xl border border-[#d8b979]/30 bg-[#0b110f]/65 p-4 space-y-2">
+              <h4 class="font-nouveau text-xl font-semibold text-[#f0dba8]">Дар · ${(h.boon && h.boon.name) || ''}</h4>
+              ${((h.boon && h.boon.paragraphs) || []).map((p) => `<p class="text-xs leading-relaxed">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+            </div>
+            <div class="rounded-xl border border-[#a83b4a]/40 bg-[#0b110f]/65 p-4 space-y-2">
+              <h4 class="font-nouveau text-xl font-semibold text-[#e6989f]">Изъян · ${(h.flaw && h.flaw.name) || ''}</h4>
+              ${((h.flaw && h.flaw.paragraphs) || []).map((p) => `<p class="text-xs leading-relaxed">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+            </div>
+          </div>
+          <div class="lore-only grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div class="rounded-xl border border-[#d8b979]/18 bg-[#0b110f]/45 p-4 space-y-2">
+              <div class="text-xs font-semibold text-[#d8b979]">Ордена и Общества</div>
+              ${(h.factions || [])
+                .map((f) => `<p class="text-xs leading-relaxed"><strong class="text-[#f0dba8]">${f.name}:</strong> ${linkifyHTML(formatInlineMd(f.desc))}</p>`)
+                .join('')}
+            </div>
+            <div class="rounded-xl border border-[#d8b979]/18 bg-[#0b110f]/45 p-4 space-y-2">
+              <div class="text-xs font-semibold text-[#d8b979]">Знаменитые лица</div>
+              ${(h.notableMembers || [])
+                .map((m) => `<p class="text-xs leading-relaxed"><strong class="text-[#f0dba8]">${m.name}:</strong> ${linkifyHTML(formatInlineMd(m.desc))}</p>`)
+                .join('')}
             </div>
           </div>
         </article>
@@ -1252,6 +1775,21 @@
       }
     });
 
+    // 2b. Noble House hits
+    HOUSES.forEach((h) => {
+      const hay = `${h.ru} ${h.en} ${h.nicknames || ''} ${h.tagline || ''} ${(h.lore || []).join(' ')} ${
+        h.boon ? h.boon.name : ''
+      } ${h.flaw ? h.flaw.name : ''} ${(h.factions || []).map((f) => f.name).join(' ')}`.toLowerCase();
+      if (hay.includes(q)) {
+        hits.push({
+          badge: `Благородный Дом · ${h.court} Двор`,
+          title: `${h.ru} (${h.en})`,
+          snippet: h.tagline,
+          url: `${ROOT}03-noble-houses/index.html?house=${h.id}#houses-arcana`
+        });
+      }
+    });
+
     // 3. Chapter section hits
     (BUNDLE.search || []).forEach((s) => {
       if (s.title.toLowerCase().includes(q) || s.text.toLowerCase().includes(q)) {
@@ -1305,6 +1843,10 @@
       state.kithDetailTab = 'powers';
       renderKithSpotlight();
     }
+    if (state.tableMode && state.houseDetailTab === 'lore') {
+      state.houseDetailTab = 'powers';
+      renderHouseSpotlight();
+    }
   }
 
   function initScrollSpy() {
@@ -1355,6 +1897,30 @@
       ).join('');
     }
 
+    const housesPrint = document.getElementById('print-houses-container');
+    if (housesPrint && HOUSES.length) {
+      housesPrint.innerHTML = HOUSES.map(
+        (h) => `
+        <article class="print-house-card p-4 space-y-2">
+          <div class="flex items-baseline justify-between border-b border-[#ccc] pb-1">
+            <h3 class="font-nouveau text-xl font-bold">${h.ru} <span class="text-sm font-normal">(${h.en})</span></h3>
+            <span class="text-xs font-semibold">${h.courtNote || `${h.court} Двор`} · ${h.nicknames || ''}</span>
+          </div>
+          <p class="italic text-xs">${h.oath}</p>
+          <div class="grid grid-cols-2 gap-3 text-xs pt-1">
+            <div>
+              <div class="font-bold mb-1">Дар Дома — ${(h.boon && h.boon.name) || ''}:</div>
+              <p>${((h.boon && h.boon.paragraphs) || []).join(' ')}</p>
+            </div>
+            <div>
+              <div class="font-bold mb-1">Изъян Дома — ${(h.flaw && h.flaw.name) || ''}:</div>
+              <p>${((h.flaw && h.flaw.paragraphs) || []).join(' ')}</p>
+            </div>
+          </div>
+        </article>`
+      ).join('');
+    }
+
     const lexPrint = document.getElementById('print-lexicon-container');
     if (lexPrint && LEXICON.length) {
       const sorted = [...LEXICON].sort((a, b) => a.ru.localeCompare(b.ru, 'ru'));
@@ -1374,6 +1940,7 @@
     document.querySelectorAll('.auto-lex').forEach((el) => linkifyDOMContainer(el));
 
     initKithsGallery();
+    initHousesGallery();
     initTempersWidget();
     initCantripWidget();
     initLexiconDirectory();

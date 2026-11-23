@@ -137,6 +137,10 @@ def render_markdown(md_text: str, root_prefix: str = "./", apply_drop_cap: bool 
             out.append('<div id="kiths-widget-mount" class="no-lex"></div>')
             i += 1
             continue
+        if stripped == "{{widget:houses-gallery}}":
+            out.append('<div id="houses-widget-mount" class="no-lex"></div>')
+            i += 1
+            continue
         if stripped == "{{widget:tempers}}":
             out.append('<div id="tempers-widget-mount" class="no-lex"></div>')
             i += 1
@@ -435,6 +439,7 @@ def render_shell(
         </button>
         <a href="{root_prefix}01-world-and-creation/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='01-world-and-creation' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Пробуждение</a>
         <a href="{root_prefix}02-kiths/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='02-kiths' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Арканы Китов</a>
+        <a href="{root_prefix}03-noble-houses/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='03-noble-houses' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Дома</a>
         <a href="{root_prefix}lexicon/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='lexicon' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Лексикон</a>
       </nav>
 
@@ -507,7 +512,7 @@ def render_shell(
     <div class="nouveau-panel w-full max-w-2xl p-4 sm:p-6 space-y-4 max-h-[80vh] flex flex-col" onclick="event.stopPropagation()">
       <div class="relative z-10 flex items-center gap-2 border-b border-[#d8b979]/25 pb-3">
         <svg class="w-4 h-4 text-[#d8b979] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="global-search-input" type="search" placeholder="Поиск по главам, Китам, правам и Лексикону..." class="w-full bg-transparent text-sm sm:text-base text-[#f0eadc] placeholder-[#7b7669] focus:outline-none" />
+        <input id="global-search-input" type="search" placeholder="Поиск по главам, Китам, Домам, дарам и Лексикону..." class="w-full bg-transparent text-sm sm:text-base text-[#f0eadc] placeholder-[#7b7669] focus:outline-none" />
         <button type="button" data-close-search class="px-2.5 py-1 rounded-full text-xs border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc]">Esc</button>
       </div>
       <div id="global-search-results" class="relative z-10 overflow-y-auto space-y-2.5 pr-1"></div>
@@ -550,6 +555,8 @@ def build_site() -> dict:
     manifest = json.loads((CONTENT_DIR / "manifest.json").read_text(encoding="utf-8"))
     lexicon = json.loads((CONTENT_DIR / "lexicon.json").read_text(encoding="utf-8"))
     kiths = json.loads((CONTENT_DIR / "kiths.json").read_text(encoding="utf-8"))
+    houses_path = CONTENT_DIR / "houses.json"
+    houses = json.loads(houses_path.read_text(encoding="utf-8")) if houses_path.exists() else []
 
     site_meta = manifest["site"]
     volumes = manifest["volumes"]
@@ -591,6 +598,8 @@ def build_site() -> dict:
         plain_words = len(re.findall(r"\S+", raw_md))
         if slug == "02-kiths":
             plain_words += sum(len(" ".join(k.get("lore", []))) // 6 for k in kiths)
+        elif slug == "03-noble-houses":
+            plain_words += sum(len(" ".join(h.get("lore", []))) // 6 for h in houses)
         read_mins = max(2, round(plain_words / 190))
 
         prev_vol = volumes[idx - 1] if idx > 0 else None
@@ -797,6 +806,22 @@ def build_site() -> dict:
         for k in kiths
     )
 
+    house_strip_html = "\n".join(
+        f"""
+        <a href="03-noble-houses/index.html?house={h['id']}#houses-arcana"
+           class="tarot-card group text-center"
+           style="--card-aura: {h['auraHex']}; --card-aura-rgb: {h.get('auraRgb') or hex_to_rgb(h['auraHex'])};">
+          <div class="relative z-10 w-11 h-11 rounded-full flex items-center justify-center mb-2 border transition-transform group-hover:scale-105"
+               style="color: {h['auraHex']}; border-color: rgba({h.get('auraRgb') or hex_to_rgb(h['auraHex'])}, 0.5); background: rgba({h.get('auraRgb') or hex_to_rgb(h['auraHex'])}, 0.14);">
+            <div class="w-7 h-7">{h.get('emblem', '')}</div>
+          </div>
+          <div class="relative z-10 font-nouveau text-lg font-semibold text-[#f0eadc] leading-tight">{html.escape(h.get('shortRu') or h['ru'])}</div>
+          <div class="relative z-10 text-[10px] text-[#a69f90] mt-0.5">{'☀ Благой' if h['court'] == 'Благой' else '☽ Неблагой'}</div>
+        </a>
+        """
+        for h in houses
+    )
+
     pct_ready = round((ready_count / max(1, len(volumes))) * 100)
 
     portal_main = f"""
@@ -852,6 +877,9 @@ def build_site() -> dict:
             <a href="02-kiths/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
               Витражные Арканы Китов
             </a>
+            <a href="03-noble-houses/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
+              Благородные Дома
+            </a>
             <a href="lexicon/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/35 bg-[#0b110f]/70 text-[#a69f90] hover:text-[#f0dba8] transition">
               Лексикон Грёзы
             </a>
@@ -897,6 +925,20 @@ def build_site() -> dict:
         </div>
       </section>
 
+      <!-- 14 NOBLE HOUSES QUICK SHOWCASE -->
+      <section class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Часть Третья · Сияющее Воинство</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc]">Гербовые Витражи Благородных Домов</h2>
+          </div>
+          <a href="03-noble-houses/index.html" class="text-xs text-[#f0dba8] hover:underline">Перейти к главе о Домах →</a>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+          {house_strip_html}
+        </div>
+      </section>
+
       <!-- INTERACTIVE MECHANICS PREVIEW ON PORTAL -->
       <section class="space-y-4">
         <div class="text-center space-y-1">
@@ -926,6 +968,7 @@ def build_site() -> dict:
     bundle_payload = {
         "lexicon": lexicon,
         "kiths": kiths,
+        "houses": houses,
         "volumes": volumes,
         "search": all_search_entries,
     }
@@ -938,6 +981,7 @@ def build_site() -> dict:
         "volumes": len(volumes),
         "ready": ready_count,
         "kiths": len(kiths),
+        "houses": len(houses),
         "lexicon": len(lexicon),
         "searchChunks": len(all_search_entries),
     }
