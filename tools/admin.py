@@ -521,6 +521,10 @@ class AdminRequestHandler(SimpleHTTPRequestHandler):
 
 
 def main() -> None:
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+    except Exception:
+        pass
     parser = argparse.ArgumentParser(description="CtD20 Local Web Admin & Live Preview Server")
     parser.add_argument("--port", type=int, default=8080, help="HTTP port (default: 8080)")
     parser.add_argument("--no-browser", action="store_true", help="Do not auto-open browser")

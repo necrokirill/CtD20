@@ -456,8 +456,14 @@
         opts.body = JSON.stringify(body);
       }
       const res = await fetch(url, opts);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка запроса');
+      const rawText = await res.text();
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (_err) {
+        throw new Error(`Ошибка ответа сервера (${res.status}). Обновите страницу или перезапустите админку.`);
+      }
+      if (!res.ok) throw new Error(data.error || `Ошибка запроса (${res.status})`);
       return data;
     }
 
@@ -1156,9 +1162,16 @@
       }
 
       document.getElementById('btn-open-deploy').addEventListener('click', async () => {
-        const g = await api('/api/git-status');
-        renderGitModal(g);
+        const logBox = document.getElementById('deploy-log-box');
+        logBox.classList.add('hidden');
         deployModal.classList.add('open');
+        try {
+          const g = await api('/api/git-status');
+          renderGitModal(g);
+        } catch (err) {
+          logBox.classList.remove('hidden');
+          logBox.textContent = `✗ ${err.message}`;
+        }
       });
       document.getElementById('btn-close-deploy').addEventListener('click', () => deployModal.classList.remove('open'));
       deployModal.addEventListener('click', () => deployModal.classList.remove('open'));
