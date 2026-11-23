@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ru" data-root="../" style="--aura-hex: #c88a36; --aura-rgb: 200, 138, 54;">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Часть 2. Киты Китэйнов — Changeling: The Dreaming 20th</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="../assets/css/nouveau.css" />
+</head>
+<body class="antialiased selection:bg-[#d8b979]/25 selection:text-[#f0dba8]">
+  <div class="velvet-grain" aria-hidden="true"></div>
+  <div class="ambient-aura" aria-hidden="true"></div>
+
+  <!-- FLOATING GLASSMORPHIC TOP NAVIGATION BAR -->
+  <header class="no-print sticky top-0 z-50 border-b border-[#d8b979]/25 backdrop-blur-md bg-[#0b110f]/85">
+    <div class="max-w-6xl mx-auto px-3.5 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+      <a href="../index.html" class="flex items-center gap-2.5 group shrink-0">
+        <span class="w-8 h-8 rounded-full border border-[#d8b979]/55 bg-[#15211d] flex items-center justify-center transition group-hover:border-[#f0dba8]">
+          <svg class="w-4 h-4 text-[#d8b979]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 3C8.5 6.2 6.5 9.8 6.5 13.5a5.5 5.5 0 0 0 11 0C17.5 9.8 15.5 6.2 12 3Z"/>
+            <path d="M12 7v12M12 12.5l3-2.5M12 15l-3-2"/>
+          </svg>
+        </span>
+        <span class="font-nouveau text-lg sm:text-xl font-semibold tracking-wide text-[#f0eadc]">
+          CtD 20 <span class="text-[#d8b979]">· Книга игрока</span>
+        </span>
+      </a>
+
+      <nav class="order-3 lg:order-2 w-full lg:w-auto flex items-center justify-center gap-1 sm:gap-1.5 pt-1.5 lg:pt-0 border-t border-[#d8b979]/15 lg:border-none text-xs sm:text-[13px] overflow-x-auto">
+        <button type="button" data-open-volumes class="px-3 py-1 rounded-full text-[#f0eadc] hover:text-[#f0dba8] hover:bg-[#d8b979]/12 border border-[#d8b979]/25 transition shrink-0">
+          ☰ Оглавление (10 томов)
+        </button>
+        <a href="../01-world-and-creation/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 text-[#a69f90] hover:text-[#f0dba8]">Создание героя</a>
+        <a href="../02-kiths/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 text-[#f0dba8] bg-[#d8b979]/15">13 Китов</a>
+        <a href="../lexicon/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 text-[#a69f90] hover:text-[#f0dba8]">Лексикон</a>
+      </nav>
+
+      <div class="order-2 lg:order-3 flex items-center gap-1.5 shrink-0">
+        <button type="button" data-open-search class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs border border-[#d8b979]/30 bg-[#101916]/90 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/70 transition" title="Быстрый поиск по всей книге (Ctrl+K)">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <span class="hidden sm:inline">Поиск</span>
+          <kbd class="hidden md:inline text-[10px] px-1.5 py-0.2 rounded bg-[#0b110f] border border-[#d8b979]/25 text-[#7b7669]">Ctrl+K</kbd>
+        </button>
+
+        <button type="button" id="btn-depth-toggle" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/30 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#d8b979] transition" title="Скрыть художественные описания и оставить только механику">
+          <span id="depth-dot" class="w-1.5 h-1.5 rounded-full bg-[#d8b979]"></span>
+          <span id="depth-text">Лор + Правила</span>
+        </button>
+
+        <button type="button" id="btn-sheet-toggle" class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/30 bg-[#101916]/90 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/75 transition" title="Переключить десктопные тултипы в режим мобильной шторки">
+          <span id="sheet-text">Тест шторки</span>
+        </button>
+
+        <button type="button" onclick="window.print()" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/55 bg-[#d8b979]/15 text-[#f0dba8] hover:bg-[#d8b979]/25 transition" title="Печать страницы или сохранение в PDF">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+          <span class="hidden sm:inline">PDF</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  
+        <main class="max-w-6xl mx-auto px-3.5 sm:px-6 pt-6 sm:pt-10 pb-12 space-y-8">
+          <div class="hidden table-mode-only no-print items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-[#d8b979]/45 bg-[#15211d]/90 text-xs text-[#f0eadc]">
+            <span>✦ <strong>Режим стола:</strong> художественный лор скрыт — оставлены только механики, формулы и характеристики.</span>
+            <button type="button" id="btn-restore-lore" class="text-[#f0dba8] underline shrink-0">Вернуть лор</button>
+          </div>
+
+          <section class="nouveau-hero-arch px-6 py-8 sm:px-12 sm:py-12 text-center">
+            <div class="relative z-10">
+              <div class="flex items-center justify-center gap-2.5 mb-3">
+                <span class="text-xs uppercase tracking-[0.25em] text-[#d8b979]">02 · Часть 2</span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Готово</span>
+                <span class="text-xs text-[#7b7669]">· ~38 мин чтения</span>
+              </div>
+              <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">Киты Китэйнов</h1>
+              <p class="text-xs sm:text-sm text-[#a69f90] max-w-2xl mx-auto mt-2.5">Все 13 базовых Китов, стереотипы, конструктор Кита и сводная шпаргалка</p>
+              
+            <div class="lore-only max-w-2xl mx-auto mt-5">
+              <blockquote class="font-nouveau italic text-lg sm:text-2xl text-[#f0dba8]/95 leading-snug">
+                «Словно каждый человек крутит у себя в голове историю о самом себе. Всегда. Всё время. Эта история делает тебя тем, кто ты есть. Мы выстраиваем себя из этой истории».
+              </blockquote>
+              <p class="text-xs text-[#a69f90] mt-1.5 tracking-wide">— Патрик Ротфусс, «Имя ветра»</p>
+            </div>
+              
+            </div>
+          </section>
+
+          <div class="flex flex-col lg:flex-row items-start gap-7">
+            
+            <aside class="no-print hidden lg:block w-64 shrink-0">
+              <div class="sticky top-20 nouveau-panel p-4 space-y-2.5 max-h-[calc(100vh-6.5rem)] overflow-y-auto">
+                <div class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979] px-2">В этом томе</div>
+                <nav class="space-y-0.5"><a href="#sec-1" class="toc-link depth-2">2.14. Создание собственного Кита (Kith Creation)</a>
+<a href="#sec-2" class="toc-link depth-3">Шаг 1: Концепция (Concept)</a>
+<a href="#sec-3" class="toc-link depth-3">Шаг 2: Роль в Грёзе (Role in the Dreaming)</a>
+<a href="#sec-4" class="toc-link depth-3">Шаг 3: Врождённые права (Birthrights)</a>
+<a href="#sec-5" class="toc-link depth-3">Шаг 4: Слабость (Frailty)</a>
+<a href="#sec-6" class="toc-link depth-3">Шаг 5: Сродство с Владением (Affinity)</a>
+<a href="#sec-7" class="toc-link depth-3">Шаг 6: Финальная доводка (Adjust as Necessary)</a>
+<a href="#sec-8" class="toc-link depth-3">Официальный пример создания Кита: Домовой (Domovoi)</a>
+<a href="#sec-9" class="toc-link depth-2">2.15. Сводная шпаргалка по всем 13 базовым Китам</a></nav>
+              </div>
+            </aside>
+            <div class="flex-1 min-w-0 w-full">
+              
+              <article class="nouveau-panel p-6 sm:p-10 chapter-prose auto-lex">
+                <div class="relative z-10">
+                  <div class="callout-lore lore-only space-y-3"><p><em>«Словно каждый человек крутит у себя в голове историю о самом себе. Всегда. Всё время. Эта история делает тебя тем, кто ты есть. Мы выстраиваем себя из этой истории».</em>— Патрик Ротфусс, «Имя ветра»</p>
+<p>Люди определяют себя далеко не только биологическим видом: они соотносят себя с культурой, поколением, убеждениями и кругом близких, одновременно ища собственную неповторимость и связь с другими. Подменыши точно так же выстраивают свою идентичность, накладывая сказочную природу поверх смертной биографии. Древние предания гласят, что феи родились из первозданных снов человечества, а сны принимают бессчётное множество форм. Кит (Kith) подменыша определяет его облик феи (fae mien) и то, каким именно образом его душа связана с Грёзой. Хотя каждый подменыш остаётся самостоятельной личностью, его кит задаёт уникальное сродство с магией, врождённые преимущества и слабости, культуру, историю и традиционную роль в обществе Китэйнов.</p>
+<p>Описание каждого кита построено по единой структуре книги правил C20:</p>
+<ul><li><strong>Цитата и Общее описание:</strong> характерная реплика представителя кита, краткая история происхождения из человеческих снов, привычные взгляды и роль в обществе подменышей.</li><li><strong>Внешность (Appearance):</strong> типичный облик представителей кита в их <strong>Облике феи</strong> — рост, сложение, черты лица, цвет кожи и волос, манера одеваться и примечательные детали.</li><li><strong>Образ жизни (Lifestyles):</strong> повседневный быт кита — какие жилища и ремёсла они выбирают, склонны ли к оседлости или кочевьям и в каком обществе ищут отдушину.</li><li><strong>Стадии души (Seemings — Младенец, Дикарь, Ворчун):</strong> как преломляются взгляды, темперамент и поступки представителя кита на каждом из трёх возрастов души.</li><li><strong>Сродство (Affinity):</strong> Владение (Realm), к которому у кита есть врождённая склонность. Когда представитель кита сотворяет кантрип с использованием своего профильного Владения, <strong>сложность броска снижается на 1</strong>.</li><li><strong>Разгул (Revelry):</strong> характерные способы, которыми этот кит восполняет Гламур, действуя в полном согласии со своей сказочной природой (по правилам Эпифании Разгул доступен один раз за историю: проведя хотя бы одну сцену за этим занятием, персонаж полностью восполняет свой запас временного Гламура).</li><li><strong>Высвобождение (Unleashing):</strong> какие зрительные образы, звуки, запахи и эмоциональные отголоски ощущают свидетели, когда представитель этого кита направляет бурный поток Гламура через Искусство.</li><li><strong>Врождённые права (Birthrights) и Слабость (Frailty):</strong> два врождённых преимущества кита и одно мистическое ограничение или изъян с точными игровыми механиками.</li><li><strong>Стереотипы (Stereotypes):</strong> субъективное (порой лестное, а порой весьма едкое) мнение типичного представителя кита об остальных двенадцати китах.</li></ul></div>
+<div id="kiths-widget-mount" class="no-lex"></div>
+<h2 id="sec-1">2.14. Создание собственного Кита (Kith Creation)</h2>
+<p>Помимо 13 основных китов Конкордии (а также Галлейнов и редких китов из Приложения книги правил), мифология и фольклор народов мира хранят бессчётное множество сказочных существ, которые могут обрести жизнь в хронике. Конструктор нового кита состоит из шести шагов и всегда разрабатывается игроком совместно с Рассказчиком (помните главное правило книги: сказочная выразительность и интерес в игре важнее сухой математической симметрии, но Рассказчик вправе заранее оговорить рамки своей хроники).</p>
+<h3 id="sec-2">Шаг 1: Концепция (Concept)</h3>
+<p>Запишите ключевые образы из фольклора, литературы или собственного воображения, не сковывая себя пока игровыми цифрами:</p>
+<ul><li><strong>Внешность:</strong> Какие нечеловеческие химерические черты отличают этот кит и какие трудности они создают? Избегайте жёсткой привязки кита к одной национальности, хотя малочисленный кит вполне может встречаться преимущественно в конкретном регионе.</li><li><strong>Магия:</strong> Какими чудесами славится это существо в легендах? Запишите самые яркие образы как ориентир для будущих Врождённых прав.</li><li><strong>Породившие сны:</strong> Какие человеческие мечты, надежды или страхи дали жизнь этому киту? Это подскажет и его темперамент, и тяготение к Благому или Неблагому Двору.</li><li><strong>Человеческая жизнь:</strong> Помните, что все Китэйны рождаются людьми и пробуждаются через Хризалиду. Какие люди, с какими характерами и призваниями пробуждаются представителями этого кита?</li></ul>
+<h3 id="sec-3">Шаг 2: Роль в Грёзе (Role in the Dreaming)</h3>
+<p>Впишите новый кит в историю и общество Мира Тьмы:</p>
+<ul><li><strong>История:</strong> Как давно существует этот кит? Пережил ли он Междуцарствие рядом с простолюдинами через Путь Подменыша или вернулся после долгого отсутствия? Какую сторону чаще принимал в Войне Согласия (лоялисты, повстанцы или нейтралитет)?</li><li><strong>Место в обществе:</strong> Чем славится кит при дворах, во фрихолдах и внутри мотли? Есть ли у него присутствие в Теневом Дворе и собственный кошмарный двойник среди Таллейнов? Набросайте несколько взаимных <strong>стереотипов</strong> — что этот кит думает о троллях, ши или богганах и что те думают о нём.</li></ul>
+<h3 id="sec-4">Шаг 3: Врождённые права (Birthrights)</h3>
+<p>У каждого кита ровно <strong>два Врождённых права</strong>, опирающихся на мифологию, связь со смертными мечтами и создание интересных сюжетных ситуаций (а не мгновенную «победу» в сцене). Все Врождённые права делятся на три категории:</p>
+<ul><li><strong>Мастерство / Точность (Acuity):</strong> Позволяет выполнять обычные действия со сверхъестественной меткостью — даёт <strong>иммунитет к критическим провалам (ботчам)</strong> при проверке конкретной Черты и/или <strong>снижает сложность</strong> бросков Способности (обычно на -1, либо до -2 для узкого применения или при особых условиях, как у шелки в воде). Безусловный бонус к целому Физическому или Ментальному Атрибуту без ограничений должен составлять всё Врождённое право целиком.</li><li><strong>Волшебство (Magic):</strong> Самый распространённый тип — особый сверхъестественный дар или трюк, недоступный обычным людям (смена облика пуки, исчезновение клурикона, считывание динамики боггана). Особо впечатляющие дары могут требовать траты <strong>1 пункта Гламура</strong> (реже — Силы Воли или даже уровня здоровья), а действия, близкие к земным навыкам, — проверки запаса кубиков. Узкое магическое право по согласованию с Рассказчиком можно объединить в один пакет с тематическим бонусом <em>Точности</em> (как у ши: защита от унижающих кантрипов + отсутствие ботчей в Этикете).</li><li><strong>Преимущество (Advantage):</strong> Самый редкий и прямолинейный тип — дополнительные точки к Чертам. Не должен превышать <strong>+1 точки для Физических и Ментальных Атрибутов</strong> и <strong>+2 точек для Социальных Атрибутов</strong> (также может давать дополнительные уровни здоровья, как у троллей; вместо прямых точек Силы Воли лучше давать особый способ её восстановления, а точки Гламура не рекомендуются вовсе без жёстких ограничений или второй Слабости).</li></ul>
+<h3 id="sec-5">Шаг 4: Слабость (Frailty)</h3>
+<p>У каждого сказочного создания есть уязвимость, которая должна всплывать в игре хотя бы раз за главу (либо двигать целый сюжет, когда срабатывает). Избегайте скучного прямого урона здоровью от распространённых явлений — хорошая Слабость рождает драму и выбор, относясь к одному из трёх типов:</p>
+<ul><li><strong>Побуждения / Компульсии (Compulsions):</strong> Обязательная линия поведения — либо постоянная (шёпот слуа, ложь пуки), либо ситуативная (помощь нуждающимся у боггана, кража у писки). Обычно сопротивление требует броска <strong>Силы Воли (сложность 8)</strong>, а в ключевых случаях — ещё и траты <strong>1 пункта Силы Воли</strong>.</li><li><strong>Проклятия (Curses):</strong> Сверхъестественная кара или потеря силы при нарушении табу либо хитрой уловке врага (болезнь тролля при нарушении слова, уязвимость шкуры шелки). Обязательно предусмотрите способ избежать проклятия или искупить вину.</li><li><strong>Неприспособленность (Ineptitude):</strong> Штрафы к сложности или запасу кубиков в определённой сфере (как социальная стигма Красных Шапок). Используйте осторожно или в паре с мягкой Слабостью, чтобы не выключать персонажа из целых пластов игры.</li></ul>
+<h3 id="sec-6">Шаг 5: Сродство с Владением (Affinity)</h3>
+<p>Выберите одно Владение, дающее <strong>-1 к сложности</strong> кантрипов при использовании в качестве основного: <strong>Актёр</strong> (тесная связь с общинами смертных и Мечтателями), <strong>Фея</strong> (ярко выраженная магическая природа и роль в обществе Китэйнов), Природа (связь с дикой природой, зверями и стихиями), <strong>Предмет</strong> (ремесло, вещи или тяга к кражам), <strong>Сцена</strong> (путешествия и движение), <strong>Время</strong> (мифы о вечной юности или бессмертии).</p>
+<h3 id="sec-7">Шаг 6: Финальная доводка (Adjust as Necessary)</h3>
+<p>Перечитайте готовый кит вместе с Рассказчиком: передаёт ли он задуманную сказку и будет ли за него увлекательно играть всей группе? <em>(Тем же шестишаговым методом Рассказчики могут конструировать региональные киты и адаптировать для игры раскаявшихся Таллейнов или Донтэйнов.)</em></p>
+<h3 id="sec-8">Официальный пример создания Кита: Домовой (Domovoi)</h3>
+<p>В базовой книге C20 приведён полный пример разработки славянского кита <strong>Домовой</strong>:</p>
+<ul><li><strong>Концепция и роль в Грёзе:</strong> Духи-хранители домашнего очага из русского и славянского фольклора, рождённые из грёз о семейном уюте и безопасности спящих близких. Невысокие, коренастые, густоволосые и грубоватые с виду, но двигающиеся совершенно бесшумно. До Хризалиды — люди с обострённым чувством семьи (воспитатели, учителя, смотрители, охранники). После Раскола легко приняли Путь Подменыша, держась поближе к приёмным смертным семьям, а в Войне Согласия сохраняли нейтралитет. Домовой входит в жизнь выбранной смертной семьи как добрый сосед или друг и приносит ей клятву опеки, которую семья (зачастую неосознанно) скрепляет угощением или подарком: Благие домовые бережно стерегут сон домочадцев и помогают по дому, а Неблагие посылают туманные знамения и сурово проучивают нерадивых хозяев.</li><li><strong>Сродство (Affinity):</strong> Актёр (Actor).</li><li><strong>Врождённое право 1 — Приёмная семья (Adopted Family):</strong> Потратив ночь под крышей своей клятвенной семьи за полезной работой или службой для домочадцев, домовой может черпать Гламур из семейного очага подобно малому фрихолду (восстанавливая <strong>до 3 пунктов Гламура за историю</strong>).</li><li><strong>Врождённое право 2 — Безмолвный хранитель (Silent Protector):</strong> Домовые получают <strong>-1 к сложности всех бросков Скрытности (Stealth)</strong> и <strong>никогда не получают критический провал (ботч)</strong> при проверках Скрытности. Кроме того, пока домовой находится в доме своей приёмной семьи, спящие члены семьи не проснутся до самого рассвета, если только домовой сам не пожелает их разбудить.</li><li><strong>Слабость — Семейные узы (Bonds of Family):</strong> Если домовой нарушает клятву перед своей семьёй (допускает беду или отказывает в помощи), он <strong>теряет способность восстанавливать Гламур любыми путями</strong>, пока не загладит вину. Если же сама семья разрывает узы (прогоняет домового), он теряет доступ к праву <em>Приёмная семья</em>, пока не помирится с домочадцами или не обретёт новую семью.</li></ul>
+<h2 id="sec-9">2.15. Сводная шпаргалка по всем 13 базовым Китам</h2>
+<div class="nouveau-table-wrap"><table class="nouveau-table"><thead><tr><th>Кит</th><th>Сродство (-1 сл.)</th><th>Пассивные бонусы к Чертам</th><th>Ключевые Врождённые права</th><th>Слабость Кита</th></tr></thead><tbody><tr><td>Богганы</td><td>Актёр</td><td>Нет ботчей в Ремесле</td><td>Работа втрое быстрее (за 1/3 времени) без чужих глаз; чтение соц. динамики (Воспр.+Эмпатия/Хитрость, сл. 5–9)</td><td>Бросок Силы Воли (сл. 8), чтобы не помогать нуждающемуся (кроме заклятых врагов)</td></tr><tr><td>Клуриконы</td><td>Актёр</td><td>—</td><td>Мгновенное исчезновение вне взгляда (1 Гламур при захвате/путах); провокация на удар (СВ цели сл. 8)</td><td>Разлука с коллекцией дольше недели вызывает триггер Банальности</td></tr><tr><td>Красные Шапки</td><td>Природа</td><td>-2 сл. и нет ботчей в Запугивании</td><td>Поедание чего угодно; укус в бою Сила+2 Лет. (сл. урона 5, за 1 Гламур) и откусывание конечностей</td><td>+2 (или выше) к сложности всех социальных бросков, кроме Запугивания</td></tr><tr><td>Нокеры</td><td>Предмет</td><td>—</td><td>Временные химерические приборы из хлама (1–3 Гламура); починка чего угодно (сл. 5–9)</td><td>Неисправимый изъян в каждом творении (шанс поломки на 1 на 1к10 в стрессе)</td></tr><tr><td>Писки</td><td>Актёр</td><td>+1 Ловкость</td><td>Автоматическая мимикрия под окружающую группу (распознавание: Воспр.+Кеннинг сл. 8)</td><td>Бросок Силы Воли (сл. 8), чтобы не украсть приглянувшуюся вещь</td></tr><tr><td>Пуки</td><td>Природа</td><td>—</td><td>Превращение в своё животное (0 Гламура наедине, 1 при феях); Наперсник (ответы на вопросы)</td><td>На прямой вопрос обязаны солгать (правда требует Силы Воли сл. 8 + траты 1 ПСВ)</td></tr><tr><td>Сатиры</td><td>Фея</td><td>+1 Выносливость; нет ботчей в Атлетике</td><td>Дар Пана (снятие запретов вокруг: проверка Банальности или Силы Воли сл. 8)</td><td>Перепады настроения; сопротивление искушению вызывает триггер Банальности</td></tr><tr><td>Слуа</td><td>Предмет</td><td>-1 сл. ко всем броскам Восприятия</td><td>Извивание тела (Ловк.+Атлетика сл. 6–9); прозрение иллюзий (1 ПСВ, сл. 7) и духов (сл. 7)</td><td>Говорят только шёпотом; +2 к сложности всех соц. бросков с не-слуа</td></tr><tr><td>Тролли</td><td>Фея</td><td>+1/+2 Сила и +1/+2 уровня Синяки (за 1/2 клятвы); нет ботчей Атлетики и Бдительности</td><td>+2 кубика против уговоров, соблазнения и чар, уводящих от долга</td><td>Потеря Мощи титана и болезнь при нарушении клятвы; ярость при предательстве (СВ сл. 8)</td></tr><tr><td>Шелки</td><td>Природа</td><td>+1 Внешность, +1 Харизма; нет ботчей плавания</td><td>-2 сл. всех бросков Ловкости в воде; задержка дыхания на целые часы</td><td>Без контакта со шкурой нет магии фей; сожжение шкуры или удар холодным железом убивает душу феи</td></tr><tr><td>Ши (Аркадийские)</td><td>Время</td><td>+2 Внешность; нет ботчей Этикета и Политики</td><td>Оцепенение свидетелей при Вирде (СВ сл. 8); автопровал унижающих кантрипов</td><td>Любой получаемый пункт Банальности удваивается (в Грёзе — Эмпатическая слепота к простолюдинам)</td></tr><tr><td>Ши (Осенние)</td><td>Фея</td><td>+2 Внешность; нет ботчей Этикета и Политики</td><td>Оцепенение свидетелей при Вирде (СВ сл. 8); автопровал унижающих кантрипов</td><td>При общении смертные бросают СВ (сл. = Гламур ши): при провале помнят всё и навязываются, при ботче — одержимость</td></tr><tr><td>Эшу</td><td>Сцена</td><td>Нет ботчей Эмпатии и Исполнения</td><td>Невозможно заблудиться (1 Гламур против магии); +1 очко опыта за приключение с новой легендой</td><td>Отказ от пари, вызова (на слабо) или зова к приключению вызывает триггер Банальности</td></tr></tbody></table></div>
+                </div>
+              </article>
+
+              <div class="no-print grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                <a href="../01-world-and-creation/index.html" class="nouveau-panel p-4 sm:p-5 hover:border-[#f0dba8]/65 transition block">
+                      <div class="relative z-10 text-[11px] uppercase tracking-wider text-[#a69f90]">← Предыдущий том</div>
+                      <div class="relative z-10 font-nouveau text-xl font-semibold text-[#f0dba8] mt-1">01. Мир Грёзы, Основы и Создание персонажа</div>
+                    </a><a href="../03-noble-houses/index.html" class="nouveau-panel p-4 sm:p-5 hover:border-[#f0dba8]/65 transition block text-right">
+                      <div class="relative z-10 text-[11px] uppercase tracking-wider text-[#a69f90]">Следующий том →</div>
+                      <div class="relative z-10 font-nouveau text-xl font-semibold text-[#f0dba8] mt-1">03. Благородные Дома Китэйнов</div>
+                    </a>
+              </div>
+            </div>
+          </div>
+        </main>
+        
+
+  <!-- PRINT-ONLY LEXICON APPENDIX -->
+  <section class="print-only max-w-5xl mx-auto px-6 pt-5 mt-8 border-t-2 border-[#8c703b]" style="page-break-before: always;">
+    <h2 class="font-nouveau text-2xl font-bold mb-3">Единый Лексикон (Changeling: The Dreaming 20th)</h2>
+    <div id="print-lexicon-container" class="print-lex-cols"></div>
+  </section>
+
+  <footer class="no-print border-t border-[#d8b979]/15 py-8 text-center text-xs text-[#7b7669] px-4 mt-14">
+    <p class="font-nouveau text-base text-[#a69f90]">Changeling: The Dreaming 20th · Полное руководство игрока</p>
+    <p class="mt-1">Некоммерческий фанатский справочник и перевод правил C20 в оформлении «Ар-Нуво и Золото».</p>
+  </footer>
+
+  <!-- DESKTOP CHAINED GLOSSARY POPOVER -->
+  <div id="desktop-popover" class="no-print" role="dialog" aria-label="Карточка термина">
+    <div class="relative z-10 p-4 sm:p-5 space-y-2.5">
+      <div class="flex items-center justify-between gap-2 pb-2 border-b border-[#d8b979]/20">
+        <div id="pop-breadcrumbs" class="flex items-center gap-1 overflow-x-auto text-[11px] text-[#a69f90] pr-1"></div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" id="pop-pin-btn" class="px-2 py-0.5 rounded-full text-[11px] border border-[#d8b979]/35 text-[#a69f90] hover:text-[#f0dba8] transition">Закрепить</button>
+          <button type="button" data-close-pop class="w-6 h-6 rounded-full border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc] flex items-center justify-center text-xs transition" aria-label="Закрыть">✕</button>
+        </div>
+      </div>
+      <div id="pop-content" class="space-y-1.5"></div>
+    </div>
+  </div>
+
+  <!-- MOBILE / TEST BOTTOM SHEET -->
+  <div id="sheet-backdrop" class="no-print" data-close-sheet></div>
+  <div id="bottom-sheet" class="no-print" role="dialog" aria-modal="true" aria-label="Справочник терминов">
+    <div class="flex justify-center pt-3 pb-1.5 cursor-pointer" data-close-sheet>
+      <span class="w-11 h-1 rounded-full bg-[#d8b979]/45"></span>
+    </div>
+    <div class="px-4 pb-2.5 border-b border-[#d8b979]/20 flex items-center justify-between gap-2">
+      <div id="sheet-breadcrumbs" class="flex items-center gap-1.5 overflow-x-auto text-xs py-0.5"></div>
+      <button type="button" data-close-sheet class="px-2.5 py-1 rounded-full text-xs border border-[#d8b979]/35 text-[#a69f90] hover:text-[#f0eadc] shrink-0">Закрыть ✕</button>
+    </div>
+    <div id="sheet-content" class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3"></div>
+  </div>
+
+  <!-- GLOBAL SEARCH MODAL (Ctrl+K) -->
+  <div id="search-modal" class="modal-backdrop no-print flex items-start justify-center pt-14 sm:pt-20 px-3" data-close-search>
+    <div class="nouveau-panel w-full max-w-2xl p-4 sm:p-6 space-y-4 max-h-[80vh] flex flex-col" onclick="event.stopPropagation()">
+      <div class="relative z-10 flex items-center gap-2 border-b border-[#d8b979]/25 pb-3">
+        <svg class="w-4 h-4 text-[#d8b979] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="global-search-input" type="search" placeholder="Поиск по главам, Китам, правам и Лексикону..." class="w-full bg-transparent text-sm sm:text-base text-[#f0eadc] placeholder-[#7b7669] focus:outline-none" />
+        <button type="button" data-close-search class="px-2.5 py-1 rounded-full text-xs border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc]">Esc</button>
+      </div>
+      <div id="global-search-results" class="relative z-10 overflow-y-auto space-y-2.5 pr-1"></div>
+    </div>
+  </div>
+
+  <!-- 10-VOLUME DRAWER -->
+  <div id="volumes-drawer" class="modal-backdrop no-print flex justify-end" data-close-volumes>
+    <div class="w-full max-w-md bg-[#101916] border-l border-[#d8b979]/35 h-full p-5 overflow-y-auto space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-[#d8b979]/20 pb-3">
+        <div>
+          <div class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979]">Содержание книги</div>
+          <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc]">Все 10 томов руководства</h3>
+        </div>
+        <button type="button" data-close-volumes class="w-8 h-8 rounded-full border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc]">✕</button>
+      </div>
+      <div class="space-y-2.5">
+        <a href="../01-world-and-creation/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">01 · Часть 1</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Мир Грёзы, Основы и Создание персонажа</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Мир Грёзы, Дворы, Эсшит, Лексикон, Стадии души, Шаги 1–9</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Готово</span></div>
+        </a>
+        
+
+        <a href="../02-kiths/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#f0dba8]/70 bg-[#d8b979]/15">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">02 · Часть 2</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Киты Китэйнов</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Все 13 базовых Китов, стереотипы, конструктор Кита и сводная шпаргалка</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Готово</span></div>
+        </a>
+        
+
+        <a href="../03-noble-houses/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">03 · Часть 3</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Благородные Дома Китэйнов</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Все 14 Благородных Домов (7 Благих и 7 Неблагих) и титулы</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../04-legacies-thresholds/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">04 · Часть 4</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Наследия, Пороги Гламура и Антитеза</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">28 Наследий, 14 Порогов Гламура и Антитеза</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../05-traits-backgrounds/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">05 · Часть 5</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Черты и Дополнения</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Атрибуты, Способности и все 10 Дополнений (Backgrounds)</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../06-merits-flaws/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">06 · Часть 6</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Достоинства и Недостатки</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Достоинства и Недостатки (Merits &amp; Flaws)</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../07-laws-of-glamour-realms/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">07 · Часть 7</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Законы Магии Грёзы и 6 Владений</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Законы Магии Грёзы, Уловки, Кошмар, Высвобождение и 6 Владений</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../08a-grimoire-arts-1/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">08А · Часть 8 (Том I)</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Гримуар Искусств · Том I</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Весна, Лето, Осень, Зима, Первозданность, Пиретика, Небесное ремесло, Странствие, Метаморфоз</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../08b-grimoire-arts-2/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">08Б · Часть 8 (Том II)</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Гримуар Искусств · Том II</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Владычество, Хикане, Предзнаменование, Контракт, Онейромантия, Ловкость рук, Хронос, Наречение, Гнев Дракона</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../09-systems-drama-combat/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">09 · Часть 9</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Правила Игры, Химеры и Бой</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Базовые проверки, Сила Воли, Эпифании, Шлак, ковка Химер/Сокровищ, Клятвы, Банальность, Бедлам, Вирд и Бой</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        </div>
+    </div>
+  </div>
+
+  <!-- IMAGE LIGHTBOX -->
+  <div id="lightbox-modal" class="modal-backdrop no-print flex items-center justify-center p-4" data-close-lightbox>
+    <div class="max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
+      <img id="lightbox-img" src="" alt="" class="max-h-[80vh] w-auto rounded-xl border border-[#d8b979]/55 shadow-2xl" />
+      <div class="flex items-center gap-4">
+        <span id="lightbox-caption" class="font-nouveau italic text-lg text-[#f0dba8]"></span>
+        <button type="button" data-close-lightbox class="px-3 py-1 rounded-full text-xs border border-[#d8b979]/45 text-[#f0eadc] bg-[#0b110f]/80">Закрыть ✕</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/data/bundle.js"></script>
+  <script src="../assets/js/app.js"></script>
+</body>
+</html>

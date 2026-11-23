@@ -1,0 +1,803 @@
+/* ================================================================
+   CHANGELING: THE DREAMING 20TH — DESIGN SYSTEM «АР-НУВО И ЗОЛОТО»
+   Obsidian-Emerald Velvet, Champagne Gold, Concentric Frames & Print
+   ================================================================ */
+:root {
+  --bg-obsidian: #0b110f;
+  --bg-velvet: #101916;
+  --bg-surface: #15211d;
+  --bg-surface-deep: #0d1512;
+
+  --gold: #d8b979;
+  --gold-bright: #f0dba8;
+  --gold-deep: #8c703b;
+  --gold-outer: rgba(214, 179, 106, 0.30);
+  --gold-inner: rgba(214, 179, 106, 0.14);
+
+  --ivory: #f0eadc;
+  --parchment: #a69f90;
+  --parchment-dim: #7b7669;
+
+  /* Dynamic Volume / Kith Aura */
+  --aura-hex: #d8b979;
+  --aura-rgb: 216, 185, 121;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--bg-obsidian);
+}
+
+body {
+  background-color: var(--bg-obsidian);
+  color: var(--ivory);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: clamp(0.9rem, 0.86rem + 0.18vw, 0.98rem);
+  line-height: 1.68;
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Tactile paper/velvet grain overlay */
+.velvet-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+}
+
+/* Ambient top glow synced to active Aura */
+.ambient-aura {
+  position: fixed;
+  top: -16vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1360px, 145vw);
+  height: 72vh;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 54% at 50% 18%, rgba(var(--aura-rgb), 0.18) 0%, rgba(var(--aura-rgb), 0.05) 46%, transparent 74%),
+    radial-gradient(ellipse 38% 34% at 18% 10%, rgba(216, 185, 121, 0.08) 0%, transparent 70%);
+  transition: background 0.65s ease;
+}
+
+main, header, footer {
+  position: relative;
+  z-index: 2;
+}
+
+/* ================================================================
+   EDITORIAL TYPOGRAPHY & GILDED DROP CAP
+   ================================================================ */
+.font-nouveau {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  letter-spacing: 0.015em;
+}
+
+.fluid-hero-title {
+  font-size: clamp(2rem, 1.35rem + 2.7vw, 3.55rem);
+  line-height: 1.08;
+}
+
+.fluid-section-title {
+  font-size: clamp(1.6rem, 1.25rem + 1.35vw, 2.35rem);
+  line-height: 1.15;
+}
+
+.drop-cap {
+  float: left;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(2.15rem, 1.8rem + 0.9vw, 2.85rem);
+  line-height: 0.88;
+  padding: 0.34rem 0.56rem 0.28rem;
+  margin: 0.16rem 0.74rem 0.12rem 0;
+  color: var(--gold-bright);
+  background: linear-gradient(155deg, rgba(216, 185, 121, 0.16), rgba(11, 17, 15, 0.80));
+  border: 1px solid rgba(216, 185, 121, 0.55);
+  box-shadow: inset 0 0 0 3px var(--bg-velvet), inset 0 0 0 4px rgba(216, 185, 121, 0.24);
+  border-radius: 6px;
+}
+
+/* ================================================================
+   CONCENTRIC DOUBLE HAIRLINE FRAMES
+   ================================================================ */
+.nouveau-panel {
+  background: linear-gradient(180deg, rgba(21, 33, 29, 0.93) 0%, rgba(16, 25, 22, 0.97) 100%);
+  border: 1px solid var(--gold-outer);
+  border-radius: 16px;
+  position: relative;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.50),
+    inset 0 1px 0 rgba(240, 219, 168, 0.13),
+    inset 0 0 28px rgba(0, 0, 0, 0.28);
+}
+
+.nouveau-panel::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--gold-inner);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.nouveau-hero-arch {
+  background: linear-gradient(180deg, rgba(21, 33, 29, 0.90) 0%, rgba(14, 22, 19, 0.97) 100%);
+  border: 1px solid var(--gold-outer);
+  border-radius: 24px;
+  position: relative;
+  box-shadow:
+    0 24px 62px rgba(0, 0, 0, 0.56),
+    inset 0 1px 0 rgba(240, 219, 168, 0.15),
+    inset 0 0 32px rgba(0, 0, 0, 0.30);
+}
+
+.nouveau-hero-arch::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--gold-inner);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .nouveau-hero-arch {
+    border-radius: 110px 110px 16px 16px;
+  }
+  .nouveau-hero-arch::after {
+    border-radius: 104px 104px 10px 10px;
+  }
+}
+
+.botanical-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--gold);
+}
+.botanical-divider::before,
+.botanical-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-outer), transparent);
+}
+
+/* ================================================================
+   STAINED-GLASS ARCH TAROT CARDS (KITHS & VOLUME CARDS)
+   ================================================================ */
+.tarot-card {
+  --card-aura: #d8b979;
+  --card-aura-rgb: 216, 185, 121;
+  --mx: 50%;
+  --my: 24%;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background:
+    radial-gradient(ellipse 88% 58% at 50% 18%, rgba(var(--card-aura-rgb), 0.16), transparent 72%),
+    linear-gradient(180deg, #16231f 0%, #0e1714 100%);
+  border: 1px solid rgba(214, 179, 106, 0.32);
+  border-radius: 56px 56px 14px 14px;
+  padding: 1.35rem 0.9rem 1.15rem;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s ease, box-shadow 0.28s ease;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(240, 219, 168, 0.12);
+}
+
+.tarot-card::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(214, 179, 106, 0.16);
+  border-radius: 50px 50px 8px 8px;
+  pointer-events: none;
+  transition: border-color 0.28s ease;
+}
+
+@media (min-width: 640px) {
+  .tarot-card {
+    border-radius: 96px 96px 14px 14px;
+    padding: 1.75rem 1.05rem 1.25rem;
+  }
+  .tarot-card::before {
+    border-radius: 90px 90px 8px 8px;
+  }
+}
+
+.tarot-foil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(230px circle at var(--mx) var(--my), rgba(240, 219, 168, 0.19), rgba(var(--card-aura-rgb), 0.09) 42%, transparent 72%);
+  transition: opacity 0.3s ease;
+}
+
+@media (hover: hover) {
+  .tarot-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--gold);
+    box-shadow:
+      0 20px 44px rgba(0, 0, 0, 0.56),
+      0 0 28px rgba(var(--card-aura-rgb), 0.18),
+      inset 0 1px 0 rgba(240, 219, 168, 0.22);
+  }
+  .tarot-card:hover .tarot-foil {
+    opacity: 1;
+  }
+  .tarot-card:hover::before {
+    border-color: rgba(240, 219, 168, 0.36);
+  }
+}
+
+.tarot-card.active {
+  border-color: var(--gold-bright);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.62),
+    0 0 34px rgba(var(--card-aura-rgb), 0.30),
+    inset 0 1px 0 rgba(240, 219, 168, 0.28);
+}
+.tarot-card.active::before {
+  border-color: rgba(var(--card-aura-rgb), 0.58);
+}
+
+/* ================================================================
+   CHAPTER PROSE, TABLES, CALLOUTS & GILDED IMAGE FRAMES
+   ================================================================ */
+.chapter-prose {
+  color: rgba(240, 234, 220, 0.93);
+}
+
+.chapter-prose > * + * {
+  margin-top: 1.15rem;
+}
+
+.chapter-prose h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(1.65rem, 1.3rem + 1.25vw, 2.3rem);
+  font-weight: 600;
+  line-height: 1.16;
+  color: var(--ivory);
+  margin-top: 2.75rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid rgba(216, 185, 121, 0.24);
+  scroll-margin-top: 5.5rem;
+}
+
+.chapter-prose h2:first-child {
+  margin-top: 0.25rem;
+}
+
+.chapter-prose h3 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(1.32rem, 1.15rem + 0.65vw, 1.72rem);
+  font-weight: 600;
+  line-height: 1.24;
+  color: var(--gold-bright);
+  margin-top: 2rem;
+  margin-bottom: 0.65rem;
+  scroll-margin-top: 5.5rem;
+}
+
+.chapter-prose h4 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.22rem;
+  font-weight: 600;
+  color: var(--gold);
+  margin-top: 1.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.chapter-prose p {
+  line-height: 1.72;
+}
+
+.chapter-prose strong {
+  color: var(--gold-bright);
+  font-weight: 600;
+}
+
+.chapter-prose em {
+  color: #e3dccb;
+}
+
+.chapter-prose ul,
+.chapter-prose ol {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.62rem;
+}
+
+.chapter-prose ul > li {
+  position: relative;
+  list-style: none;
+  padding-left: 0.95rem;
+}
+
+.chapter-prose ul > li::before {
+  content: "✦";
+  position: absolute;
+  left: -0.25rem;
+  top: 0.08rem;
+  font-size: 0.7rem;
+  color: var(--gold);
+}
+
+.chapter-prose ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+
+.chapter-prose blockquote {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.45;
+  color: var(--gold-bright);
+  border-left: 2px solid var(--gold);
+  background: linear-gradient(90deg, rgba(216, 185, 121, 0.08), transparent);
+  padding: 0.8rem 1.15rem;
+  border-radius: 0 10px 10px 0;
+  margin: 1.4rem 0;
+}
+
+/* Gilded Tables */
+.nouveau-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--gold-outer);
+  border-radius: 14px;
+  background: rgba(11, 17, 15, 0.68);
+  margin: 1.5rem 0;
+  box-shadow: inset 0 1px 0 rgba(240, 219, 168, 0.1);
+}
+
+.nouveau-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.nouveau-table th {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left;
+  color: var(--gold-bright);
+  background: rgba(216, 185, 121, 0.12);
+  border-bottom: 1px solid rgba(216, 185, 121, 0.32);
+  padding: 0.75rem 0.95rem;
+}
+
+.nouveau-table td {
+  padding: 0.7rem 0.95rem;
+  border-bottom: 1px solid rgba(216, 185, 121, 0.12);
+  vertical-align: top;
+}
+
+.nouveau-table tr:last-child td {
+  border-bottom: none;
+}
+
+.nouveau-table tbody tr:nth-child(even) {
+  background: rgba(21, 33, 29, 0.45);
+}
+
+.nouveau-table tbody tr:hover {
+  background: rgba(216, 185, 121, 0.07);
+}
+
+/* Special C20 Callouts */
+.callout-lore {
+  border-left: 2px solid rgba(216, 185, 121, 0.55);
+  background: linear-gradient(90deg, rgba(216, 185, 121, 0.07), rgba(16, 25, 22, 0.45));
+  padding: 1rem 1.25rem;
+  border-radius: 0 12px 12px 0;
+  margin: 1.35rem 0;
+}
+
+.callout-mechanics {
+  border: 1px solid rgba(216, 185, 121, 0.42);
+  background: linear-gradient(160deg, rgba(216, 185, 121, 0.10), rgba(11, 17, 15, 0.85));
+  padding: 1.1rem 1.3rem;
+  border-radius: 14px;
+  margin: 1.4rem 0;
+}
+
+.callout-sidebar {
+  position: relative;
+  border: 1px solid var(--gold-outer);
+  background: linear-gradient(180deg, rgba(21, 33, 29, 0.94), rgba(13, 21, 18, 0.98));
+  border-radius: 16px;
+  padding: 1.35rem 1.45rem;
+  margin: 1.65rem 0;
+}
+.callout-sidebar::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid var(--gold-inner);
+  border-radius: 11px;
+  pointer-events: none;
+}
+
+/* Art Nouveau Image Frames */
+.nouveau-figure {
+  margin: 1.6rem auto;
+  position: relative;
+}
+
+.nouveau-figure-frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(216, 185, 121, 0.45);
+  border-radius: 16px;
+  background: #0b110f;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55);
+}
+
+.nouveau-figure-frame::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(240, 219, 168, 0.22);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.nouveau-figure.style-arch {
+  max-width: 420px;
+}
+.nouveau-figure.style-arch .nouveau-figure-frame {
+  border-radius: 180px 180px 16px 16px;
+}
+.nouveau-figure.style-arch .nouveau-figure-frame::after {
+  border-radius: 174px 174px 10px 10px;
+}
+
+@media (min-width: 768px) {
+  .nouveau-figure.style-right {
+    float: right;
+    width: 42%;
+    max-width: 340px;
+    margin: 0.35rem 0 1.1rem 1.5rem;
+  }
+  .nouveau-figure.style-left {
+    float: left;
+    width: 42%;
+    max-width: 340px;
+    margin: 0.35rem 1.5rem 1.1rem 0;
+  }
+}
+
+.nouveau-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: zoom-in;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nouveau-figure:hover img {
+  transform: scale(1.02);
+}
+
+.nouveau-figure figcaption {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--parchment);
+  margin-top: 0.55rem;
+  font-style: italic;
+}
+
+/* ================================================================
+   EMBOSSED GOLDEN WoD DOTS (10 BEADS)
+   ================================================================ */
+.wod-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 9999px;
+  border: 1px solid rgba(216, 185, 121, 0.40);
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.05), rgba(11, 17, 15, 0.92));
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.72);
+  transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  flex-shrink: 0;
+}
+
+.wod-dot.filled {
+  border-color: var(--gold-bright);
+  background: radial-gradient(circle at 32% 28%, #fff6da 0%, #d8b979 48%, #7e612d 100%);
+  box-shadow: 0 0 10px rgba(216, 185, 121, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.55);
+}
+
+.wod-dot.bonus {
+  border-color: #fff8e4;
+  background: radial-gradient(circle at 30% 28%, #ffffff 0%, #f0dba8 44%, var(--aura-hex) 100%);
+  box-shadow: 0 0 14px rgba(var(--aura-rgb), 0.72), 0 0 5px #fff6da;
+  transform: scale(1.13);
+}
+
+.wod-dot.banality.filled {
+  border-color: #b7c2bf;
+  background: radial-gradient(circle at 32% 28%, #dfe5e3 0%, #7d8b87 54%, #46504d 100%);
+  box-shadow: 0 0 8px rgba(164, 176, 172, 0.26);
+}
+
+/* ================================================================
+   INLINE LEXICON LINKS & TABLE MODE
+   ================================================================ */
+.lex-term {
+  display: inline;
+  padding: 0 1px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: var(--gold-bright);
+  font: inherit;
+  cursor: pointer;
+  border-bottom: 1px dotted var(--gold);
+  border-radius: 2px;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+.lex-term:hover,
+.lex-term:focus-visible {
+  background-color: rgba(216, 185, 121, 0.16);
+  border-bottom-style: solid;
+  outline: none;
+}
+
+body.mode-table .lore-only,
+body.mode-table .callout-lore {
+  display: none !important;
+}
+body.mode-table .table-mode-only {
+  display: flex !important;
+}
+
+/* ================================================================
+   POPOVER, BOTTOM SHEET, MODALS & TOC SIDEBAR
+   ================================================================ */
+#desktop-popover {
+  position: fixed;
+  z-index: 80;
+  width: min(400px, calc(100vw - 24px));
+  background: linear-gradient(180deg, rgba(21, 33, 29, 0.98), rgba(11, 17, 15, 0.99));
+  border: 1px solid rgba(216, 185, 121, 0.72);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.78), inset 0 1px 0 rgba(240, 219, 168, 0.16);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  transform: translateY(6px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#desktop-popover.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+#desktop-popover::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(214, 179, 106, 0.18);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+#sheet-backdrop,
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  background: rgba(5, 9, 8, 0.68);
+  backdrop-filter: blur(5px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+#sheet-backdrop.open,
+.modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#bottom-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 95;
+  max-height: 72vh;
+  min-height: 36vh;
+  background: linear-gradient(180deg, #16231f 0%, #0d1512 100%);
+  border-top: 1.5px solid var(--gold);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.74);
+  transform: translateY(105%);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+}
+#bottom-sheet.open {
+  transform: translateY(0);
+}
+
+.toc-link {
+  display: block;
+  padding: 0.36rem 0.65rem;
+  border-left: 2px solid rgba(216, 185, 121, 0.15);
+  color: var(--parchment);
+  font-size: 0.8rem;
+  line-height: 1.38;
+  transition: all 0.18s ease;
+  border-radius: 0 6px 6px 0;
+}
+.toc-link:hover {
+  color: var(--ivory);
+  border-left-color: rgba(216, 185, 121, 0.55);
+  background: rgba(216, 185, 121, 0.06);
+}
+.toc-link.active {
+  color: var(--gold-bright);
+  border-left-color: var(--gold-bright);
+  background: rgba(216, 185, 121, 0.11);
+  font-weight: 500;
+}
+.toc-link.depth-3 {
+  padding-left: 1.35rem;
+  font-size: 0.76rem;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.spotlight-anim {
+  animation: fadeUp 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(216, 185, 121, 0.30); border-radius: 9999px; }
+
+.print-only { display: none; }
+
+/* ================================================================
+   CLEAN INK-FRIENDLY EDITORIAL PRINT STYLES (@media print)
+   ================================================================ */
+@media print {
+  @page {
+    size: A4;
+    margin: 13mm 14mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #1c1d1c !important;
+    font-size: 9.6pt !important;
+    line-height: 1.45 !important;
+  }
+
+  .no-print,
+  .velvet-grain,
+  .ambient-aura,
+  .tarot-foil,
+  header,
+  footer,
+  aside,
+  #kiths-interactive-area,
+  #desktop-popover,
+  #sheet-backdrop,
+  #bottom-sheet,
+  #search-modal,
+  #volumes-drawer,
+  #lightbox-modal {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .nouveau-hero-arch,
+  .nouveau-panel,
+  .mech-card,
+  .print-kith-card,
+  .callout-sidebar,
+  .callout-mechanics {
+    background: #ffffff !important;
+    color: #1c1d1c !important;
+    border: 1px solid #8c7b5a !important;
+    border-radius: 10px !important;
+    position: relative !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .nouveau-hero-arch::after,
+  .nouveau-panel::after,
+  .print-kith-card::after,
+  .callout-sidebar::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border: 1px solid #d5cbb8 !important;
+    border-radius: 6px !important;
+    pointer-events: none;
+  }
+
+  .chapter-prose,
+  .chapter-prose h2,
+  .chapter-prose h3,
+  .chapter-prose h4,
+  .chapter-prose strong,
+  .chapter-prose blockquote {
+    color: #1c1d1c !important;
+  }
+
+  .nouveau-table th,
+  .nouveau-table td {
+    color: #1c1d1c !important;
+    border: 1px solid #b5a990 !important;
+    background: #ffffff !important;
+  }
+
+  .drop-cap {
+    background: #faf7f1 !important;
+    color: #5c4824 !important;
+    border-color: #8c7b5a !important;
+  }
+
+  .lex-term {
+    color: #1c1d1c !important;
+    border-bottom: 1px dotted #777 !important;
+  }
+
+  .wod-dot {
+    border-color: #6b562e !important;
+    background: #ffffff !important;
+  }
+  .wod-dot.filled,
+  .wod-dot.bonus {
+    background: #6b562e !important;
+  }
+  .wod-dot.banality.filled {
+    background: #555555 !important;
+    border-color: #555555 !important;
+  }
+
+  .print-lex-cols {
+    column-count: 2;
+    column-gap: 16px;
+  }
+  .print-lex-entry {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    font-size: 8.2pt;
+    line-height: 1.32;
+    margin-bottom: 5px;
+  }
+}

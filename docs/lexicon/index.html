@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru" data-root="../" style="--aura-hex: #d8b979; --aura-rgb: 216, 185, 121;">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Единый Лексикон игрока — Changeling: The Dreaming 20th</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="../assets/css/nouveau.css" />
+</head>
+<body class="antialiased selection:bg-[#d8b979]/25 selection:text-[#f0dba8]">
+  <div class="velvet-grain" aria-hidden="true"></div>
+  <div class="ambient-aura" aria-hidden="true"></div>
+
+  <!-- FLOATING GLASSMORPHIC TOP NAVIGATION BAR -->
+  <header class="no-print sticky top-0 z-50 border-b border-[#d8b979]/25 backdrop-blur-md bg-[#0b110f]/85">
+    <div class="max-w-6xl mx-auto px-3.5 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+      <a href="../index.html" class="flex items-center gap-2.5 group shrink-0">
+        <span class="w-8 h-8 rounded-full border border-[#d8b979]/55 bg-[#15211d] flex items-center justify-center transition group-hover:border-[#f0dba8]">
+          <svg class="w-4 h-4 text-[#d8b979]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 3C8.5 6.2 6.5 9.8 6.5 13.5a5.5 5.5 0 0 0 11 0C17.5 9.8 15.5 6.2 12 3Z"/>
+            <path d="M12 7v12M12 12.5l3-2.5M12 15l-3-2"/>
+          </svg>
+        </span>
+        <span class="font-nouveau text-lg sm:text-xl font-semibold tracking-wide text-[#f0eadc]">
+          CtD 20 <span class="text-[#d8b979]">· Книга игрока</span>
+        </span>
+      </a>
+
+      <nav class="order-3 lg:order-2 w-full lg:w-auto flex items-center justify-center gap-1 sm:gap-1.5 pt-1.5 lg:pt-0 border-t border-[#d8b979]/15 lg:border-none text-xs sm:text-[13px] overflow-x-auto">
+        <button type="button" data-open-volumes class="px-3 py-1 rounded-full text-[#f0eadc] hover:text-[#f0dba8] hover:bg-[#d8b979]/12 border border-[#d8b979]/25 transition shrink-0">
+          ☰ Оглавление (10 томов)
+        </button>
+        <a href="../01-world-and-creation/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 text-[#a69f90] hover:text-[#f0dba8]">Создание героя</a>
+        <a href="../02-kiths/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 text-[#a69f90] hover:text-[#f0dba8]">13 Китов</a>
+        <a href="../lexicon/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 text-[#f0dba8] bg-[#d8b979]/15">Лексикон</a>
+      </nav>
+
+      <div class="order-2 lg:order-3 flex items-center gap-1.5 shrink-0">
+        <button type="button" data-open-search class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs border border-[#d8b979]/30 bg-[#101916]/90 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/70 transition" title="Быстрый поиск по всей книге (Ctrl+K)">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <span class="hidden sm:inline">Поиск</span>
+          <kbd class="hidden md:inline text-[10px] px-1.5 py-0.2 rounded bg-[#0b110f] border border-[#d8b979]/25 text-[#7b7669]">Ctrl+K</kbd>
+        </button>
+
+        <button type="button" id="btn-depth-toggle" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/30 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#d8b979] transition" title="Скрыть художественные описания и оставить только механику">
+          <span id="depth-dot" class="w-1.5 h-1.5 rounded-full bg-[#d8b979]"></span>
+          <span id="depth-text">Лор + Правила</span>
+        </button>
+
+        <button type="button" id="btn-sheet-toggle" class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/30 bg-[#101916]/90 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/75 transition" title="Переключить десктопные тултипы в режим мобильной шторки">
+          <span id="sheet-text">Тест шторки</span>
+        </button>
+
+        <button type="button" onclick="window.print()" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/55 bg-[#d8b979]/15 text-[#f0dba8] hover:bg-[#d8b979]/25 transition" title="Печать страницы или сохранение в PDF">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+          <span class="hidden sm:inline">PDF</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  
+    <main class="max-w-5xl mx-auto px-3.5 sm:px-6 pt-6 sm:pt-10 pb-12 space-y-8">
+      <section class="nouveau-hero-arch px-6 py-8 sm:px-12 sm:py-12 text-center">
+        <div class="relative z-10">
+          <p class="text-xs uppercase tracking-[0.26em] text-[#d8b979] mb-2">Справочник терминов · C20</p>
+          <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">Единый Лексикон игрока</h1>
+          <p class="text-xs sm:text-sm text-[#a69f90] max-w-2xl mx-auto mt-3">
+            Выверенный словарь из 55 понятий Мира Грёзы с оригинальными английскими эквивалентами. Все термины внутри карточек интерактивны и связаны в цепочки.
+          </p>
+        </div>
+      </section>
+      <div id="lexicon-directory-mount"></div>
+    </main>
+    
+
+  <!-- PRINT-ONLY LEXICON APPENDIX -->
+  <section class="print-only max-w-5xl mx-auto px-6 pt-5 mt-8 border-t-2 border-[#8c703b]" style="page-break-before: always;">
+    <h2 class="font-nouveau text-2xl font-bold mb-3">Единый Лексикон (Changeling: The Dreaming 20th)</h2>
+    <div id="print-lexicon-container" class="print-lex-cols"></div>
+  </section>
+
+  <footer class="no-print border-t border-[#d8b979]/15 py-8 text-center text-xs text-[#7b7669] px-4 mt-14">
+    <p class="font-nouveau text-base text-[#a69f90]">Changeling: The Dreaming 20th · Полное руководство игрока</p>
+    <p class="mt-1">Некоммерческий фанатский справочник и перевод правил C20 в оформлении «Ар-Нуво и Золото».</p>
+  </footer>
+
+  <!-- DESKTOP CHAINED GLOSSARY POPOVER -->
+  <div id="desktop-popover" class="no-print" role="dialog" aria-label="Карточка термина">
+    <div class="relative z-10 p-4 sm:p-5 space-y-2.5">
+      <div class="flex items-center justify-between gap-2 pb-2 border-b border-[#d8b979]/20">
+        <div id="pop-breadcrumbs" class="flex items-center gap-1 overflow-x-auto text-[11px] text-[#a69f90] pr-1"></div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" id="pop-pin-btn" class="px-2 py-0.5 rounded-full text-[11px] border border-[#d8b979]/35 text-[#a69f90] hover:text-[#f0dba8] transition">Закрепить</button>
+          <button type="button" data-close-pop class="w-6 h-6 rounded-full border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc] flex items-center justify-center text-xs transition" aria-label="Закрыть">✕</button>
+        </div>
+      </div>
+      <div id="pop-content" class="space-y-1.5"></div>
+    </div>
+  </div>
+
+  <!-- MOBILE / TEST BOTTOM SHEET -->
+  <div id="sheet-backdrop" class="no-print" data-close-sheet></div>
+  <div id="bottom-sheet" class="no-print" role="dialog" aria-modal="true" aria-label="Справочник терминов">
+    <div class="flex justify-center pt-3 pb-1.5 cursor-pointer" data-close-sheet>
+      <span class="w-11 h-1 rounded-full bg-[#d8b979]/45"></span>
+    </div>
+    <div class="px-4 pb-2.5 border-b border-[#d8b979]/20 flex items-center justify-between gap-2">
+      <div id="sheet-breadcrumbs" class="flex items-center gap-1.5 overflow-x-auto text-xs py-0.5"></div>
+      <button type="button" data-close-sheet class="px-2.5 py-1 rounded-full text-xs border border-[#d8b979]/35 text-[#a69f90] hover:text-[#f0eadc] shrink-0">Закрыть ✕</button>
+    </div>
+    <div id="sheet-content" class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3"></div>
+  </div>
+
+  <!-- GLOBAL SEARCH MODAL (Ctrl+K) -->
+  <div id="search-modal" class="modal-backdrop no-print flex items-start justify-center pt-14 sm:pt-20 px-3" data-close-search>
+    <div class="nouveau-panel w-full max-w-2xl p-4 sm:p-6 space-y-4 max-h-[80vh] flex flex-col" onclick="event.stopPropagation()">
+      <div class="relative z-10 flex items-center gap-2 border-b border-[#d8b979]/25 pb-3">
+        <svg class="w-4 h-4 text-[#d8b979] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="global-search-input" type="search" placeholder="Поиск по главам, Китам, правам и Лексикону..." class="w-full bg-transparent text-sm sm:text-base text-[#f0eadc] placeholder-[#7b7669] focus:outline-none" />
+        <button type="button" data-close-search class="px-2.5 py-1 rounded-full text-xs border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc]">Esc</button>
+      </div>
+      <div id="global-search-results" class="relative z-10 overflow-y-auto space-y-2.5 pr-1"></div>
+    </div>
+  </div>
+
+  <!-- 10-VOLUME DRAWER -->
+  <div id="volumes-drawer" class="modal-backdrop no-print flex justify-end" data-close-volumes>
+    <div class="w-full max-w-md bg-[#101916] border-l border-[#d8b979]/35 h-full p-5 overflow-y-auto space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-[#d8b979]/20 pb-3">
+        <div>
+          <div class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979]">Содержание книги</div>
+          <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc]">Все 10 томов руководства</h3>
+        </div>
+        <button type="button" data-close-volumes class="w-8 h-8 rounded-full border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc]">✕</button>
+      </div>
+      <div class="space-y-2.5">
+        <a href="../01-world-and-creation/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">01 · Часть 1</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Мир Грёзы, Основы и Создание персонажа</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Мир Грёзы, Дворы, Эсшит, Лексикон, Стадии души, Шаги 1–9</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Готово</span></div>
+        </a>
+        
+
+        <a href="../02-kiths/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">02 · Часть 2</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Киты Китэйнов</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Все 13 базовых Китов, стереотипы, конструктор Кита и сводная шпаргалка</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Готово</span></div>
+        </a>
+        
+
+        <a href="../03-noble-houses/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">03 · Часть 3</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Благородные Дома Китэйнов</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Все 14 Благородных Домов (7 Благих и 7 Неблагих) и титулы</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../04-legacies-thresholds/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">04 · Часть 4</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Наследия, Пороги Гламура и Антитеза</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">28 Наследий, 14 Порогов Гламура и Антитеза</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../05-traits-backgrounds/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">05 · Часть 5</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Черты и Дополнения</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Атрибуты, Способности и все 10 Дополнений (Backgrounds)</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../06-merits-flaws/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">06 · Часть 6</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Достоинства и Недостатки</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Достоинства и Недостатки (Merits &amp; Flaws)</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../07-laws-of-glamour-realms/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">07 · Часть 7</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Законы Магии Грёзы и 6 Владений</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Законы Магии Грёзы, Уловки, Кошмар, Высвобождение и 6 Владений</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../08a-grimoire-arts-1/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">08А · Часть 8 (Том I)</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Гримуар Искусств · Том I</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Весна, Лето, Осень, Зима, Первозданность, Пиретика, Небесное ремесло, Странствие, Метаморфоз</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../08b-grimoire-arts-2/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">08Б · Часть 8 (Том II)</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Гримуар Искусств · Том II</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Владычество, Хикане, Предзнаменование, Контракт, Онейромантия, Ловкость рук, Хронос, Наречение, Гнев Дракона</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        
+
+        <a href="../09-systems-drama-combat/index.html"
+           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+          <div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">09 · Часть 9</div>
+            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">Правила Игры, Химеры и Бой</div>
+            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Базовые проверки, Сила Воли, Эпифании, Шлак, ковка Химер/Сокровищ, Клятвы, Банальность, Бедлам, Вирд и Бой</div>
+          </div>
+          <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span></div>
+        </a>
+        </div>
+    </div>
+  </div>
+
+  <!-- IMAGE LIGHTBOX -->
+  <div id="lightbox-modal" class="modal-backdrop no-print flex items-center justify-center p-4" data-close-lightbox>
+    <div class="max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
+      <img id="lightbox-img" src="" alt="" class="max-h-[80vh] w-auto rounded-xl border border-[#d8b979]/55 shadow-2xl" />
+      <div class="flex items-center gap-4">
+        <span id="lightbox-caption" class="font-nouveau italic text-lg text-[#f0dba8]"></span>
+        <button type="button" data-close-lightbox class="px-3 py-1 rounded-full text-xs border border-[#d8b979]/45 text-[#f0eadc] bg-[#0b110f]/80">Закрыть ✕</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/data/bundle.js"></script>
+  <script src="../assets/js/app.js"></script>
+</body>
+</html>

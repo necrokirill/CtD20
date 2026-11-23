@@ -1,0 +1,143 @@
+{
+  "site": {
+    "title": "Changeling: The Dreaming 20th",
+    "subtitle": "Полное руководство игрока",
+    "edition": "20th Anniversary Edition · Русский свод",
+    "epigraph": "«Я — единственное в жизни, что я могу контролировать. Я неподражаем, я оригинален!»",
+    "epigraphAuthor": "Лин-Мануэль Миранда, «Гамильтон: Американский мюзикл»",
+    "intro": "Это руководство создано как полностью автономная книга игрока по Changeling: The Dreaming 20th Anniversary Edition (C20). Здесь собрано и выверено всё необходимое, чтобы с нуля придумать, оцифровать и оживить своего персонажа — от законов Грёзы и тринадцати базовых Китов до Благородных Домов, Гримуара Искусств и ковки Химер.",
+    "auraHex": "#d8b979"
+  },
+  "volumes": [
+    {
+      "slug": "01-world-and-creation",
+      "num": "01",
+      "part": "Часть 1",
+      "title": "Мир Грёзы, Основы и Создание персонажа",
+      "summary": "Мир Грёзы, Дворы, Эсшит, Лексикон, Стадии души, Шаги 1–9",
+      "status": "ready",
+      "auraHex": "#d8b979",
+      "coverImage": "",
+      "epigraph": "«Я — единственное в жизни, что я могу контролировать. Я неподражаем, я оригинален!»",
+      "epigraphAuthor": "Лин-Мануэль Миранда, «Гамильтон: Американский мюзикл»",
+      "file": "01-world-and-creation.md"
+    },
+    {
+      "slug": "02-kiths",
+      "num": "02",
+      "part": "Часть 2",
+      "title": "Киты Китэйнов",
+      "summary": "Все 13 базовых Китов, стереотипы, конструктор Кита и сводная шпаргалка",
+      "status": "ready",
+      "auraHex": "#c88a36",
+      "coverImage": "",
+      "epigraph": "«Словно каждый человек крутит у себя в голове историю о самом себе. Всегда. Всё время. Эта история делает тебя тем, кто ты есть. Мы выстраиваем себя из этой истории».",
+      "epigraphAuthor": "Патрик Ротфусс, «Имя ветра»",
+      "file": "02-kiths.md"
+    },
+    {
+      "slug": "03-noble-houses",
+      "num": "03",
+      "part": "Часть 3",
+      "title": "Благородные Дома Китэйнов",
+      "summary": "Все 14 Благородных Домов (7 Благих и 7 Неблагих) и титулы",
+      "status": "planned",
+      "auraHex": "#8b6bbf",
+      "coverImage": "",
+      "epigraph": "",
+      "epigraphAuthor": "",
+      "file": "03-noble-houses.md"
+    },
+    {
+      "slug": "04-legacies-thresholds",
+      "num": "04",
+      "part": "Часть 4",
+      "title": "Наследия, Пороги Гламура и Антитеза",
+      "summary": "28 Наследий, 14 Порогов Гламура и Антитеза",
+      "status": "planned",
+      "auraHex": "#c86d8a",
+      "coverImage": "",
+      "epigraph": "",
+      "epigraphAuthor": "",
+      "file": "04-legacies-thresholds.md"
+    },
+    {
+      "slug": "05-traits-backgrounds",
+      "num": "05",
+      "part": "Часть 5",
+      "title": "Черты и Дополнения",
+      "summary": "Атрибуты, Способности и все 10 Дополнений (Backgrounds)",
+      "status": "planned",
+      "auraHex": "#4f9e63",
+      "coverImage": "",
+      "epigraph": "",
+      "epigraphAuthor": "",
+      "file": "05-traits-backgrounds.md"
+    },
+    {
+      "slug": "06-merits-flaws",
+      "num": "06",
+      "part": "Часть 6",
+      "title": "Достоинства и Недостатки",
+      "summary": "Достоинства и Недостатки (Merits & Flaws)",
+      "status": "planned",
+      "auraHex": "#c99b49",
+      "coverImage": "",
+      "epigraph": "",
+      "epigraphAuthor": "",
+      "file": "06-merits-flaws.md"
+    },
+    {
+      "slug": "07-laws-of-glamour-realms",
+      "num": "07",
+      "part": "Часть 7",
+      "title": "Законы Магии Грёзы и 6 Владений",
+      "summary": "Законы Магии Грёзы, Уловки, Кошмар, Высвобождение и 6 Владений",
+      "status": "planned",
+      "auraHex": "#4b9aa8",
+      "coverImage": "",
+      "epigraph": "",
+      "epigraphAuthor": "",
+      "file": "07-laws-of-glamour-realms.md"
+    },
+    {
+      "slug": "08a-grimoire-arts-1",
+      "num": "08А",
+      "part": "Часть 8 (Том I)",
+      "title": "Гримуар Искусств · Том I",
+      "summary": "Весна, Лето, Осень, Зима, Первозданность, Пиретика, Небесное ремесло, Странствие, Метаморфоз",
+      "status": "planned",
+      "auraHex": "#69a860",
+      "coverImage": "",
+      "epigraph": "",
+      "epigraphAuthor": "",
+      "file": "08a-grimoire-arts-1.md"
+    },
+    {
+      "slug": "08b-grimoire-arts-2",
+      "num": "08Б",
+      "part": "Часть 8 (Том II)",
+      "title": "Гримуар Искусств · Том II",
+      "summary": "Владычество, Хикане, Предзнаменование, Контракт, Онейромантия, Ловкость рук, Хронос, Наречение, Гнев Дракона",
+      "status": "planned",
+      "auraHex": "#9d6bc4",
+      "coverImage": "",
+      "epigraph": "",
+      "epigraphAuthor": "",
+      "file": "08b-grimoire-arts-2.md"
+    },
+    {
+      "slug": "09-systems-drama-combat",
+      "num": "09",
+      "part": "Часть 9",
+      "title": "Правила Игры, Химеры и Бой",
+      "summary": "Базовые проверки, Сила Воли, Эпифании, Шлак, ковка Химер/Сокровищ, Клятвы, Банальность, Бедлам, Вирд и Бой",
+      "status": "planned",
+      "auraHex": "#a83b4a",
+      "coverImage": "",
+      "epigraph": "",
+      "epigraphAuthor": "",
+      "file": "09-systems-drama-combat.md"
+    }
+  ]
+}

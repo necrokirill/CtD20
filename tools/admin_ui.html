@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Студия Редактора — CtD 20 «Ар-Нуво и Золото»</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/assets/css/nouveau.css" />
+  <style>
+    .adm-input {
+      background: rgba(11, 17, 15, 0.85);
+      border: 1px solid rgba(216, 185, 121, 0.30);
+      color: #f0eadc;
+      border-radius: 10px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+      width: 100%;
+      transition: border-color 0.16s ease;
+    }
+    .adm-input:focus {
+      outline: none;
+      border-color: #f0dba8;
+    }
+    .adm-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      border: 1px solid rgba(216, 185, 121, 0.38);
+      background: rgba(21, 33, 29, 0.9);
+      color: #f0eadc;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .adm-btn:hover {
+      border-color: #f0dba8;
+      color: #f0dba8;
+    }
+    .adm-btn-gold {
+      border-color: rgba(240, 219, 168, 0.8);
+      background: linear-gradient(145deg, rgba(216, 185, 121, 0.28), rgba(140, 112, 59, 0.25));
+      color: #f0dba8;
+    }
+    .adm-btn-gold:hover {
+      background: linear-gradient(145deg, rgba(216, 185, 121, 0.40), rgba(140, 112, 59, 0.35));
+    }
+    #md-textarea {
+      font-family: 'Consolas', 'JetBrains Mono', monospace;
+      font-size: 0.84rem;
+      line-height: 1.6;
+      resize: vertical;
+      min-height: 540px;
+    }
+  </style>
+</head>
+<body class="antialiased">
+  <div class="velvet-grain" aria-hidden="true"></div>
+  <div class="ambient-aura" aria-hidden="true"></div>
+
+  <!-- TOP ADMIN HEADER -->
+  <header class="sticky top-0 z-50 border-b border-[#d8b979]/30 backdrop-blur-md bg-[#0b110f]/90">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-full border border-[#d8b979]/60 bg-[#15211d] flex items-center justify-center text-[#d8b979]">✦</span>
+        <div>
+          <div class="font-nouveau text-xl font-semibold text-[#f0eadc] leading-none">Студия Издателя · CtD 20</div>
+          <div class="text-[11px] text-[#a69f90]">Локальная админ-панель руководства игрока</div>
+        </div>
+      </div>
+
+      <nav class="flex flex-wrap items-center gap-1.5" id="adm-tabs">
+        <button type="button" data-tab="dashboard" class="adm-tab px-3.5 py-1.5 rounded-full text-xs font-medium transition">1. Тома и Обзор</button>
+        <button type="button" data-tab="editor" class="adm-tab px-3.5 py-1.5 rounded-full text-xs font-medium transition">2. Редактор Глав</button>
+        <button type="button" data-tab="kiths" class="adm-tab px-3.5 py-1.5 rounded-full text-xs font-medium transition">3. Арканы Китов</button>
+        <button type="button" data-tab="media" class="adm-tab px-3.5 py-1.5 rounded-full text-xs font-medium transition">4. Картинки</button>
+        <button type="button" data-tab="lexicon" class="adm-tab px-3.5 py-1.5 rounded-full text-xs font-medium transition">5. Лексикон</button>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <span id="toast-status" class="text-xs text-[#f0dba8] opacity-0 transition-opacity duration-300">Сохранено ✓</span>
+        <button type="button" id="btn-rebuild" class="adm-btn" title="Пересобрать папку docs/ для GitHub Pages">↻ Собрать</button>
+        <button type="button" id="btn-open-deploy" class="adm-btn adm-btn-gold" title="Опубликовать свежую сборку на GitHub Pages в один клик">🚀 На GitHub Pages</button>
+        <a href="/" target="_blank" class="adm-btn">Сайт ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- ================================================================
+         TAB 1: DASHBOARD & 10 VOLUMES OVERVIEW
+         ================================================================ -->
+    <section id="view-dashboard" class="space-y-6">
+      <div id="stats-bar" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+
+      <div class="nouveau-panel p-5 sm:p-6 space-y-4">
+        <div class="relative z-10 flex flex-wrap items-center justify-between gap-2 border-b border-[#d8b979]/20 pb-3">
+          <div>
+            <h2 class="font-nouveau text-2xl font-semibold text-[#f0eadc]">План и статусы 10 томов книги</h2>
+            <p class="text-xs text-[#a69f90]">Меняйте готовность, цвета ауры и переходите к редактированию текста любого тома в один клик.</p>
+          </div>
+          <button type="button" id="btn-save-manifest" class="adm-btn adm-btn-gold">Сохранить настройки томов</button>
+        </div>
+        <div id="volumes-table-list" class="relative z-10 space-y-2.5"></div>
+      </div>
+
+      <div class="nouveau-panel p-5 sm:p-6 space-y-4">
+        <div class="relative z-10 border-b border-[#d8b979]/20 pb-2">
+          <h3 class="font-nouveau text-xl font-semibold text-[#f0dba8]">Титульный лист портала (Главная страница)</h3>
+        </div>
+        <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label class="block text-[#a69f90] mb-1">Заголовок издания</label>
+            <input id="site-title" class="adm-input" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Подзаголовок книги</label>
+            <input id="site-subtitle" class="adm-input" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Эпиграф</label>
+            <input id="site-epigraph" class="adm-input" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Автор эпиграфа</label>
+            <input id="site-epigraph-author" class="adm-input" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-[#a69f90] mb-1">Вступительный абзац (с золотой буквицей)</label>
+            <textarea id="site-intro" rows="3" class="adm-input"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TAB 2: CHAPTER MARKDOWN & LIVE PREVIEW EDITOR
+         ================================================================ -->
+    <section id="view-editor" class="hidden space-y-4">
+      <div class="nouveau-panel p-4 sm:p-5">
+        <div class="relative z-10 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-3 flex-1 min-w-[260px]">
+            <label class="text-xs uppercase tracking-wider text-[#d8b979] shrink-0">Том:</label>
+            <select id="editor-vol-select" class="adm-input max-w-md font-medium"></select>
+            <button type="button" id="btn-toggle-vol-meta" class="adm-btn">⚙ Паспорт и обложка тома</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <a id="editor-open-page" href="/" target="_blank" class="adm-btn">Смотреть страницу ↗</a>
+            <button type="button" id="btn-save-chapter" class="adm-btn adm-btn-gold">💾 Сохранить главу (Ctrl+S)</button>
+          </div>
+        </div>
+
+        <!-- Collapsible Volume Metadata Panel -->
+        <div id="editor-vol-meta" class="relative z-10 hidden mt-4 pt-4 border-t border-[#d8b979]/20 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div>
+            <label class="block text-[#a69f90] mb-1">Название тома</label>
+            <input id="ev-title" class="adm-input" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Краткое содержание</label>
+            <input id="ev-summary" class="adm-input" />
+          </div>
+          <div class="flex items-end gap-2">
+            <div class="flex-1">
+              <label class="block text-[#a69f90] mb-1">Статус</label>
+              <select id="ev-status" class="adm-input">
+                <option value="ready">✦ Готово</option>
+                <option value="in_progress">◐ В переводе</option>
+                <option value="planned">◇ В планах</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[#a69f90] mb-1">Аура</label>
+              <input type="color" id="ev-aura" class="h-9 w-14 rounded bg-transparent border border-[#d8b979]/40 cursor-pointer" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Эпиграф главы</label>
+            <input id="ev-epigraph" class="adm-input" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Автор эпиграфа</label>
+            <input id="ev-epigraph-author" class="adm-input" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Обложка тома (путь или загрузка)</label>
+            <div class="flex gap-1.5">
+              <input id="ev-cover" class="adm-input" placeholder="assets/images/chapters/..." />
+              <button type="button" id="btn-upload-cover" class="adm-btn shrink-0">Загрузить</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formatting & Image Toolbar -->
+      <div class="flex flex-wrap items-center gap-1.5 px-1">
+        <button type="button" data-md-ins="## Заголовок раздела\n\n" class="adm-btn">H2</button>
+        <button type="button" data-md-ins="### Подзаголовок\n\n" class="adm-btn">H3</button>
+        <button type="button" data-md-wrap="**" class="adm-btn"><strong>B</strong></button>
+        <button type="button" data-md-wrap="*" class="adm-btn"><em>I</em></button>
+        <button type="button" data-md-ins="> «Цитата персонажа или эпиграф...»\n\n" class="adm-btn">❝ Цитата</button>
+        <button type="button" data-md-ins="---\n\n" class="adm-btn">✦ Разделитель</button>
+        <button type="button" data-md-ins="| Колонка 1 | Колонка 2 | Колонка 3 |\n| --- | --- | --- |\n| Значение | Значение | Значение |\n\n" class="adm-btn">⊞ Таблица</button>
+        <button type="button" data-md-ins=":::lore\nХудожественная врезка (скрывается в Режиме стола)...\n:::\n\n" class="adm-btn">📜 Блок Лора</button>
+        <button type="button" data-md-ins=":::mechanics\nОписание игровой проверки или правила...\n:::\n\n" class="adm-btn">⚙ Механика</button>
+        <button type="button" data-md-ins=":::sidebar Заголовок врезки\nТекст боковой врезки книги правил C20...\n:::\n\n" class="adm-btn">▯ Врезка C20</button>
+        <button type="button" id="btn-insert-image-modal" class="adm-btn adm-btn-gold">🖼 + Вставить картинку</button>
+        <span class="text-[11px] text-[#7b7669] ml-auto hidden xl:inline">Совет: можно вставлять скопированные картинки прямо в текст через Ctrl+V</span>
+      </div>
+
+      <!-- Split Pane: Markdown Editor + Live Art Nouveau Preview -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="nouveau-panel p-3">
+          <div class="relative z-10">
+            <textarea id="md-textarea" class="adm-input" spellcheck="false" placeholder="Текст главы в формате Markdown..."></textarea>
+          </div>
+        </div>
+        <div class="nouveau-panel p-5 sm:p-7 max-h-[680px] overflow-y-auto">
+          <div class="relative z-10 text-[10px] uppercase tracking-[0.2em] text-[#d8b979] mb-3 pb-2 border-b border-[#d8b979]/15">
+            Живой предпросмотр «Ар-Нуво и Золото»
+          </div>
+          <div id="md-live-preview" class="relative z-10 chapter-prose"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TAB 3: KITH ARCANA EDITOR (ALL 13 KITHS + PORTRAITS)
+         ================================================================ -->
+    <section id="view-kiths" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div class="lg:col-span-3 nouveau-panel p-4 space-y-3 max-h-[80vh] overflow-y-auto">
+        <div class="relative z-10 flex items-center justify-between border-b border-[#d8b979]/20 pb-2">
+          <span class="font-nouveau text-xl font-semibold text-[#f0dba8]">Киты</span>
+          <button type="button" id="btn-add-kith" class="adm-btn">+ Добавить</button>
+        </div>
+        <div id="adm-kiths-list" class="relative z-10 space-y-1.5"></div>
+      </div>
+
+      <div class="lg:col-span-9 nouveau-panel p-5 sm:p-6 space-y-4">
+        <div id="adm-kith-form" class="relative z-10 space-y-4 text-xs"></div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TAB 4: MEDIA LIBRARY (UPLOAD, PREVIEW, COPY MARKDOWN)
+         ================================================================ -->
+    <section id="view-media" class="hidden space-y-5">
+      <div class="nouveau-panel p-5 sm:p-6">
+        <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="space-y-1">
+            <h2 class="font-nouveau text-2xl font-semibold text-[#f0eadc]">Медиатека иллюстраций</h2>
+            <p class="text-xs text-[#a69f90]">Перетащите сюда изображения (.png, .jpg, .webp, .svg) или выберите файлы с диска.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="media-folder-select" class="adm-input w-44">
+              <option value="chapters">Папка: chapters</option>
+              <option value="kiths">Папка: kiths</option>
+              <option value="houses">Папка: houses</option>
+              <option value="arts">Папка: arts</option>
+              <option value="misc">Папка: misc</option>
+            </select>
+            <label class="adm-btn adm-btn-gold cursor-pointer">
+              <span>⬆ Загрузить файлы</span>
+              <input type="file" id="media-file-input" accept="image/*" multiple class="hidden" />
+            </label>
+          </div>
+        </div>
+        <div id="media-dropzone" class="relative z-10 mt-4 border-2 border-dashed border-[#d8b979]/30 rounded-xl p-6 text-center text-xs text-[#a69f90] hover:border-[#f0dba8] transition">
+          Перетащите картинки в эту область или нажмите «Загрузить файлы»
+        </div>
+      </div>
+
+      <div id="media-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </section>
+
+    <!-- ================================================================
+         TAB 5: UNIFIED LEXICON MANAGER
+         ================================================================ -->
+    <section id="view-lexicon" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div class="lg:col-span-5 nouveau-panel p-4 space-y-3 max-h-[80vh] flex flex-col">
+        <div class="relative z-10 flex items-center justify-between gap-2 border-b border-[#d8b979]/20 pb-2.5">
+          <span class="font-nouveau text-xl font-semibold text-[#f0dba8]">Термины (<span id="lex-count">0</span>)</span>
+          <button type="button" id="btn-new-term" class="adm-btn adm-btn-gold">+ Новый термин</button>
+        </div>
+        <div class="relative z-10">
+          <input type="search" id="adm-lex-search" placeholder="Поиск термина..." class="adm-input" />
+        </div>
+        <div id="adm-lex-list" class="relative z-10 overflow-y-auto flex-1 space-y-1.5 pr-1"></div>
+      </div>
+
+      <div class="lg:col-span-7 nouveau-panel p-5 sm:p-6 space-y-4 text-xs">
+        <div class="relative z-10 flex items-center justify-between border-b border-[#d8b979]/20 pb-3">
+          <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc]">Карточка термина Лексикона</h3>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btn-delete-term" class="adm-btn text-[#e6989f] border-[#a83b4a]/50">Удалить</button>
+            <button type="button" id="btn-save-lexicon" class="adm-btn adm-btn-gold">💾 Сохранить Лексикон</button>
+          </div>
+        </div>
+        <div class="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-[#a69f90] mb-1">ID (латиницей)</label>
+            <input id="lx-id" class="adm-input" placeholder="glamour" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Термин (RU)</label>
+            <input id="lx-ru" class="adm-input" placeholder="Гламур" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Оригинал (EN)</label>
+            <input id="lx-en" class="adm-input" placeholder="Glamour" />
+          </div>
+        </div>
+        <div class="relative z-10">
+          <label class="block text-[#a69f90] mb-1">Категория</label>
+          <select id="lx-cat" class="adm-input max-w-xs">
+            <option value="Основа">Основа</option>
+            <option value="Мир">Мир</option>
+            <option value="Магия">Магия</option>
+            <option value="Общество">Общество</option>
+            <option value="Состояние">Состояние</option>
+            <option value="История">История</option>
+          </select>
+        </div>
+        <div class="relative z-10">
+          <label class="block text-[#a69f90] mb-1">Определение (поддерживает авто-ссылки на другие термины)</label>
+          <textarea id="lx-desc" rows="4" class="adm-input"></textarea>
+        </div>
+        <div class="relative z-10 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="text-[#a69f90]">Словоформы для авто-подчёркивания в тексте (через запятую)</label>
+            <button type="button" id="btn-gen-forms" class="adm-btn">✦ Сгенерировать падежи</button>
+          </div>
+          <textarea id="lx-patterns" rows="3" class="adm-input" placeholder="Гламуром, Гламура, Гламуру, Гламур..."></textarea>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- IMAGE PICKER / UPLOAD MODAL FOR EDITOR -->
+  <div id="img-insert-modal" class="modal-backdrop flex items-center justify-center p-4">
+    <div class="nouveau-panel w-full max-w-2xl p-5 sm:p-6 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+      <div class="relative z-10 flex items-center justify-between border-b border-[#d8b979]/25 pb-3">
+        <h3 class="font-nouveau text-2xl font-semibold text-[#f0dba8]">Вставка иллюстрации в главу</h3>
+        <button type="button" id="btn-close-img-modal" class="adm-btn">✕</button>
+      </div>
+      <div class="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block text-[#a69f90] mb-1">Стиль рамки «Ар-Нуво»</label>
+          <select id="ins-img-style" class="adm-input">
+            <option value="">Двойная золотая рамка (по центру)</option>
+            <option value="arch:">Витражная арка (портрет / символ)</option>
+            <option value="right:">Обтекание справа в тексте</option>
+            <option value="left:">Обтекание слева в тексте</option>
+            <option value="wide:">Широкая панорама</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[#a69f90] mb-1">Подпись под иллюстрацией</label>
+          <input id="ins-img-caption" class="adm-input" placeholder="Например: Облик феи Аркадийских Ши" />
+        </div>
+      </div>
+      <div class="relative z-10 flex items-center justify-between gap-2 pt-1">
+        <span class="text-xs text-[#a69f90]">Выберите существующую картинку ниже или загрузите новую:</span>
+        <label class="adm-btn adm-btn-gold cursor-pointer">
+          <span>⬆ Загрузить и вставить</span>
+          <input type="file" id="ins-img-upload" accept="image/*" class="hidden" />
+        </label>
+      </div>
+      <div id="ins-img-list" class="relative z-10 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2"></div>
+    </div>
+  </div>
+
+  <!-- GITHUB PAGES DEPLOY MODAL -->
+  <div id="deploy-modal" class="modal-backdrop flex items-center justify-center p-4">
+    <div class="nouveau-panel w-full max-w-2xl p-5 sm:p-7 space-y-4 max-h-[88vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="relative z-10 flex items-center justify-between border-b border-[#d8b979]/25 pb-3">
+        <div>
+          <div class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979]">Публикация в интернет</div>
+          <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0dba8]">Деплой на GitHub Pages</h3>
+        </div>
+        <button type="button" id="btn-close-deploy" class="adm-btn">✕</button>
+      </div>
+
+      <div id="deploy-pages-banner" class="relative z-10 hidden rounded-xl border border-[#d8b979]/45 bg-[#15211d]/90 p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div>
+          <div class="text-[#a69f90]">Адрес книги для чтения с телефона и ПК:</div>
+          <a id="deploy-pages-link" href="#" target="_blank" class="font-medium text-sm text-[#f0dba8] underline break-all"></a>
+        </div>
+        <button type="button" id="btn-copy-pages-url" class="adm-btn">Копировать ссылку</button>
+      </div>
+
+      <div class="relative z-10 space-y-3 text-xs border-b border-[#d8b979]/20 pb-4">
+        <div class="font-semibold text-[#f0eadc]">1. Подключение к репозиторию GitHub</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div class="sm:col-span-2">
+            <label class="block text-[#a69f90] mb-1">URL репозитория (HTTPS или SSH)</label>
+            <div class="flex gap-2">
+              <input id="git-remote-url" class="adm-input" placeholder="https://github.com/ваш-логин/CtD20.git" />
+              <button type="button" id="btn-save-git-setup" class="adm-btn shrink-0">Сохранить подключение</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Имя автора коммитов</label>
+            <input id="git-user-name" class="adm-input" placeholder="Ваше имя или ник" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Email для Git</label>
+            <input id="git-user-email" class="adm-input" placeholder="you@users.noreply.github.com" />
+          </div>
+        </div>
+      </div>
+
+      <div class="relative z-10 space-y-3 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="font-semibold text-[#f0eadc]">2. Сборка и отправка обновления</span>
+          <span id="git-status-badge" class="text-[#a69f90]"></span>
+        </div>
+        <div>
+          <label class="block text-[#a69f90] mb-1">Комментарий к публикации (необязательно)</label>
+          <input id="deploy-commit-msg" class="adm-input" placeholder="Например: Добавлена иллюстрация Шелки и правки Лексикона" />
+        </div>
+        <div class="flex items-center justify-between gap-3 pt-1">
+          <div id="git-last-commit" class="text-[11px] text-[#7b7669] truncate"></div>
+          <button type="button" id="btn-run-deploy" class="adm-btn adm-btn-gold !px-5 !py-2 !text-sm shrink-0">
+            🚀 Собрать и опубликовать
+          </button>
+        </div>
+        <pre id="deploy-log-box" class="hidden mt-3 p-3 rounded-xl bg-[#0b110f] border border-[#d8b979]/25 text-[11px] text-[#a69f90] whitespace-pre-wrap max-h-44 overflow-y-auto"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const S = {
+      tab: 'dashboard',
+      manifest: null,
+      lexicon: [],
+      kiths: [],
+      images: [],
+      currentSlug: '',
+      selectedKithIdx: 0,
+      selectedLexIdx: 0,
+      previewTimer: null
+    };
+
+    async function api(url, method = 'GET', body = null) {
+      const opts = { method, headers: {} };
+      if (body !== null) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+      }
+      const res = await fetch(url, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Ошибка запроса');
+      return data;
+    }
+
+    function toast(msg = 'Сохранено и собрано ✓') {
+      const el = document.getElementById('toast-status');
+      el.textContent = msg;
+      el.style.opacity = '1';
+      clearTimeout(el._t);
+      el._t = setTimeout(() => (el.style.opacity = '0'), 2400);
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+    }
+
+    /* ---------------- TAB SWITCHING ---------------- */
+    function switchTab(tab) {
+      S.tab = tab;
+      ['dashboard', 'editor', 'kiths', 'media', 'lexicon'].forEach((t) => {
+        document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tab);
+      });
+      document.querySelectorAll('.adm-tab').forEach((b) => {
+        const act = b.getAttribute('data-tab') === tab;
+        b.className = `adm-tab px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+          act ? 'bg-[#d8b979]/25 text-[#f0dba8] border border-[#f0dba8]/60' : 'text-[#a69f90] hover:text-[#f0eadc]'
+        }`;
+      });
+    }
+
+    /* ---------------- 1. DASHBOARD ---------------- */
+    function renderDashboard() {
+      const vols = S.manifest.volumes;
+      const ready = vols.filter((v) => v.status === 'ready').length;
+      document.getElementById('stats-bar').innerHTML = [
+        { label: 'Готово томов', val: `${ready} / ${vols.length}` },
+        { label: 'Китов в базе', val: S.kiths.length },
+        { label: 'Терминов Лексикона', val: S.lexicon.length },
+        { label: 'Иллюстраций', val: S.images.length }
+      ]
+        .map(
+          (c) => `
+        <div class="nouveau-panel p-4">
+          <div class="relative z-10 text-xs text-[#a69f90]">${c.label}</div>
+          <div class="relative z-10 font-nouveau text-3xl font-bold text-[#f0dba8] mt-1">${c.val}</div>
+        </div>`
+        )
+        .join('');
+
+      const site = S.manifest.site;
+      document.getElementById('site-title').value = site.title || '';
+      document.getElementById('site-subtitle').value = site.subtitle || '';
+      document.getElementById('site-epigraph').value = site.epigraph || '';
+      document.getElementById('site-epigraph-author').value = site.epigraphAuthor || '';
+      document.getElementById('site-intro').value = site.intro || '';
+
+      document.getElementById('volumes-table-list').innerHTML = vols
+        .map(
+          (v, idx) => `
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/60">
+          <div class="flex items-center gap-3 min-w-0">
+            <input type="color" data-v-aura="${idx}" value="${v.auraHex || '#d8b979'}" class="w-8 h-8 rounded bg-transparent border border-[#d8b979]/35 cursor-pointer shrink-0" title="Цвет ауры тома" />
+            <div class="min-w-0">
+              <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">Том ${v.num} · ${v.part}</div>
+              <div class="font-nouveau text-xl font-semibold text-[#f0eadc] truncate">${v.title}</div>
+              <div class="text-xs text-[#a69f90] truncate">${v.summary}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <select data-v-status="${idx}" class="adm-input !w-36 !py-1 text-xs">
+              <option value="ready" ${v.status === 'ready' ? 'selected' : ''}>✦ Готово</option>
+              <option value="in_progress" ${v.status === 'in_progress' ? 'selected' : ''}>◐ В переводе</option>
+              <option value="planned" ${v.status === 'planned' ? 'selected' : ''}>◇ В планах</option>
+            </select>
+            <button type="button" data-edit-vol="${v.slug}" class="adm-btn adm-btn-gold">✎ Редактировать</button>
+            <a href="/${v.slug}/index.html" target="_blank" class="adm-btn">↗</a>
+          </div>
+        </div>`
+        )
+        .join('');
+
+      document.querySelectorAll('[data-v-status]').forEach((sel) =>
+        sel.addEventListener('change', () => {
+          S.manifest.volumes[+sel.dataset.vStatus].status = sel.value;
+        })
+      );
+      document.querySelectorAll('[data-v-aura]').forEach((inp) =>
+        inp.addEventListener('input', () => {
+          S.manifest.volumes[+inp.dataset.vAura].auraHex = inp.value;
+        })
+      );
+      document.querySelectorAll('[data-edit-vol]').forEach((btn) =>
+        btn.addEventListener('click', () => {
+          openChapterInEditor(btn.dataset.editVol);
+          switchTab('editor');
+        })
+      );
+    }
+
+    async function saveManifest() {
+      S.manifest.site.title = document.getElementById('site-title').value;
+      S.manifest.site.subtitle = document.getElementById('site-subtitle').value;
+      S.manifest.site.epigraph = document.getElementById('site-epigraph').value;
+      S.manifest.site.epigraphAuthor = document.getElementById('site-epigraph-author').value;
+      S.manifest.site.intro = document.getElementById('site-intro').value;
+      await api('/api/manifest', 'POST', { manifest: S.manifest });
+      renderDashboard();
+      populateEditorSelect();
+      toast('Настройки томов сохранены ✓');
+    }
+
+    /* ---------------- 2. CHAPTER EDITOR ---------------- */
+    function populateEditorSelect() {
+      const sel = document.getElementById('editor-vol-select');
+      sel.innerHTML = S.manifest.volumes
+        .map((v) => `<option value="${v.slug}">${v.num}. ${v.part} — ${v.title}</option>`)
+        .join('');
+      if (!S.currentSlug && S.manifest.volumes[0]) {
+        S.currentSlug = S.manifest.volumes[0].slug;
+      }
+      sel.value = S.currentSlug;
+    }
+
+    async function openChapterInEditor(slug) {
+      S.currentSlug = slug;
+      document.getElementById('editor-vol-select').value = slug;
+      const data = await api(`/api/chapter?slug=${encodeURIComponent(slug)}`);
+      const v = data.volume;
+      document.getElementById('ev-title').value = v.title || '';
+      document.getElementById('ev-summary').value = v.summary || '';
+      document.getElementById('ev-status').value = v.status || 'planned';
+      document.getElementById('ev-aura').value = v.auraHex || '#d8b979';
+      document.getElementById('ev-epigraph').value = v.epigraph || '';
+      document.getElementById('ev-epigraph-author').value = v.epigraphAuthor || '';
+      document.getElementById('ev-cover').value = v.coverImage || '';
+      document.getElementById('editor-open-page').href = `/${slug}/index.html`;
+
+      document.getElementById('md-textarea').value = data.markdown || '';
+      document.getElementById('md-live-preview').innerHTML = data.htmlPreview || '';
+    }
+
+    async function saveCurrentChapter() {
+      const volPatch = {
+        title: document.getElementById('ev-title').value,
+        summary: document.getElementById('ev-summary').value,
+        status: document.getElementById('ev-status').value,
+        auraHex: document.getElementById('ev-aura').value,
+        epigraph: document.getElementById('ev-epigraph').value,
+        epigraphAuthor: document.getElementById('ev-epigraph-author').value,
+        coverImage: document.getElementById('ev-cover').value
+      };
+      const md = document.getElementById('md-textarea').value;
+      const res = await api('/api/chapter', 'POST', {
+        slug: S.currentSlug,
+        markdown: md,
+        volume: volPatch
+      });
+      const idx = S.manifest.volumes.findIndex((x) => x.slug === S.currentSlug);
+      if (idx >= 0) S.manifest.volumes[idx] = res.volume;
+      populateEditorSelect();
+      renderDashboard();
+      toast('Глава сохранена и сайт обновлён ✓');
+    }
+
+    function insertAtCursor(snippet, wrap = null) {
+      const ta = document.getElementById('md-textarea');
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const val = ta.value;
+      if (wrap) {
+        const sel = val.slice(start, end) || 'текст';
+        ta.value = val.slice(0, start) + wrap + sel + wrap + val.slice(end);
+        ta.selectionStart = start + wrap.length;
+        ta.selectionEnd = start + wrap.length + sel.length;
+      } else {
+        const text = snippet.replace(/\\n/g, '\n');
+        ta.value = val.slice(0, start) + text + val.slice(end);
+        ta.selectionStart = ta.selectionEnd = start + text.length;
+      }
+      ta.focus();
+      scheduleLivePreview();
+    }
+
+    function scheduleLivePreview() {
+      clearTimeout(S.previewTimer);
+      S.previewTimer = setTimeout(async () => {
+        const md = document.getElementById('md-textarea').value;
+        const res = await api('/api/preview', 'POST', { markdown: md });
+        document.getElementById('md-live-preview').innerHTML = res.htmlPreview;
+      }, 240);
+    }
+
+    /* ---------------- 3. KITHS EDITOR ---------------- */
+    function renderKithsAdmin() {
+      const list = document.getElementById('adm-kiths-list');
+      list.innerHTML = S.kiths
+        .map(
+          (k, i) => `
+        <button type="button" data-kidx="${i}" class="w-full text-left px-3 py-2 rounded-xl border transition flex items-center justify-between ${
+            i === S.selectedKithIdx
+              ? 'border-[#f0dba8]/70 bg-[#d8b979]/20 text-[#f0dba8]'
+              : 'border-[#d8b979]/15 bg-[#0b110f]/50 text-[#f0eadc] hover:border-[#d8b979]/45'
+          }">
+          <span class="truncate font-medium text-xs">${k.num || ''} ${k.ru}</span>
+          <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${k.auraHex || '#d8b979'}"></span>
+        </button>`
+        )
+        .join('');
+
+      list.querySelectorAll('[data-kidx]').forEach((b) =>
+        b.addEventListener('click', () => {
+          S.selectedKithIdx = +b.dataset.kidx;
+          renderKithsAdmin();
+        })
+      );
+
+      const k = S.kiths[S.selectedKithIdx];
+      if (!k) return;
+      const form = document.getElementById('adm-kith-form');
+      form.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#d8b979]/20 pb-3">
+          <h3 class="font-nouveau text-2xl font-semibold text-[#f0dba8]">${k.ru} (${k.en})</h3>
+          <button type="button" id="btn-save-kith" class="adm-btn adm-btn-gold">💾 Сохранить изменения Кита</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div><label class="block text-[#a69f90] mb-1">Номер</label><input id="kf-num" class="adm-input" value="${k.num || ''}"/></div>
+          <div><label class="block text-[#a69f90] mb-1">Название (RU)</label><input id="kf-ru" class="adm-input" value="${k.ru || ''}"/></div>
+          <div><label class="block text-[#a69f90] mb-1">Название (EN)</label><input id="kf-en" class="adm-input" value="${k.en || ''}"/></div>
+          <div class="flex items-end gap-2">
+            <div class="flex-1">
+              <label class="block text-[#a69f90] mb-1">Сродство</label>
+              <select id="kf-aff" class="adm-input">
+                ${['Актёр', 'Фея', 'Природа', 'Предмет', 'Сцена', 'Время']
+                  .map((a) => `<option value="${a}" ${k.affinity === a ? 'selected' : ''}>${a}</option>`)
+                  .join('')}
+              </select>
+            </div>
+            <input type="color" id="kf-aura" value="${k.auraHex || '#d8b979'}" class="h-9 w-12 rounded bg-transparent border border-[#d8b979]/40 cursor-pointer" title="Аура Кита" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[#a69f90] mb-1">Краткий девиз на карте Аркана</label>
+            <input id="kf-tag" class="adm-input" value="${(k.tagline || '').replace(/"/g, '&quot;')}" />
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Портрет / Иллюстрация Кита (необязательно)</label>
+            <div class="flex gap-1.5">
+              <input id="kf-img" class="adm-input" value="${k.image || ''}" placeholder="assets/images/kiths/..." />
+              <label class="adm-btn adm-btn-gold cursor-pointer shrink-0">
+                <span>⬆ Портрет</span>
+                <input type="file" id="kf-img-upload" accept="image/*" class="hidden" />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[#a69f90] mb-1">Характерная цитата</label>
+          <textarea id="kf-quote" rows="2" class="adm-input">${k.quote || ''}</textarea>
+        </div>
+
+        <div>
+          <label class="block text-[#a69f90] mb-1">Общее описание и история (абзацы через пустую строку)</label>
+          <textarea id="kf-lore" rows="6" class="adm-input">${(k.lore || []).join('\n\n')}</textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[#a69f90] mb-1">Внешность</label>
+            <textarea id="kf-app" rows="4" class="adm-input">${(k.appearance || []).join('\n\n')}</textarea>
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Образ жизни</label>
+            <textarea id="kf-life" rows="4" class="adm-input">${(k.lifestyle || []).join('\n\n')}</textarea>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[#a69f90] mb-1">Разгул (Revelry)</label>
+            <textarea id="kf-rev" rows="3" class="adm-input">${k.revelry || ''}</textarea>
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Высвобождение (Unleashing)</label>
+            <textarea id="kf-unl" rows="3" class="adm-input">${k.unleashing || ''}</textarea>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('kf-img-upload').addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const b64 = await fileToBase64(f);
+        const res = await api('/api/upload-image', 'POST', {
+          filename: `${k.id}-${f.name}`,
+          folder: 'kiths',
+          dataBase64: b64
+        });
+        S.images = res.images;
+        document.getElementById('kf-img').value = res.path;
+        toast('Портрет загружен ✓');
+      });
+
+      document.getElementById('btn-save-kith').addEventListener('click', async () => {
+        const affMap = { Актёр: 'Actor', Фея: 'Fae', Природа: 'Nature', Предмет: 'Prop', Сцена: 'Scene', Время: 'Time' };
+        k.num = document.getElementById('kf-num').value.trim();
+        k.ru = document.getElementById('kf-ru').value.trim();
+        k.en = document.getElementById('kf-en').value.trim();
+        k.affinity = document.getElementById('kf-aff').value;
+        k.affinityEn = affMap[k.affinity] || '';
+        k.auraHex = document.getElementById('kf-aura').value;
+        k.tagline = document.getElementById('kf-tag').value.trim();
+        k.image = document.getElementById('kf-img').value.trim();
+        k.quote = document.getElementById('kf-quote').value.trim();
+        k.lore = document.getElementById('kf-lore').value.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+        k.appearance = document.getElementById('kf-app').value.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+        k.lifestyle = document.getElementById('kf-life').value.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+        k.revelry = document.getElementById('kf-rev').value.trim();
+        k.unleashing = document.getElementById('kf-unl').value.trim();
+
+        await api('/api/kiths', 'POST', { kiths: S.kiths });
+        renderKithsAdmin();
+        toast('Кит сохранён и сайт пересобран ✓');
+      });
+    }
+
+    /* ---------------- 4. MEDIA LIBRARY ---------------- */
+    function renderMediaGallery() {
+      const grid = document.getElementById('media-gallery-grid');
+      if (!S.images.length) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 text-xs text-[#a69f90]">В медиатеке пока нет загруженных картинок. Загрузите первую иллюстрацию выше!</div>`;
+        return;
+      }
+      grid.innerHTML = S.images
+        .map(
+          (img) => `
+        <div class="nouveau-panel p-3 flex flex-col justify-between gap-2.5">
+          <div class="relative z-10 aspect-[4/3] rounded-lg overflow-hidden bg-[#0b110f] border border-[#d8b979]/25 flex items-center justify-center">
+            <img src="/${img.path}" alt="${img.name}" class="max-h-full max-w-full object-contain" />
+          </div>
+          <div class="relative z-10 space-y-1.5 text-xs">
+            <div class="font-medium text-[#f0eadc] truncate" title="${img.path}">${img.name}</div>
+            <div class="text-[10px] text-[#a69f90]">${img.folder} · ${(img.size / 1024).toFixed(1)} КБ</div>
+            <div class="flex flex-wrap gap-1 pt-1">
+              <button type="button" data-copy-md="![Иллюстрация](${img.path})" class="adm-btn !px-2 !py-0.5 !text-[11px]">Рамка</button>
+              <button type="button" data-copy-md="![arch:Иллюстрация](${img.path})" class="adm-btn !px-2 !py-0.5 !text-[11px]">Арка</button>
+              <button type="button" data-copy-md="![right:Иллюстрация](${img.path})" class="adm-btn !px-2 !py-0.5 !text-[11px]">Справа</button>
+              <button type="button" data-del-img="${img.path}" class="adm-btn !px-2 !py-0.5 !text-[11px] text-[#e6989f] ml-auto">✕</button>
+            </div>
+          </div>
+        </div>`
+        )
+        .join('');
+
+      grid.querySelectorAll('[data-copy-md]').forEach((b) =>
+        b.addEventListener('click', () => {
+          navigator.clipboard.writeText(b.dataset.copyMd);
+          toast('Код Markdown скопирован в буфер ✓');
+        })
+      );
+      grid.querySelectorAll('[data-del-img]').forEach((b) =>
+        b.addEventListener('click', async () => {
+          if (!confirm(`Удалить файл ${b.dataset.delImg}?`)) return;
+          const res = await api('/api/delete-image', 'POST', { path: b.dataset.delImg });
+          S.images = res.images;
+          renderMediaGallery();
+          renderDashboard();
+          toast('Файл удалён ✓');
+        })
+      );
+    }
+
+    async function handleFilesUpload(fileList, folderOverride = null) {
+      const folder = folderOverride || document.getElementById('media-folder-select').value;
+      let lastPath = '';
+      for (const file of Array.from(fileList)) {
+        const b64 = await fileToBase64(file);
+        const res = await api('/api/upload-image', 'POST', {
+          filename: file.name,
+          folder,
+          dataBase64: b64
+        });
+        S.images = res.images;
+        lastPath = res.path;
+      }
+      renderMediaGallery();
+      renderDashboard();
+      toast('Изображения загружены ✓');
+      return lastPath;
+    }
+
+    /* ---------------- 5. LEXICON MANAGER ---------------- */
+    function renderLexiconAdmin() {
+      document.getElementById('lex-count').textContent = S.lexicon.length;
+      const q = (document.getElementById('adm-lex-search').value || '').trim().toLowerCase();
+      const list = document.getElementById('adm-lex-list');
+
+      list.innerHTML = S.lexicon
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => !q || item.ru.toLowerCase().includes(q) || item.en.toLowerCase().includes(q))
+        .map(
+          ({ item, idx }) => `
+          <button type="button" data-lidx="${idx}" class="w-full text-left px-3 py-2 rounded-xl border transition flex items-center justify-between gap-2 ${
+            idx === S.selectedLexIdx
+              ? 'border-[#f0dba8]/70 bg-[#d8b979]/20 text-[#f0dba8]'
+              : 'border-[#d8b979]/15 bg-[#0b110f]/50 text-[#f0eadc] hover:border-[#d8b979]/45'
+          }">
+            <span class="text-xs font-medium truncate">${item.ru} <span class="text-[#7b7669]">(${item.en})</span></span>
+            <span class="text-[10px] text-[#d8b979] shrink-0">${item.cat}</span>
+          </button>`
+        )
+        .join('');
+
+      list.querySelectorAll('[data-lidx]').forEach((b) =>
+        b.addEventListener('click', () => {
+          S.selectedLexIdx = +b.dataset.lidx;
+          renderLexiconAdmin();
+          fillLexiconForm();
+        })
+      );
+    }
+
+    function fillLexiconForm() {
+      const item = S.lexicon[S.selectedLexIdx];
+      if (!item) return;
+      document.getElementById('lx-id').value = item.id || '';
+      document.getElementById('lx-ru').value = item.ru || '';
+      document.getElementById('lx-en').value = item.en || '';
+      document.getElementById('lx-cat').value = item.cat || 'Основа';
+      document.getElementById('lx-desc').value = item.desc || '';
+      document.getElementById('lx-patterns').value = (item.patterns || []).join(', ');
+    }
+
+    /* ---------------- BOOTSTRAP ---------------- */
+    document.addEventListener('DOMContentLoaded', async () => {
+      const stateData = await api('/api/state');
+      S.manifest = stateData.manifest;
+      S.lexicon = stateData.lexicon;
+      S.kiths = stateData.kiths;
+      S.images = stateData.images;
+
+      document.querySelectorAll('.adm-tab').forEach((b) =>
+        b.addEventListener('click', () => switchTab(b.dataset.tab))
+      );
+
+      switchTab('dashboard');
+      renderDashboard();
+      populateEditorSelect();
+      await openChapterInEditor(S.manifest.volumes[0].slug);
+      renderKithsAdmin();
+      renderMediaGallery();
+      renderLexiconAdmin();
+      fillLexiconForm();
+
+      // Rebuild & Manifest save
+      document.getElementById('btn-rebuild').addEventListener('click', async () => {
+        await api('/api/rebuild', 'POST', {});
+        toast('Сайт пересобран ✓');
+      });
+      document.getElementById('btn-save-manifest').addEventListener('click', saveManifest);
+
+      // Chapter Editor events
+      document.getElementById('editor-vol-select').addEventListener('change', (e) => openChapterInEditor(e.target.value));
+      document.getElementById('btn-toggle-vol-meta').addEventListener('click', () => {
+        document.getElementById('editor-vol-meta').classList.toggle('hidden');
+      });
+      document.getElementById('btn-save-chapter').addEventListener('click', saveCurrentChapter);
+      document.getElementById('md-textarea').addEventListener('input', scheduleLivePreview);
+
+      // Paste image directly into Markdown editor (Ctrl+V)
+      document.getElementById('md-textarea').addEventListener('paste', async (e) => {
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) return;
+        for (const it of items) {
+          if (it.type.startsWith('image/')) {
+            e.preventDefault();
+            const file = it.getAsFile();
+            const name = `${S.currentSlug}-${Date.now()}.png`;
+            const b64 = await fileToBase64(file);
+            const res = await api('/api/upload-image', 'POST', {
+              filename: name,
+              folder: 'chapters',
+              dataBase64: b64
+            });
+            S.images = res.images;
+            insertAtCursor(`![Иллюстрация](${res.path})\n\n`);
+            renderMediaGallery();
+            toast('Картинка из буфера загружена и вставлена ✓');
+            break;
+          }
+        }
+      });
+
+      // Cover upload
+      document.getElementById('btn-upload-cover').addEventListener('click', () => {
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.accept = 'image/*';
+        inp.onchange = async () => {
+          if (!inp.files[0]) return;
+          const p = await handleFilesUpload(inp.files, 'chapters');
+          document.getElementById('ev-cover').value = p;
+        };
+        inp.click();
+      });
+
+      // Formatting toolbar
+      document.querySelectorAll('[data-md-ins]').forEach((b) =>
+        b.addEventListener('click', () => insertAtCursor(b.dataset.mdIns))
+      );
+      document.querySelectorAll('[data-md-wrap]').forEach((b) =>
+        b.addEventListener('click', () => insertAtCursor('', b.dataset.mdWrap))
+      );
+
+      // Image Insert Modal
+      const imgModal = document.getElementById('img-insert-modal');
+      function renderInsertModalList() {
+        const box = document.getElementById('ins-img-list');
+        if (!S.images.length) {
+          box.innerHTML = `<div class="col-span-full text-xs text-[#a69f90] py-6 text-center">Загрузите новую иллюстрацию кнопкой выше.</div>`;
+          return;
+        }
+        box.innerHTML = S.images
+          .map(
+            (img) => `
+          <button type="button" data-pick-img="${img.path}" class="p-2 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/70 hover:border-[#f0dba8] transition text-left">
+            <img src="/${img.path}" class="h-24 w-full object-contain rounded mb-1" />
+            <div class="text-[11px] text-[#f0eadc] truncate">${img.name}</div>
+          </button>`
+          )
+          .join('');
+        box.querySelectorAll('[data-pick-img]').forEach((b) =>
+          b.addEventListener('click', () => {
+            const style = document.getElementById('ins-img-style').value;
+            const cap = document.getElementById('ins-img-caption').value.trim() || 'Иллюстрация';
+            insertAtCursor(`![${style}${cap}](${b.dataset.pickImg})\n\n`);
+            imgModal.classList.remove('open');
+          })
+        );
+      }
+
+      document.getElementById('btn-insert-image-modal').addEventListener('click', () => {
+        renderInsertModalList();
+        imgModal.classList.add('open');
+      });
+      document.getElementById('btn-close-img-modal').addEventListener('click', () => imgModal.classList.remove('open'));
+      imgModal.addEventListener('click', () => imgModal.classList.remove('open'));
+      document.getElementById('ins-img-upload').addEventListener('change', async (e) => {
+        if (!e.target.files.length) return;
+        const p = await handleFilesUpload(e.target.files, 'chapters');
+        const style = document.getElementById('ins-img-style').value;
+        const cap = document.getElementById('ins-img-caption').value.trim() || 'Иллюстрация';
+        insertAtCursor(`![${style}${cap}](${p})\n\n`);
+        imgModal.classList.remove('open');
+      });
+
+      // Media Upload & Drag-and-drop
+      document.getElementById('media-file-input').addEventListener('change', (e) => {
+        if (e.target.files.length) handleFilesUpload(e.target.files);
+      });
+      const dz = document.getElementById('media-dropzone');
+      dz.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dz.classList.add('border-[#f0dba8]');
+      });
+      dz.addEventListener('dragleave', () => dz.classList.remove('border-[#f0dba8]'));
+      dz.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dz.classList.remove('border-[#f0dba8]');
+        if (e.dataTransfer.files.length) handleFilesUpload(e.dataTransfer.files);
+      });
+
+      // Add Kith
+      document.getElementById('btn-add-kith').addEventListener('click', () => {
+        S.kiths.push({
+          id: `custom_kith_${Date.now()}`,
+          num: `2.${S.kiths.length + 1}`,
+          ru: 'Новый Кит',
+          en: 'New Kith',
+          tagline: 'Сказочный народ Грёзы',
+          auraHex: '#d8b979',
+          auraRgb: '216, 185, 121',
+          affinity: 'Фея',
+          affinityEn: 'Fae',
+          emblem: '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="20" cy="20" r="12"/></svg>',
+          image: '',
+          quote: '',
+          lore: ['Описание нового Кита...'],
+          appearance: ['Описание внешности...'],
+          lifestyle: ['Описание образа жизни...'],
+          seemings: { childling: '', wilder: '', grump: '' },
+          revelry: '',
+          unleashing: '',
+          birthrights: [{ name: 'Врождённое право 1', paragraphs: ['Описание...'] }],
+          frailty: { name: 'Слабость', paragraphs: ['Описание...'] },
+          stereotypesNarrator: '',
+          stereotypes: []
+        });
+        S.selectedKithIdx = S.kiths.length - 1;
+        renderKithsAdmin();
+      });
+
+      // Lexicon events
+      document.getElementById('adm-lex-search').addEventListener('input', renderLexiconAdmin);
+      document.getElementById('btn-new-term').addEventListener('click', () => {
+        S.lexicon.unshift({
+          id: `term_${Date.now()}`,
+          ru: 'Новый термин',
+          en: 'New Term',
+          cat: 'Основа',
+          desc: 'Описание термина...',
+          patterns: ['Новый термин']
+        });
+        S.selectedLexIdx = 0;
+        renderLexiconAdmin();
+        fillLexiconForm();
+      });
+      document.getElementById('btn-gen-forms').addEventListener('click', async () => {
+        const ru = document.getElementById('lx-ru').value.trim();
+        if (!ru) return;
+        const res = await api('/api/wordforms', 'POST', { word: ru });
+        document.getElementById('lx-patterns').value = res.patterns.join(', ');
+      });
+      document.getElementById('btn-save-lexicon').addEventListener('click', async () => {
+        const cur = S.lexicon[S.selectedLexIdx];
+        if (cur) {
+          cur.id = document.getElementById('lx-id').value.trim();
+          cur.ru = document.getElementById('lx-ru').value.trim();
+          cur.en = document.getElementById('lx-en').value.trim();
+          cur.cat = document.getElementById('lx-cat').value;
+          cur.desc = document.getElementById('lx-desc').value.trim();
+          cur.patterns = document
+            .getElementById('lx-patterns')
+            .value.split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
+        await api('/api/lexicon', 'POST', { lexicon: S.lexicon });
+        renderLexiconAdmin();
+        renderDashboard();
+        toast('Лексикон сохранён ✓');
+      });
+      document.getElementById('btn-delete-term').addEventListener('click', async () => {
+        if (!S.lexicon[S.selectedLexIdx]) return;
+        if (!confirm(`Удалить термин «${S.lexicon[S.selectedLexIdx].ru}»?`)) return;
+        S.lexicon.splice(S.selectedLexIdx, 1);
+        S.selectedLexIdx = 0;
+        await api('/api/lexicon', 'POST', { lexicon: S.lexicon });
+        renderLexiconAdmin();
+        fillLexiconForm();
+        toast('Термин удалён ✓');
+      });
+
+      // Global Ctrl+S in Editor
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+          if (S.tab === 'editor') {
+            e.preventDefault();
+            saveCurrentChapter();
+          }
+        }
+      });
+
+      // GitHub Pages Deploy Modal
+      const deployModal = document.getElementById('deploy-modal');
+      function renderGitModal(g) {
+        if (!g) return;
+        document.getElementById('git-remote-url').value = g.remoteUrl || '';
+        document.getElementById('git-user-name').value = g.userName || '';
+        document.getElementById('git-user-email').value = g.userEmail || '';
+        const banner = document.getElementById('deploy-pages-banner');
+        const link = document.getElementById('deploy-pages-link');
+        if (g.pagesUrl) {
+          banner.classList.remove('hidden');
+          link.href = g.pagesUrl;
+          link.textContent = g.pagesUrl;
+        } else {
+          banner.classList.add('hidden');
+        }
+        const badge = document.getElementById('git-status-badge');
+        if (!g.gitInstalled) {
+          badge.textContent = '⚠ Git не установлен';
+        } else if (!g.repoInitialized) {
+          badge.textContent = 'Репозиторий ещё не инициализирован';
+        } else {
+          badge.textContent = `Ветка ${g.branch || 'main'} · изменено файлов: ${(g.changes || []).length}`;
+        }
+        document.getElementById('git-last-commit').textContent = g.lastCommit ? `Последний коммит: ${g.lastCommit}` : '';
+      }
+
+      document.getElementById('btn-open-deploy').addEventListener('click', async () => {
+        const g = await api('/api/git-status');
+        renderGitModal(g);
+        deployModal.classList.add('open');
+      });
+      document.getElementById('btn-close-deploy').addEventListener('click', () => deployModal.classList.remove('open'));
+      deployModal.addEventListener('click', () => deployModal.classList.remove('open'));
+
+      document.getElementById('btn-copy-pages-url').addEventListener('click', () => {
+        const href = document.getElementById('deploy-pages-link').textContent;
+        if (href) {
+          navigator.clipboard.writeText(href);
+          toast('Ссылка скопирована ✓');
+        }
+      });
+
+      document.getElementById('btn-save-git-setup').addEventListener('click', async () => {
+        const logBox = document.getElementById('deploy-log-box');
+        try {
+          const res = await api('/api/git-setup', 'POST', {
+            remoteUrl: document.getElementById('git-remote-url').value,
+            userName: document.getElementById('git-user-name').value,
+            userEmail: document.getElementById('git-user-email').value
+          });
+          renderGitModal(res.git);
+          toast('Подключение к GitHub сохранено ✓');
+        } catch (err) {
+          logBox.classList.remove('hidden');
+          logBox.textContent = err.message;
+        }
+      });
+
+      document.getElementById('btn-run-deploy').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-run-deploy');
+        const logBox = document.getElementById('deploy-log-box');
+        btn.disabled = true;
+        btn.textContent = '⏳ Публикуем на GitHub...';
+        logBox.classList.remove('hidden');
+        logBox.textContent = 'Сборка статики docs/ и отправка в GitHub...';
+        try {
+          const res = await api('/api/deploy', 'POST', {
+            message: document.getElementById('deploy-commit-msg').value
+          });
+          logBox.textContent = `✓ Опубликовано успешно! Через 20–40 секунд изменения появятся на сайте.\n\n${res.logs || ''}`;
+          document.getElementById('deploy-commit-msg').value = '';
+          renderGitModal(res.git);
+          toast('Опубликовано на GitHub Pages ✓');
+        } catch (err) {
+          logBox.textContent = `✗ ${err.message}`;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '🚀 Собрать и опубликовать';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
