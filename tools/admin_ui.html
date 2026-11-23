@@ -316,20 +316,33 @@
             <input id="lx-en" class="adm-input" placeholder="Glamour" />
           </div>
         </div>
-        <div class="relative z-10">
-          <label class="block text-[#a69f90] mb-1">Категория</label>
-          <select id="lx-cat" class="adm-input max-w-xs">
-            <option value="Основа">Основа</option>
-            <option value="Мир">Мир</option>
-            <option value="Магия">Магия</option>
-            <option value="Общество">Общество</option>
-            <option value="Состояние">Состояние</option>
-            <option value="История">История</option>
-          </select>
+        <div class="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[#a69f90] mb-1">Категория</label>
+            <select id="lx-cat" class="adm-input">
+              <option value="Основа">Основа</option>
+              <option value="Мир">Мир</option>
+              <option value="Магия">Магия</option>
+              <option value="Общество">Общество</option>
+              <option value="Состояние">Состояние</option>
+              <option value="История">История</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[#a69f90] mb-1">Тип подсказки</label>
+            <select id="lx-kind" class="adm-input">
+              <option value="lore">✦ Словарь мира (золотой пунктир)</option>
+              <option value="rule">◈ Правило игры (изумрудно-бирюзовый)</option>
+            </select>
+          </div>
         </div>
         <div class="relative z-10">
           <label class="block text-[#a69f90] mb-1">Определение (поддерживает авто-ссылки на другие термины)</label>
           <textarea id="lx-desc" rows="4" class="adm-input"></textarea>
+        </div>
+        <div class="relative z-10">
+          <label class="block text-[#a69f90] mb-1">Блок «Система» для карточки правила (по одному пункту на строку; поддерживает **жирный** и *курсив*)</label>
+          <textarea id="lx-system" rows="4" class="adm-input" placeholder="**Бросок:** Восприятие + Кеннинг (базовая сложность 8)..."></textarea>
         </div>
         <div class="relative z-10 space-y-1.5">
           <div class="flex items-center justify-between">
@@ -879,7 +892,7 @@
               : 'border-[#d8b979]/15 bg-[#0b110f]/50 text-[#f0eadc] hover:border-[#d8b979]/45'
           }">
             <span class="text-xs font-medium truncate">${item.ru} <span class="text-[#7b7669]">(${item.en})</span></span>
-            <span class="text-[10px] text-[#d8b979] shrink-0">${item.cat}</span>
+            <span class="text-[10px] ${item.kind === 'rule' ? 'text-[#7be3c8]' : 'text-[#d8b979]'} shrink-0">${item.kind === 'rule' ? `◈ Правило · ${item.cat}` : item.cat}</span>
           </button>`
         )
         .join('');
@@ -900,7 +913,9 @@
       document.getElementById('lx-ru').value = item.ru || '';
       document.getElementById('lx-en').value = item.en || '';
       document.getElementById('lx-cat').value = item.cat || 'Основа';
+      document.getElementById('lx-kind').value = item.kind === 'rule' ? 'rule' : 'lore';
       document.getElementById('lx-desc').value = item.desc || '';
+      document.getElementById('lx-system').value = Array.isArray(item.system) ? item.system.join('\n') : '';
       document.getElementById('lx-patterns').value = (item.patterns || []).join(', ');
     }
 
@@ -1101,7 +1116,17 @@
           cur.ru = document.getElementById('lx-ru').value.trim();
           cur.en = document.getElementById('lx-en').value.trim();
           cur.cat = document.getElementById('lx-cat').value;
+          const kind = document.getElementById('lx-kind').value;
+          if (kind === 'rule') cur.kind = 'rule';
+          else delete cur.kind;
           cur.desc = document.getElementById('lx-desc').value.trim();
+          const sysLines = document
+            .getElementById('lx-system')
+            .value.split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean);
+          if (sysLines.length) cur.system = sysLines;
+          else delete cur.system;
           cur.patterns = document
             .getElementById('lx-patterns')
             .value.split(',')

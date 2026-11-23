@@ -131,7 +131,9 @@
     return text.replace(LINK_RE, (full, prefix, word) => {
       const id = resolveTermId(word);
       if (!id || id === excludeId) return full;
-      return `${prefix}<button type="button" class="lex-term" data-term="${id}">${word}</button>`;
+      const item = LEX_MAP[id];
+      const isRule = Boolean(item && item.kind === 'rule');
+      return `${prefix}<button type="button" class="lex-term${isRule ? ' lex-rule' : ''}" data-term="${id}"${isRule ? ' data-kind="rule"' : ''}>${word}</button>`;
     });
   }
 
@@ -222,6 +224,7 @@
     wilderBonus: 'glamour',
     houseLiam: false,
     cantripExample: 'boggan',
+    lexKind: 'all',
     lexCat: 'all',
     lexQuery: '',
     chain: [],
@@ -2066,20 +2069,33 @@
     const mount = document.getElementById('lexicon-directory-mount');
     if (!mount) return;
     const cats = ['all', ...Array.from(new Set(LEXICON.map((x) => x.cat)))];
+    const ruleCount = LEXICON.filter((x) => x.kind === 'rule').length;
+    const loreCount = LEXICON.length - ruleCount;
 
     mount.innerHTML = `
       <div class="space-y-6">
         <div class="nouveau-panel p-4 sm:p-6 space-y-4">
           <div class="relative">
-            <input type="search" id="lex-dir-search" placeholder="Найти термин на русском или английском (например: Гламур, Wyrd, Фрихолд)..."
+            <input type="search" id="lex-dir-search" placeholder="Найти термин или правило на русском или английском (например: Гламур, Wyrd, Порог)..."
               class="w-full rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/80 px-4 py-2.5 text-sm text-[#f0eadc] placeholder-[#7b7669] focus:outline-none focus:border-[#f0dba8]" />
+          </div>
+          <div class="flex flex-wrap gap-1.5" id="lex-kind-bar">
+            <button type="button" data-lkind="all" class="lkind-btn px-3 py-1 rounded-full text-xs border transition">
+              Все записи (${LEXICON.length})
+            </button>
+            <button type="button" data-lkind="lore" class="lkind-btn px-3 py-1 rounded-full text-xs border transition">
+              ✦ Словарь мира (${loreCount})
+            </button>
+            <button type="button" data-lkind="rule" class="lkind-btn px-3 py-1 rounded-full text-xs border transition">
+              ◈ Правила игры (${ruleCount})
+            </button>
           </div>
           <div class="flex flex-wrap gap-1.5" id="lex-cat-bar">
             ${cats
               .map(
                 (c) => `
               <button type="button" data-lcat="${c}" class="lcat-btn px-3 py-1 rounded-full text-xs border transition">
-                ${c === 'all' ? `Все термины (${LEXICON.length})` : c}
+                ${c === 'all' ? 'Все разделы' : c}
               </button>`
               )
               .join('')}
@@ -2093,6 +2109,13 @@
       state.lexQuery = e.target.value.trim().toLowerCase();
       renderLexiconDirectoryGrid();
     });
+
+    mount.querySelectorAll('.lkind-btn').forEach((b) =>
+      b.addEventListener('click', () => {
+        state.lexKind = b.getAttribute('data-lkind');
+        renderLexiconDirectoryGrid();
+      })
+    );
 
     mount.querySelectorAll('.lcat-btn').forEach((b) =>
       b.addEventListener('click', () => {
@@ -2108,6 +2131,24 @@
     const grid = document.getElementById('lex-dir-grid');
     if (!grid) return;
 
+    document.querySelectorAll('.lkind-btn').forEach((b) => {
+      const k = b.getAttribute('data-lkind');
+      const act = k === state.lexKind;
+      if (k === 'rule') {
+        b.className = `lkind-btn px-3 py-1 rounded-full text-xs border transition ${
+          act
+            ? 'border-[#38b89a]/80 bg-[#38b89a]/20 text-[#7be3c8]'
+            : 'border-[#38b89a]/30 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#7be3c8]'
+        }`;
+      } else {
+        b.className = `lkind-btn px-3 py-1 rounded-full text-xs border transition ${
+          act
+            ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+            : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+        }`;
+      }
+    });
+
     document.querySelectorAll('.lcat-btn').forEach((b) => {
       const act = b.getAttribute('data-lcat') === state.lexCat;
       b.className = `lcat-btn px-3 py-1 rounded-full text-xs border transition ${
@@ -2118,36 +2159,49 @@
     });
 
     const filtered = LEXICON.filter((item) => {
+      const isRule = item.kind === 'rule';
+      if (state.lexKind === 'lore' && isRule) return false;
+      if (state.lexKind === 'rule' && !isRule) return false;
       if (state.lexCat !== 'all' && item.cat !== state.lexCat) return false;
       if (!state.lexQuery) return true;
+      const sysHay = (item.system || []).join(' ').toLowerCase();
       return (
         item.ru.toLowerCase().includes(state.lexQuery) ||
         item.en.toLowerCase().includes(state.lexQuery) ||
-        item.desc.toLowerCase().includes(state.lexQuery)
+        item.desc.toLowerCase().includes(state.lexQuery) ||
+        sysHay.includes(state.lexQuery)
       );
     });
 
     if (!filtered.length) {
-      grid.innerHTML = `<div class="col-span-full text-center py-10 text-sm text-[#a69f90]">По вашему запросу терминов не найдено.</div>`;
+      grid.innerHTML = `<div class="col-span-full text-center py-10 text-sm text-[#a69f90]">По вашему запросу записей не найдено.</div>`;
       return;
     }
 
     grid.innerHTML = filtered
-      .map(
-        (item) => `
-      <article id="term-${item.id}" class="nouveau-panel p-5 space-y-2">
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <h3 class="font-nouveau text-2xl font-semibold text-[#f0dba8] leading-tight">${item.ru}</h3>
-            <div class="text-[11px] uppercase tracking-[0.14em] text-[#a69f90]">${item.en}</div>
+      .map((item) => {
+        const isRule = item.kind === 'rule';
+        return `
+      <article id="term-${item.id}" class="nouveau-panel p-5 space-y-2 ${isRule ? '!border-[#38b89a]/40' : ''}">
+        <div class="relative z-10 space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <h3 class="font-nouveau text-2xl font-semibold ${isRule ? 'text-[#7be3c8]' : 'text-[#f0dba8]'} leading-tight">${item.ru}</h3>
+              <div class="text-[11px] uppercase tracking-[0.14em] text-[#a69f90]">${item.en}</div>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border shrink-0 ${
+              isRule
+                ? 'border-[#38b89a]/45 bg-[#38b89a]/12 text-[#7be3c8]'
+                : 'border-[#d8b979]/35 bg-[#d8b979]/10 text-[#d8b979]'
+            }">${isRule ? `Правило · ${item.cat}` : item.cat}</span>
           </div>
-          <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border border-[#d8b979]/35 bg-[#d8b979]/10 text-[#d8b979] shrink-0">${item.cat}</span>
+          <p class="text-xs sm:text-sm text-[#f0eadc]/90 leading-relaxed pt-1">
+            ${linkifyText(item.desc, item.id)}
+          </p>
+          ${buildRuleSystemHTML(item)}
         </div>
-        <p class="text-xs sm:text-sm text-[#f0eadc]/90 leading-relaxed pt-1">
-          ${linkifyText(item.desc, item.id)}
-        </p>
-      </article>`
-      )
+      </article>`;
+      })
       .join('');
   }
 
@@ -2196,20 +2250,23 @@
   }
 
   function buildBreadcrumbsHTML() {
+    const first = LEX_MAP[state.chain[0]];
+    const firstIsRule = Boolean(first && first.kind === 'rule');
     const backBtn =
       state.chain.length > 1
         ? `<button type="button" data-chain-back="1" class="px-2 py-0.5 rounded-full border border-[#d8b979]/50 bg-[#d8b979]/15 text-[#f0dba8] font-medium shrink-0 hover:bg-[#d8b979]/25 transition">← Назад</button>`
-        : `<span class="text-[#d8b979] shrink-0">✦</span>`;
+        : `<span class="${firstIsRule ? 'text-[#38b89a]' : 'text-[#d8b979]'} shrink-0">${firstIsRule ? '◈' : '✦'}</span>`;
 
     const trail = state.chain
       .map((id, idx) => {
         const t = LEX_MAP[id];
         const isCurrent = idx === state.chain.length - 1;
+        const activeCls = t && t.kind === 'rule' ? 'text-[#7be3c8] font-semibold' : 'text-[#f0dba8] font-semibold';
         return `
           ${idx > 0 ? '<span class="text-[#7b7669] shrink-0">›</span>' : ''}
           <button type="button" data-chain-idx="${idx}"
             class="shrink-0 px-1 py-0.5 rounded transition ${
-              isCurrent ? 'text-[#f0dba8] font-semibold' : 'text-[#a69f90] hover:text-[#f0eadc]'
+              isCurrent ? activeCls : 'text-[#a69f90] hover:text-[#f0eadc]'
             }">
             ${t.ru.split(' / ')[0]}
           </button>
@@ -2220,24 +2277,48 @@
     return backBtn + trail;
   }
 
+  function buildRuleSystemHTML(item) {
+    if (!item || !Array.isArray(item.system) || !item.system.length) return '';
+    const rows = item.system
+      .map((line) => {
+        const safe = String(line || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<li>${linkifyHTML(formatInlineMd(safe), item.id)}</li>`;
+      })
+      .join('');
+    return `
+      <div class="rule-system-box">
+        <div class="rule-system-title">◈ Система</div>
+        <ul class="rule-system-list">${rows}</ul>
+      </div>
+    `;
+  }
+
   function buildTermBodyHTML(item) {
+    const isRule = item.kind === 'rule';
     return `
       <div class="flex items-start justify-between gap-2">
         <div>
-          <h4 class="font-nouveau text-2xl font-semibold text-[#f0dba8] leading-tight">${item.ru}</h4>
+          <h4 class="font-nouveau text-2xl font-semibold ${isRule ? 'text-[#7be3c8]' : 'text-[#f0dba8]'} leading-tight">${item.ru}</h4>
           <div class="text-[11px] uppercase tracking-[0.14em] text-[#a69f90]">${item.en}</div>
         </div>
-        <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border border-[#d8b979]/35 bg-[#d8b979]/10 text-[#d8b979] shrink-0">${item.cat}</span>
+        <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border shrink-0 ${
+          isRule
+            ? 'border-[#38b89a]/45 bg-[#38b89a]/12 text-[#7be3c8]'
+            : 'border-[#d8b979]/35 bg-[#d8b979]/10 text-[#d8b979]'
+        }">${isRule ? `Правило · ${item.cat}` : item.cat}</span>
       </div>
       <p class="text-xs sm:text-sm text-[#f0eadc]/92 leading-relaxed pt-1">
         ${linkifyText(item.desc, item.id)}
       </p>
+      ${buildRuleSystemHTML(item)}
     `;
   }
 
   function renderDesktopPopover() {
     const current = LEX_MAP[state.chain[state.chain.length - 1]];
     if (!current) return;
+    const pop = document.getElementById('desktop-popover');
+    if (pop) pop.classList.toggle('is-rule', current.kind === 'rule');
     document.getElementById('pop-breadcrumbs').innerHTML = buildBreadcrumbsHTML();
     document.getElementById('pop-content').innerHTML = buildTermBodyHTML(current);
 
@@ -2280,11 +2361,13 @@
   function renderBottomSheet() {
     const current = LEX_MAP[state.chain[state.chain.length - 1]];
     if (!current) return;
+    const sheet = document.getElementById('bottom-sheet');
+    if (sheet) sheet.classList.toggle('is-rule', current.kind === 'rule');
     document.getElementById('sheet-breadcrumbs').innerHTML = buildBreadcrumbsHTML();
     document.getElementById('sheet-content').innerHTML = `
       ${buildTermBodyHTML(current)}
       <p class="pt-3 border-t border-[#d8b979]/15 text-[11px] text-[#7b7669]">
-        Нажмите на любой золотой термин выше, чтобы перейти дальше по цепочке понятий.
+        Нажмите на любой выделенный термин выше — <span class="text-[#f0dba8]">золотой</span> (словарь мира) или <span class="text-[#7be3c8]">бирюзовый</span> (правило игры), — чтобы перейти дальше по цепочке.
       </p>
     `;
   }
@@ -2335,15 +2418,18 @@
     }
 
     const hits = [];
-    // 1. Lexicon hits
+    // 1. Lexicon & Rule hits
     LEXICON.forEach((item) => {
+      const sysHay = (item.system || []).join(' ').replace(/\*+/g, '').toLowerCase();
       if (
         item.ru.toLowerCase().includes(q) ||
         item.en.toLowerCase().includes(q) ||
-        item.desc.toLowerCase().includes(q)
+        item.desc.toLowerCase().includes(q) ||
+        sysHay.includes(q)
       ) {
+        const isRule = item.kind === 'rule';
         hits.push({
-          badge: `Лексикон · ${item.cat}`,
+          badge: `${isRule ? 'Правило' : 'Лексикон'} · ${item.cat}`,
           title: `${item.ru} (${item.en})`,
           snippet: item.desc.slice(0, 150) + (item.desc.length > 150 ? '…' : ''),
           url: `${ROOT}lexicon/index.html#term-${item.id}`
@@ -2570,9 +2656,15 @@
     if (lexPrint && LEXICON.length) {
       const sorted = [...LEXICON].sort((a, b) => a.ru.localeCompare(b.ru, 'ru'));
       lexPrint.innerHTML = sorted
-        .map(
-          (item) => `<div class="print-lex-entry"><strong>${item.ru}</strong> <em>(${item.en})</em> — ${item.desc}</div>`
-        )
+        .map((item) => {
+          const sys =
+            Array.isArray(item.system) && item.system.length
+              ? ` <em>Система:</em> ${item.system
+                  .map((s) => s.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1'))
+                  .join(' · ')}`
+              : '';
+          return `<div class="print-lex-entry"><strong>${item.ru}</strong> <em>(${item.en})</em> — ${item.desc}${sys}</div>`;
+        })
         .join('');
     }
   }
