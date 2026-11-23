@@ -149,6 +149,14 @@ def render_markdown(md_text: str, root_prefix: str = "./", apply_drop_cap: bool 
             out.append('<div id="thresholds-widget-mount" class="no-lex"></div>')
             i += 1
             continue
+        if stripped == "{{widget:traits-compendium}}":
+            out.append('<div id="traits-widget-mount" class="no-lex"></div>')
+            i += 1
+            continue
+        if stripped == "{{widget:backgrounds-vault}}":
+            out.append('<div id="backgrounds-widget-mount" class="no-lex"></div>')
+            i += 1
+            continue
         if stripped == "{{widget:tempers}}":
             out.append('<div id="tempers-widget-mount" class="no-lex"></div>')
             i += 1
@@ -449,6 +457,7 @@ def render_shell(
         <a href="{root_prefix}02-kiths/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='02-kiths' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Арканы Китов</a>
         <a href="{root_prefix}03-noble-houses/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='03-noble-houses' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Дома</a>
         <a href="{root_prefix}04-legacies-thresholds/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='04-legacies-thresholds' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Наследия</a>
+        <a href="{root_prefix}05-traits-backgrounds/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='05-traits-backgrounds' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Черты</a>
         <a href="{root_prefix}lexicon/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='lexicon' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Лексикон</a>
       </nav>
 
@@ -570,6 +579,8 @@ def build_site() -> dict:
     legacies_data = json.loads(legacies_path.read_text(encoding="utf-8")) if legacies_path.exists() else {}
     legacies = legacies_data.get("legacies", [])
     thresholds = legacies_data.get("thresholds", [])
+    traits_path = CONTENT_DIR / "traits.json"
+    traits_data = json.loads(traits_path.read_text(encoding="utf-8")) if traits_path.exists() else {"attributes": [], "abilities": [], "backgrounds": []}
 
     site_meta = manifest["site"]
     volumes = manifest["volumes"]
@@ -616,6 +627,10 @@ def build_site() -> dict:
         elif slug == "04-legacies-thresholds":
             plain_words += sum(len(l.get("desc", "")) // 6 for l in legacies)
             plain_words += sum(len(t.get("desc", "")) // 6 for t in thresholds)
+        elif slug == "05-traits-backgrounds":
+            plain_words += sum(len(a.get("desc", "")) // 6 + len(a.get("mechanicNote", "")) // 6 for a in traits_data.get("attributes", []))
+            plain_words += sum(len(a.get("desc", "")) // 6 + len(a.get("mechanicNote", "")) // 6 for a in traits_data.get("abilities", []))
+            plain_words += sum(len(" ".join(b.get("desc", []))) // 6 + len(b.get("mechanicNote", "")) // 6 for b in traits_data.get("backgrounds", []))
         read_mins = max(2, round(plain_words / 190))
 
         prev_vol = volumes[idx - 1] if idx > 0 else None
@@ -899,6 +914,9 @@ def build_site() -> dict:
             <a href="04-legacies-thresholds/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
               Наследия и Пороги
             </a>
+            <a href="05-traits-backgrounds/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
+              Черты и Дополнения
+            </a>
             <a href="lexicon/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/35 bg-[#0b110f]/70 text-[#a69f90] hover:text-[#f0dba8] transition">
               Лексикон Грёзы
             </a>
@@ -990,6 +1008,7 @@ def build_site() -> dict:
         "houses": houses,
         "legacies": legacies,
         "thresholds": thresholds,
+        "traits": traits_data,
         "volumes": volumes,
         "search": all_search_entries,
     }
@@ -1005,6 +1024,9 @@ def build_site() -> dict:
         "houses": len(houses),
         "legacies": len(legacies),
         "thresholds": len(thresholds),
+        "attributes": len(traits_data.get("attributes", [])),
+        "abilities": len(traits_data.get("abilities", [])),
+        "backgrounds": len(traits_data.get("backgrounds", [])),
         "lexicon": len(lexicon),
         "searchChunks": len(all_search_entries),
     }

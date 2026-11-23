@@ -8,13 +8,17 @@
 (function () {
   'use strict';
 
-  const BUNDLE = window.CTD_BUNDLE || { lexicon: [], kiths: [], houses: [], legacies: [], thresholds: [], volumes: [], search: [] };
+  const BUNDLE = window.CTD_BUNDLE || { lexicon: [], kiths: [], houses: [], legacies: [], thresholds: [], traits: {}, volumes: [], search: [] };
   const ROOT = document.documentElement.getAttribute('data-root') || './';
   const LEXICON = BUNDLE.lexicon || [];
   const KITHS = BUNDLE.kiths || [];
   const HOUSES = BUNDLE.houses || [];
   const LEGACIES = BUNDLE.legacies || [];
   const THRESHOLDS = BUNDLE.thresholds || [];
+  const TRAITS_DATA = BUNDLE.traits || { attributes: [], abilities: [], backgrounds: [] };
+  const ATTRIBUTES = TRAITS_DATA.attributes || [];
+  const ABILITIES = TRAITS_DATA.abilities || [];
+  const BACKGROUNDS = TRAITS_DATA.backgrounds || [];
   const LEX_MAP = Object.fromEntries(LEXICON.map((item) => [item.id, item]));
 
   /* ------------------------------------------------------------------------
@@ -99,7 +103,31 @@
     'Темпераментов',
     'Темпераментам',
     'Темпераментами',
-    'Темпераментах'
+    'Темпераментах',
+    'Наставник',
+    'Наставника',
+    'Наставнику',
+    'Наставником',
+    'Наставнике',
+    'Наставники',
+    'Наставников',
+    'Наставникам',
+    'Наставниками',
+    'Наставниках',
+    'Свита',
+    'Свиты',
+    'Свите',
+    'Свиту',
+    'Свитой',
+    'Свитою',
+    'Свитам',
+    'Свитами',
+    'Свитах',
+    'Якорь',
+    'Якорем',
+    'Якоря',
+    'Якорю',
+    'Якоре'
   ]);
   const EXACT_LOOKUP = new Map();
   const LOWER_LOOKUP = new Map();
@@ -218,6 +246,13 @@
     legacyViewMode: 'pair',   // 'pair' | 'scroll'
     selectedThresholdId: 'foster_dreams',
     thresholdMode: 'musing',  // 'musing' | 'ravaging' | 'pairs'
+    traitCat: 'attributes',   // 'attributes' | 'talents' | 'skills' | 'knowledges'
+    selectedTraitId: 'strength',
+    traitQuery: '',
+    traitViewMode: 'atlas',   // 'atlas' | 'scroll'
+    selectedBgId: 'chimera',
+    bgFilter: 'all',          // 'all' | 'poolable' | 'personal'
+    bgViewMode: 'atlas',      // 'atlas' | 'scroll'
     tableMode: localStorage.getItem('ctd20_table_mode') === '1',
     forceSheet: false,
     seeming: 'wilder',
@@ -1789,6 +1824,640 @@
   }
 
   /* ------------------------------------------------------------------------
+     3E. WIDGET: TRAITS COMPENDIUM (ATTRIBUTES & ABILITIES)
+     ------------------------------------------------------------------------ */
+  function renderSmallDotsHTML(count, max = 5) {
+    let dots = '';
+    for (let i = 1; i <= max; i++) {
+      dots += `<span class="wod-dot-sm ${i <= count ? 'filled' : ''}" aria-hidden="true"></span>`;
+    }
+    return `<span class="inline-flex items-center gap-1 shrink-0" aria-label="${count} / ${max}">${dots}</span>`;
+  }
+
+  function initTraitsCompendium() {
+    const mount = document.getElementById('traits-widget-mount');
+    if (!mount || (!ATTRIBUTES.length && !ABILITIES.length)) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qTrait = params.get('trait');
+    if (qTrait) {
+      const fAttr = ATTRIBUTES.find((a) => a.id === qTrait);
+      const fAb = ABILITIES.find((a) => a.id === qTrait);
+      if (fAttr) {
+        state.traitCat = 'attributes';
+        state.selectedTraitId = fAttr.id;
+      } else if (fAb) {
+        state.traitCat = fAb.group;
+        state.selectedTraitId = fAb.id;
+      }
+    }
+
+    const cats = [
+      { id: 'attributes', label: `Атрибуты (${ATTRIBUTES.length})` },
+      { id: 'talents', label: `Таланты (${ABILITIES.filter((a) => a.group === 'talents').length - 1}+1)` },
+      { id: 'skills', label: `Навыки (${ABILITIES.filter((a) => a.group === 'skills').length - 1}+1)` },
+      { id: 'knowledges', label: `Познания (${ABILITIES.filter((a) => a.group === 'knowledges').length - 1}+1)` }
+    ];
+
+    mount.innerHTML = `
+      <section id="traits-compendium" class="space-y-6 my-8 scroll-mt-24">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Природа и выучка · Справочник Черт</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Атрибуты и Способности
+            </h2>
+          </div>
+          <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
+            <button type="button" id="tview-atlas" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ✦ Справочник
+            </button>
+            <button type="button" id="tview-scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ☰ Книжный свиток
+            </button>
+          </div>
+        </div>
+
+        <div id="traits-interactive-area" class="space-y-5">
+          <div class="no-print flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div class="flex flex-wrap gap-1.5">
+              ${cats
+                .map(
+                  (c) => `
+                <button type="button" data-tcat="${c.id}" class="trait-cat-btn px-3 py-1.5 rounded-full text-xs border transition">
+                  ${c.label}
+                </button>`
+                )
+                .join('')}
+            </div>
+            <input type="search" id="trait-search-input" placeholder="Поиск Черты, профессии или специализации..."
+              class="w-full sm:w-64 rounded-full border border-[#d8b979]/30 bg-[#0b110f]/75 px-3.5 py-1.5 text-xs text-[#f0eadc] placeholder-[#7b7669] focus:outline-none focus:border-[#f0dba8]" />
+          </div>
+
+          <div id="trait-rule-banner" class="rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/60 px-4 py-2.5 text-xs text-[#a69f90]"></div>
+          <div id="traits-grid"></div>
+          <div id="trait-spotlight" class="nouveau-panel p-5 sm:p-7 scroll-mt-24" aria-live="polite"></div>
+        </div>
+
+        <div id="traits-scroll-area" class="hidden space-y-6"></div>
+        <div id="print-traits-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    document.getElementById('tview-atlas').addEventListener('click', () => {
+      state.traitViewMode = 'atlas';
+      syncTraitViewMode();
+    });
+    document.getElementById('tview-scroll').addEventListener('click', () => {
+      state.traitViewMode = 'scroll';
+      syncTraitViewMode();
+    });
+    mount.querySelectorAll('.trait-cat-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.traitCat = btn.getAttribute('data-tcat');
+        state.traitQuery = '';
+        const inp = document.getElementById('trait-search-input');
+        if (inp) inp.value = '';
+        const firstInCat =
+          state.traitCat === 'attributes'
+            ? ATTRIBUTES[0]
+            : ABILITIES.find((a) => a.group === state.traitCat);
+        if (firstInCat) state.selectedTraitId = firstInCat.id;
+        renderTraitsGrid();
+        renderTraitSpotlight(false);
+      });
+    });
+    document.getElementById('trait-search-input').addEventListener('input', (e) => {
+      state.traitQuery = e.target.value.trim().toLowerCase();
+      renderTraitsGrid();
+    });
+
+    renderTraitsGrid();
+    renderTraitSpotlight(false);
+    renderTraitsScrollArea();
+    syncTraitViewMode();
+  }
+
+  function syncTraitViewMode() {
+    const atlas = document.getElementById('traits-interactive-area');
+    const scroll = document.getElementById('traits-scroll-area');
+    const bAtl = document.getElementById('tview-atlas');
+    const bScr = document.getElementById('tview-scroll');
+    if (!atlas || !scroll) return;
+    const isAtl = state.traitViewMode === 'atlas';
+    atlas.classList.toggle('hidden', !isAtl);
+    scroll.classList.toggle('hidden', isAtl);
+    bAtl.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+    bScr.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      !isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+  }
+
+  function renderTraitsGrid() {
+    const grid = document.getElementById('traits-grid');
+    const banner = document.getElementById('trait-rule-banner');
+    if (!grid || !banner) return;
+
+    document.querySelectorAll('.trait-cat-btn').forEach((btn) => {
+      const act = !state.traitQuery && btn.getAttribute('data-tcat') === state.traitCat;
+      btn.className = `trait-cat-btn px-3 py-1.5 rounded-full text-xs border transition ${
+        act
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+
+    const bannerNotes = {
+      attributes:
+        'Шкала 1–5 точек *(высшие дары фейри поднимают черту до 6 и более)*. При рейтинге 4 и выше выбирается <strong>Специализация</strong> — каждая выпавшая «10» даёт 2 успеха.',
+      talents:
+        '<strong>Таланты:</strong> если в нужном Таланте нет ни одной точки, игрок бросает полный запас подходящего Атрибута без штрафа. ◇ — свободная ячейка.',
+      skills:
+        '<strong>Навыки:</strong> при отсутствии точек в Навыке сложность проверки увеличивается на 1. ✦ — специализация обязательна уже с первой точки; ◇ — свободная ячейка.',
+      knowledges:
+        '<strong>Познания:</strong> без хотя бы 1 точки совершить проверку Познания нельзя *(общеизвестные факты броска не требуют)*. ✦ — специализация обязательна с первой точки; ◇ — свободная ячейка.'
+    };
+
+    const q = state.traitQuery;
+    if (q) {
+      const safeQ = q.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      banner.innerHTML = `Поиск по всем 42 Чертам по запросу <strong class="text-[#f0dba8]">«${safeQ}»</strong>.`;
+      const allTraits = [...ATTRIBUTES, ...ABILITIES].filter((item) => {
+        const hay = `${item.ru} ${item.en} ${item.groupRu} ${item.desc} ${item.mechanicNote || ''} ${(item.possessedBy || []).join(' ')} ${(item.specialties || []).join(' ')} ${(item.levels || []).map((l) => l.text).join(' ')}`.toLowerCase();
+        return hay.includes(q);
+      });
+      if (!allTraits.length) {
+        grid.className = '';
+        grid.innerHTML = `<div class="text-xs text-[#a69f90] py-6 text-center rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/50">По вашему запросу Черты не найдены.</div>`;
+        return;
+      }
+      grid.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2';
+      grid.innerHTML = allTraits.map((item) => buildTraitCardBtnHTML(item, true)).join('');
+    } else if (state.traitCat === 'attributes') {
+      banner.innerHTML = linkifyHTML(formatInlineMd(bannerNotes.attributes));
+      const groups = [
+        { key: 'physical', title: 'Физические', aura: '#c87a4b' },
+        { key: 'social', title: 'Социальные', aura: '#c86d8a' },
+        { key: 'mental', title: 'Ментальные', aura: '#4b9aa8' }
+      ];
+      grid.className = 'grid grid-cols-1 md:grid-cols-3 gap-3';
+      grid.innerHTML = groups
+        .map((g) => {
+          const items = ATTRIBUTES.filter((a) => a.group === g.key);
+          return `
+            <div class="rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-3 space-y-2">
+              <div class="flex items-center gap-2 border-b border-[#d8b979]/15 pb-1.5">
+                <span class="w-2 h-2 rounded-full shrink-0" style="background-color:${g.aura};"></span>
+                <span class="text-[11px] uppercase tracking-[0.18em] text-[#d8b979] font-semibold">${g.title}</span>
+              </div>
+              <div class="space-y-1.5">
+                ${items.map((item) => buildTraitCardBtnHTML(item, false)).join('')}
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    } else {
+      banner.innerHTML = linkifyHTML(formatInlineMd(bannerNotes[state.traitCat] || ''));
+      const list = ABILITIES.filter((a) => a.group === state.traitCat);
+      grid.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2';
+      grid.innerHTML = list.map((item) => buildTraitCardBtnHTML(item, false)).join('');
+    }
+
+    grid.querySelectorAll('[data-trait-card]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.selectedTraitId = btn.getAttribute('data-trait-card');
+        renderTraitsGrid();
+        renderTraitSpotlight(true);
+      });
+    });
+  }
+
+  function buildTraitCardBtnHTML(item, showGroupTag) {
+    const active = item.id === state.selectedTraitId;
+    const mark = item.mandatorySpecialty
+      ? '<span class="text-[#d8b979]" title="Специализация с 1-й точки">✦</span>'
+      : item.isCustomSlot
+      ? '<span class="text-[#a69f90]" title="Свободная ячейка">◇</span>'
+      : '';
+    return `
+      <button type="button" data-trait-card="${item.id}"
+        class="w-full text-left px-3.5 py-2.5 rounded-xl border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0dba8] ${
+          active
+            ? 'border-[#f0dba8]/85 bg-[#d8b979]/18 shadow-[0_0_20px_rgba(216,185,121,0.16)]'
+            : 'border-[#d8b979]/22 bg-[#101916]/80 hover:border-[#d8b979]/55 hover:bg-[#15211d]'
+        }">
+        <div class="flex items-center justify-between gap-2">
+          <span class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-tight">${item.ru}</span>
+          ${mark}
+        </div>
+        <div class="flex items-center justify-between gap-1 mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[#a69f90]">
+          <span>${item.en}</span>
+          ${showGroupTag ? `<span class="text-[#d8b979]">${item.groupRu}</span>` : ''}
+        </div>
+      </button>
+    `;
+  }
+
+  function renderTraitSpotlight(scrollToPanel = false) {
+    const spot = document.getElementById('trait-spotlight');
+    if (!spot) return;
+    const item = [...ATTRIBUTES, ...ABILITIES].find((x) => x.id === state.selectedTraitId) || ATTRIBUTES[0] || ABILITIES[0];
+    if (!item) return;
+
+    const badgeExtras = [
+      `<span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border border-[#d8b979]/35 bg-[#d8b979]/10 text-[#d8b979]">${item.groupRu}</span>`
+    ];
+    if (item.mandatorySpecialty) {
+      badgeExtras.push('<span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border border-[#f0dba8]/55 bg-[#d8b979]/18 text-[#f0dba8]">✦ Специализация с 1-й точки</span>');
+    } else if (item.isCustomSlot) {
+      badgeExtras.push('<span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border border-[#d8b979]/35 bg-[#0b110f]/75 text-[#a69f90]">◇ Свободная ячейка</span>');
+    }
+
+    const mechBox = item.mechanicNote
+      ? `<div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/70 px-4 py-3 text-xs sm:text-[13.5px] text-[#f0eadc]/92 leading-relaxed">
+           <span class="font-semibold text-[#f0dba8]">◈ Особенность правила:</span> ${linkifyHTML(formatInlineMd(item.mechanicNote))}
+         </div>`
+      : '';
+
+    const levelsHTML = (item.levels || [])
+      .map(
+        (lv) => `
+        <div class="flex flex-col sm:flex-row sm:items-baseline gap-1.5 sm:gap-3 rounded-lg border border-[#d8b979]/16 bg-[#0b110f]/52 px-3.5 py-2.5 text-xs sm:text-[13.5px]">
+          <div class="flex items-center gap-2 shrink-0 sm:w-44">
+            ${renderSmallDotsHTML(lv.dots, 5)}
+            <span class="font-semibold text-[#f0dba8]">${lv.label}</span>
+          </div>
+          <div class="text-[#f0eadc]/90 leading-relaxed">${linkifyHTML(formatInlineMd(lv.text))}</div>
+        </div>`
+      )
+      .join('');
+
+    const specsHTML = `
+      <div class="rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/58 p-3.5 space-y-2">
+        <div class="text-[10.5px] uppercase tracking-[0.18em] text-[#d8b979]">${item.specialtiesLabel || 'Специализации'}</div>
+        <div class="flex flex-wrap gap-1.5">
+          ${(item.specialties || [])
+            .map((s) => `<span class="px-2.5 py-0.5 rounded-full text-xs border border-[#d8b979]/25 bg-[#101916]/85 text-[#f0eadc]/88">${s}</span>`)
+            .join('')}
+        </div>
+      </div>
+    `;
+
+    const possHTML =
+      item.possessedBy && item.possessedBy.length
+        ? `<div class="rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/58 p-3.5 space-y-2">
+             <div class="text-[10.5px] uppercase tracking-[0.18em] text-[#d8b979]">У кого встречается</div>
+             <p class="text-xs sm:text-[13.2px] text-[#f0eadc]/88 leading-relaxed">${item.possessedBy.join(', ')}.</p>
+           </div>`
+        : '';
+
+    spot.innerHTML = `
+      <div class="spotlight-anim relative z-10 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#d8b979]/20 pb-3">
+          <div>
+            <h3 class="font-nouveau text-3xl font-semibold text-[#f0eadc] !mt-0 !mb-0 leading-none">${item.ru}</h3>
+            <div class="text-xs uppercase tracking-[0.16em] text-[#a69f90] mt-1">${item.en}</div>
+          </div>
+          <div class="flex flex-wrap gap-1.5">${badgeExtras.join('')}</div>
+        </div>
+
+        <p class="text-sm sm:text-[15px] text-[#f0eadc]/92 leading-relaxed">${linkifyHTML(formatInlineMd(item.desc))}</p>
+        ${mechBox}
+
+        <div class="space-y-1.5">${levelsHTML}</div>
+
+        <div class="grid grid-cols-1 ${possHTML ? 'md:grid-cols-2' : ''} gap-3 pt-1">
+          ${possHTML}
+          ${specsHTML}
+        </div>
+      </div>
+    `;
+
+    if (scrollToPanel) {
+      const rect = spot.getBoundingClientRect();
+      if (rect.top < 60 || rect.top > window.innerHeight * 0.68) {
+        spot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  function renderTraitsScrollArea() {
+    const area = document.getElementById('traits-scroll-area');
+    if (!area) return;
+    const renderSection = (title, items) => `
+      <div class="space-y-3">
+        <h3 class="font-nouveau text-2xl font-semibold text-[#f0dba8] border-b border-[#d8b979]/20 pb-2">${title}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ${items
+            .map(
+              (item) => `
+            <article class="nouveau-panel p-5 space-y-2.5">
+              <div class="flex items-baseline justify-between gap-2 border-b border-[#d8b979]/15 pb-2">
+                <h4 class="font-nouveau text-xl font-semibold text-[#f0eadc] !mt-0 !mb-0">${item.ru} <span class="text-xs font-sans font-normal text-[#a69f90]">(${item.en})</span></h4>
+                ${item.mandatorySpecialty ? '<span class="text-[10px] text-[#f0dba8]">✦ спец. с 1-й точки</span>' : ''}
+              </div>
+              <p class="text-xs sm:text-[13.5px] leading-relaxed">${linkifyHTML(formatInlineMd(item.desc))}</p>
+              ${item.mechanicNote ? `<p class="text-xs text-[#f0dba8]/90">${linkifyHTML(formatInlineMd(item.mechanicNote))}</p>` : ''}
+              <div class="space-y-1 text-xs">
+                ${(item.levels || [])
+                  .map((lv) => `<div><strong class="text-[#f0dba8]">${'●'.repeat(lv.dots)} ${lv.label}:</strong> ${linkifyHTML(formatInlineMd(lv.text))}</div>`)
+                  .join('')}
+              </div>
+              <p class="text-[11.5px] text-[#a69f90]"><strong>${item.specialtiesLabel || 'Специализации'}:</strong> ${(item.specialties || []).join(', ')}.</p>
+            </article>`
+            )
+            .join('')}
+        </div>
+      </div>
+    `;
+    area.innerHTML =
+      renderSection('Атрибуты (Attributes)', ATTRIBUTES) +
+      renderSection('Таланты (Talents)', ABILITIES.filter((a) => a.group === 'talents')) +
+      renderSection('Навыки (Skills)', ABILITIES.filter((a) => a.group === 'skills')) +
+      renderSection('Познания (Knowledges)', ABILITIES.filter((a) => a.group === 'knowledges'));
+  }
+
+  /* ------------------------------------------------------------------------
+     3F. WIDGET: BACKGROUNDS VAULT (10 BACKGROUNDS)
+     ------------------------------------------------------------------------ */
+  function initBackgroundsVault() {
+    const mount = document.getElementById('backgrounds-widget-mount');
+    if (!mount || !BACKGROUNDS.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qBg = params.get('bg');
+    if (qBg && BACKGROUNDS.some((b) => b.id === qBg)) {
+      state.selectedBgId = qBg;
+    }
+
+    const poolCount = BACKGROUNDS.filter((b) => b.poolable).length;
+    const persCount = BACKGROUNDS.length - poolCount;
+    const filters = [
+      { id: 'all', label: `Все (${BACKGROUNDS.length})` },
+      { id: 'poolable', label: `⇄ Объединяются в Мотли (${poolCount})` },
+      { id: 'personal', label: `✦ Личные (${persCount})` }
+    ];
+
+    mount.innerHTML = `
+      <section id="backgrounds-vault" class="space-y-6 my-8 scroll-mt-24">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Опора в двух мирах · Десять Дополнений</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Сокровищница Дополнений
+            </h2>
+          </div>
+          <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
+            <button type="button" id="bview-atlas" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ✦ Каталог
+            </button>
+            <button type="button" id="bview-scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ☰ Книжный свиток
+            </button>
+          </div>
+        </div>
+
+        <div id="backgrounds-interactive-area" class="space-y-5">
+          <div class="no-print flex flex-wrap items-center gap-1.5">
+            ${filters
+              .map(
+                (f) => `
+              <button type="button" data-bgf="${f.id}" class="bg-filter-btn px-3 py-1 rounded-full text-xs border transition">
+                ${f.label}
+              </button>`
+              )
+              .join('')}
+          </div>
+
+          <div id="bgs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5"></div>
+          <div id="bg-spotlight" class="nouveau-panel p-5 sm:p-7 scroll-mt-24" aria-live="polite"></div>
+        </div>
+
+        <div id="backgrounds-scroll-area" class="hidden space-y-5"></div>
+        <div id="print-backgrounds-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    document.getElementById('bview-atlas').addEventListener('click', () => {
+      state.bgViewMode = 'atlas';
+      syncBgViewMode();
+    });
+    document.getElementById('bview-scroll').addEventListener('click', () => {
+      state.bgViewMode = 'scroll';
+      syncBgViewMode();
+    });
+    mount.querySelectorAll('.bg-filter-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.bgFilter = btn.getAttribute('data-bgf');
+        renderBgsGrid();
+      });
+    });
+
+    renderBgsGrid();
+    renderBgSpotlight(false);
+    renderBgsScrollArea();
+    syncBgViewMode();
+  }
+
+  function syncBgViewMode() {
+    const atlas = document.getElementById('backgrounds-interactive-area');
+    const scroll = document.getElementById('backgrounds-scroll-area');
+    const bAtl = document.getElementById('bview-atlas');
+    const bScr = document.getElementById('bview-scroll');
+    if (!atlas || !scroll) return;
+    const isAtl = state.bgViewMode === 'atlas';
+    atlas.classList.toggle('hidden', !isAtl);
+    scroll.classList.toggle('hidden', isAtl);
+    bAtl.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+    bScr.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      !isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+  }
+
+  function renderBgsGrid() {
+    const grid = document.getElementById('bgs-grid');
+    if (!grid) return;
+
+    document.querySelectorAll('.bg-filter-btn').forEach((btn) => {
+      const act = btn.getAttribute('data-bgf') === state.bgFilter;
+      btn.className = `bg-filter-btn px-3 py-1 rounded-full text-xs border transition ${
+        act
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+
+    const filtered = BACKGROUNDS.filter((b) => {
+      if (state.bgFilter === 'poolable') return b.poolable;
+      if (state.bgFilter === 'personal') return !b.poolable;
+      return true;
+    });
+
+    grid.innerHTML = filtered
+      .map((b) => {
+        const active = b.id === state.selectedBgId;
+        return `
+          <button type="button" data-bg-card="${b.id}"
+            class="text-left p-3.5 rounded-xl border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0dba8] flex flex-col justify-between gap-2 ${
+              active
+                ? 'border-[#f0dba8]/85 bg-[#d8b979]/18 shadow-[0_0_22px_rgba(216,185,121,0.16)]'
+                : 'border-[#d8b979]/22 bg-[#101916]/82 hover:border-[#d8b979]/55 hover:bg-[#15211d]'
+            }">
+            <div>
+              <div class="flex items-center justify-between gap-1.5">
+                <span class="font-nouveau text-xl font-semibold text-[#f0eadc] leading-tight">${b.ru}</span>
+                <span class="w-2 h-2 rounded-full shrink-0" style="background-color:${b.auraHex};"></span>
+              </div>
+              <div class="text-[10px] uppercase tracking-[0.13em] text-[#a69f90] mt-0.5">${b.en}</div>
+            </div>
+            <span class="self-start px-2 py-0.5 rounded-full text-[10px] border ${
+              b.poolable
+                ? 'border-[#d8b979]/45 bg-[#d8b979]/12 text-[#f0dba8]'
+                : 'border-[#d8b979]/20 bg-[#0b110f]/60 text-[#a69f90]'
+            }">${b.poolable ? '⇄ Мотли' : '✦ Личное'}</span>
+          </button>
+        `;
+      })
+      .join('');
+
+    grid.querySelectorAll('[data-bg-card]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.selectedBgId = btn.getAttribute('data-bg-card');
+        renderBgsGrid();
+        renderBgSpotlight(true);
+      });
+    });
+  }
+
+  function renderBgSpotlight(scrollToPanel = false) {
+    const spot = document.getElementById('bg-spotlight');
+    if (!spot) return;
+    const b = BACKGROUNDS.find((x) => x.id === state.selectedBgId) || BACKGROUNDS[0];
+    if (!b) return;
+
+    const poolBadge = b.poolable
+      ? '<span class="px-3 py-1 rounded-full text-xs border border-[#f0dba8]/55 bg-[#d8b979]/18 text-[#f0dba8]">⇄ Объединяется в Мотли</span>'
+      : '<span class="px-3 py-1 rounded-full text-xs border border-[#d8b979]/30 bg-[#0b110f]/75 text-[#a69f90]">✦ Личное Дополнение</span>';
+
+    let tracksHTML = '';
+    if (b.subtracks && b.subtracks.length) {
+      tracksHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
+          ${b.subtracks
+            .map(
+              (st) => `
+            <div class="rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/58 p-4 space-y-3">
+              <div class="border-b border-[#d8b979]/15 pb-2">
+                <h4 class="font-nouveau text-xl font-semibold text-[#f0dba8] !mt-0 !mb-0">${st.title}</h4>
+                <div class="text-[10.5px] uppercase tracking-[0.14em] text-[#a69f90]">${st.en}</div>
+              </div>
+              <p class="text-xs sm:text-[13.2px] text-[#f0eadc]/88 leading-relaxed">${linkifyHTML(formatInlineMd(st.desc))}</p>
+              <div class="space-y-1.5">
+                ${(st.levels || [])
+                  .map(
+                    (lv) => `
+                  <div class="flex items-start gap-2.5 text-xs leading-relaxed">
+                    <div class="pt-1">${renderSmallDotsHTML(lv.dots, 5)}</div>
+                    <div class="text-[#f0eadc]/92">${linkifyHTML(formatInlineMd(lv.text))}</div>
+                  </div>`
+                  )
+                  .join('')}
+              </div>
+            </div>`
+            )
+            .join('')}
+        </div>`;
+    } else {
+      tracksHTML = `
+        <div class="space-y-1.5 pt-1">
+          ${(b.levels || [])
+            .map(
+              (lv) => `
+            <div class="flex items-start sm:items-center gap-3 rounded-lg border border-[#d8b979]/16 bg-[#0b110f]/55 px-3.5 py-2.5 text-xs sm:text-[13.5px]">
+              <div class="pt-1 sm:pt-0">${renderSmallDotsHTML(lv.dots, 5)}</div>
+              <div class="text-[#f0eadc]/92 leading-relaxed">${linkifyHTML(formatInlineMd(lv.text))}</div>
+            </div>`
+            )
+            .join('')}
+        </div>`;
+    }
+
+    spot.innerHTML = `
+      <div class="spotlight-anim relative z-10 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#d8b979]/20 pb-3">
+          <div>
+            <h3 class="font-nouveau text-3xl font-semibold text-[#f0eadc] !mt-0 !mb-0 leading-none">${b.ru}</h3>
+            <div class="text-xs uppercase tracking-[0.16em] text-[#a69f90] mt-1">${b.en}</div>
+          </div>
+          ${poolBadge}
+        </div>
+
+        <div class="space-y-2.5 text-sm sm:text-[15px] text-[#f0eadc]/92 leading-relaxed">
+          ${(b.desc || []).map((p) => `<p>${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+        </div>
+
+        ${
+          b.mechanicNote
+            ? `<div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/70 px-4 py-3 text-xs sm:text-[13.5px] text-[#f0eadc]/92 leading-relaxed">
+                 <span class="font-semibold text-[#f0dba8]">◈ Игровая механика:</span> ${linkifyHTML(formatInlineMd(b.mechanicNote))}
+               </div>`
+            : ''
+        }
+
+        ${tracksHTML}
+      </div>
+    `;
+
+    if (scrollToPanel) {
+      const rect = spot.getBoundingClientRect();
+      if (rect.top < 60 || rect.top > window.innerHeight * 0.68) {
+        spot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  function renderBgsScrollArea() {
+    const area = document.getElementById('backgrounds-scroll-area');
+    if (!area) return;
+    area.innerHTML = BACKGROUNDS.map((b) => {
+      const subHTML =
+        b.subtracks && b.subtracks.length
+          ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+               ${b.subtracks
+                 .map(
+                   (st) => `
+                 <div class="rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/55 p-3.5 space-y-1.5">
+                   <div class="font-semibold text-xs text-[#f0dba8]">${st.title} (${st.en})</div>
+                   <div class="space-y-1 text-xs">
+                     ${(st.levels || []).map((lv) => `<div><strong class="text-[#f0dba8]">${'●'.repeat(lv.dots)}:</strong> ${linkifyHTML(formatInlineMd(lv.text))}</div>`).join('')}
+                   </div>
+                 </div>`
+                 )
+                 .join('')}
+             </div>`
+          : `<div class="space-y-1 text-xs sm:text-[13px]">
+               ${(b.levels || []).map((lv) => `<div><strong class="text-[#f0dba8]">${'●'.repeat(lv.dots)}:</strong> ${linkifyHTML(formatInlineMd(lv.text))}</div>`).join('')}
+             </div>`;
+
+      return `
+        <article class="nouveau-panel p-5 space-y-2.5">
+          <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-[#d8b979]/15 pb-2">
+            <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc] !mt-0 !mb-0">${b.ru} <span class="text-xs font-sans font-normal text-[#a69f90]">(${b.en})</span></h3>
+            <span class="text-[11px] text-[#d8b979]">${b.poolable ? '⇄ Объединяется в Мотли' : '✦ Личное'}</span>
+          </div>
+          ${(b.desc || []).map((p) => `<p class="text-xs sm:text-[13.5px] leading-relaxed">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+          ${b.mechanicNote ? `<p class="text-xs text-[#f0dba8]/90">${linkifyHTML(formatInlineMd(b.mechanicNote))}</p>` : ''}
+          ${subHTML}
+        </article>`;
+    }).join('');
+  }
+
+  /* ------------------------------------------------------------------------
      4. WIDGETS: STEP 4 TEMPERS & STEP 3 CANTRIP EQUATION
      ------------------------------------------------------------------------ */
   const CANTRIP_EXAMPLES = {
@@ -2478,6 +3147,33 @@
       }
     });
 
+    // 2d. Traits (Attributes & Abilities) hits
+    [...ATTRIBUTES, ...ABILITIES].forEach((tr) => {
+      const hay = `${tr.ru} ${tr.en} ${tr.groupRu} ${tr.desc} ${tr.mechanicNote || ''} ${(tr.possessedBy || []).join(' ')} ${(tr.specialties || []).join(' ')}`.toLowerCase();
+      if (hay.includes(q)) {
+        hits.push({
+          badge: `Черта · ${tr.groupRu}`,
+          title: `${tr.ru} (${tr.en})`,
+          snippet: tr.desc.slice(0, 150) + (tr.desc.length > 150 ? '…' : ''),
+          url: `${ROOT}05-traits-backgrounds/index.html?trait=${tr.id}#traits-compendium`
+        });
+      }
+    });
+
+    // 2e. Backgrounds hits
+    BACKGROUNDS.forEach((b) => {
+      const subText = (b.subtracks || []).map((st) => `${st.title} ${st.desc} ${(st.levels || []).map((l) => l.text).join(' ')}`).join(' ');
+      const hay = `${b.ru} ${b.en} ${(b.desc || []).join(' ')} ${b.mechanicNote || ''} ${(b.levels || []).map((l) => l.text).join(' ')} ${subText}`.toLowerCase();
+      if (hay.includes(q)) {
+        hits.push({
+          badge: b.poolable ? 'Дополнение · Мотли' : 'Дополнение',
+          title: `${b.ru} (${b.en})`,
+          snippet: ((b.desc && b.desc[0]) || '').slice(0, 150) + '…',
+          url: `${ROOT}05-traits-backgrounds/index.html?bg=${b.id}#backgrounds-vault`
+        });
+      }
+    });
+
     // 3. Chapter section hits
     (BUNDLE.search || []).forEach((s) => {
       if (s.title.toLowerCase().includes(q) || s.text.toLowerCase().includes(q)) {
@@ -2638,6 +3334,45 @@
       ).join('');
     }
 
+    const traitsPrint = document.getElementById('print-traits-container');
+    if (traitsPrint && (ATTRIBUTES.length || ABILITIES.length)) {
+      traitsPrint.innerHTML = [...ATTRIBUTES, ...ABILITIES]
+        .map(
+          (item) => `
+        <article class="print-trait-card p-3 space-y-1">
+          <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+            <h4 class="font-nouveau text-lg font-bold">${item.ru} <span class="text-xs font-normal">(${item.en})</span></h4>
+            <span class="text-xs font-semibold">${item.groupRu}${item.mandatorySpecialty ? ' · спец. с 1-й точки' : ''}</span>
+          </div>
+          <p class="text-xs">${formatInlineMd(item.desc)}</p>
+          ${item.mechanicNote ? `<p class="text-xs"><strong>Механика:</strong> ${formatInlineMd(item.mechanicNote)}</p>` : ''}
+          <p class="text-xs"><strong>${item.specialtiesLabel || 'Специализации'}:</strong> ${(item.specialties || []).join(', ')}.</p>
+        </article>`
+        )
+        .join('');
+    }
+
+    const bgsPrint = document.getElementById('print-backgrounds-container');
+    if (bgsPrint && BACKGROUNDS.length) {
+      bgsPrint.innerHTML = BACKGROUNDS.map((b) => {
+        const lvlText =
+          b.subtracks && b.subtracks.length
+            ? b.subtracks
+                .map((st) => `<strong>${st.title}:</strong> ${(st.levels || []).map((lv) => `${lv.dots} — ${formatInlineMd(lv.text)}`).join('; ')}`)
+                .join(' · ')
+            : (b.levels || []).map((lv) => `${lv.dots} — ${formatInlineMd(lv.text)}`).join('; ');
+        return `
+        <article class="print-bg-card p-3 space-y-1">
+          <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+            <h4 class="font-nouveau text-lg font-bold">${b.ru} <span class="text-xs font-normal">(${b.en})</span></h4>
+            <span class="text-xs font-semibold">${b.poolable ? 'Объединяется в Мотли' : 'Личное'}</span>
+          </div>
+          <p class="text-xs">${(b.desc || []).map((p) => formatInlineMd(p)).join(' ')}</p>
+          <p class="text-xs">${lvlText}</p>
+        </article>`;
+      }).join('');
+    }
+
     const lexPrint = document.getElementById('print-lexicon-container');
     if (lexPrint && LEXICON.length) {
       const sorted = [...LEXICON].sort((a, b) => a.ru.localeCompare(b.ru, 'ru'));
@@ -2666,6 +3401,8 @@
     initHousesGallery();
     initLegaciesWidget();
     initThresholdsWidget();
+    initTraitsCompendium();
+    initBackgroundsVault();
     initTempersWidget();
     initCantripWidget();
     initLexiconDirectory();

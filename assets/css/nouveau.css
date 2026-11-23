@@ -537,6 +537,21 @@ main, header, footer {
   box-shadow: 0 0 8px rgba(164, 176, 172, 0.26);
 }
 
+.wod-dot-sm {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  border: 1px solid rgba(216, 185, 121, 0.36);
+  background: rgba(11, 17, 15, 0.90);
+  flex-shrink: 0;
+}
+
+.wod-dot-sm.filled {
+  border-color: var(--gold-bright);
+  background: radial-gradient(circle at 32% 28%, #fff6da 0%, #d8b979 52%, #7e612d 100%);
+  box-shadow: 0 0 6px rgba(216, 185, 121, 0.34);
+}
+
 /* ================================================================
    INLINE LEXICON LINKS & TABLE MODE
    ================================================================ */
@@ -761,6 +776,8 @@ body.mode-table .table-mode-only {
   #houses-interactive-area,
   #legacies-interactive-area,
   #thresholds-interactive-area,
+  #traits-interactive-area,
+  #backgrounds-interactive-area,
   #desktop-popover,
   #sheet-backdrop,
   #bottom-sheet,
@@ -781,6 +798,8 @@ body.mode-table .table-mode-only {
   .print-house-card,
   .print-legacy-card,
   .print-threshold-card,
+  .print-trait-card,
+  .print-bg-card,
   .callout-sidebar,
   .callout-mechanics {
     background: #ffffff !important;
@@ -798,6 +817,8 @@ body.mode-table .table-mode-only {
   .print-house-card::after,
   .print-legacy-card::after,
   .print-threshold-card::after,
+  .print-trait-card::after,
+  .print-bg-card::after,
   .callout-sidebar::after {
     content: "";
     position: absolute;
@@ -856,6 +877,13 @@ body.mode-table .table-mode-only {
   }
   .wod-dot.filled,
   .wod-dot.bonus {
+    background: #6b562e !important;
+  }
+  .wod-dot-sm {
+    border-color: #6b562e !important;
+    background: #ffffff !important;
+  }
+  .wod-dot-sm.filled {
     background: #6b562e !important;
   }
   .wod-dot.banality.filled {
