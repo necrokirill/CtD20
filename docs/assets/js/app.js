@@ -176,9 +176,9 @@
       <section id="kiths-arcana" class="space-y-6 my-8">
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Витражные арканы · Полный свод</p>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Народы Грёзы · Витражная галерея</p>
             <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
-              Арканы 13 Китов Конкордии
+              Тринадцать Китов Конкордии
             </h2>
           </div>
           <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
@@ -186,7 +186,7 @@
               ✦ Витражные Арканы
             </button>
             <button type="button" id="kview-scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
-              ☰ Книжный свиток (все 13)
+              ☰ Книжный свиток
             </button>
           </div>
         </div>
@@ -563,8 +563,7 @@
               <div class="w-8 h-8">${k.emblem || ''}</div>
             </div>
             <div>
-              <div class="flex flex-wrap items-baseline gap-2">
-                <span class="text-xs font-semibold text-[#d8b979]">${k.num || ''}</span>
+              <div class="flex flex-wrap items-baseline gap-2.5">
                 <h3 class="font-nouveau text-3xl sm:text-4xl font-semibold text-[#f0eadc] leading-none">${k.ru}</h3>
                 <span class="text-xs uppercase tracking-[0.18em] text-[#a69f90]">${k.en}</span>
               </div>
@@ -624,7 +623,7 @@
                 <div class="w-6 h-6">${k.emblem || ''}</div>
               </div>
               <div>
-                <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc]">${k.num}. ${k.ru} <span class="text-sm font-sans font-normal text-[#a69f90]">(${k.en})</span></h3>
+                <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc]">${k.ru} <span class="text-sm font-sans font-normal text-[#a69f90]">(${k.en})</span></h3>
               </div>
             </div>
             <span class="px-3 py-1 rounded-full text-xs border" style="border-color:rgba(${rgb},0.45); color:${k.auraHex};">
@@ -712,10 +711,10 @@
       <div class="nouveau-panel p-5 sm:p-7 my-6 space-y-5">
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
           <div>
-            <span class="text-[11px] uppercase tracking-[0.2em] text-[#d8b979]">Интерактивный тренажёр · Шаг 4</span>
+            <span class="text-[11px] uppercase tracking-[0.2em] text-[#d8b979]">Шаг Четвёртый · Гармония Темпераментов</span>
             <h4 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc] !mt-0.5 !mb-0">Баланс души Подменыша</h4>
             <p class="lore-only text-xs text-[#a69f90] mt-1">
-              Проверьте стартовые значения Темпераментов в зависимости от выбранной Стадии души и Дома.
+              Стартовые запасы души зависят от избранной Стадии и наследия Благородного Дома.
             </p>
           </div>
           <div class="no-print inline-grid grid-cols-3 p-1 rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 w-full md:w-auto">
@@ -874,8 +873,8 @@
     mount.innerHTML = `
       <div class="nouveau-panel p-5 sm:p-7 my-6 space-y-5">
         <div class="text-center space-y-1">
-          <span class="text-[11px] uppercase tracking-[0.22em] text-[#d8b979]">Интерактивная памятка · Шаг 3</span>
-          <h4 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc] !mt-0.5 !mb-0">Витражное уравнение Кантрипа</h4>
+          <span class="text-[11px] uppercase tracking-[0.22em] text-[#d8b979]">Плетение чар · Формула Кантрипа</span>
+          <h4 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc] !mt-0.5 !mb-0">Витражное уравнение магии</h4>
         </div>
         <div class="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2.5 text-center">
           <div class="px-4 py-2.5 rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/65 min-w-[144px]">
@@ -1246,7 +1245,7 @@
       if (hay.includes(q)) {
         hits.push({
           badge: `Кит · Сродство: ${k.affinity}`,
-          title: `${k.num}. ${k.ru} (${k.en})`,
+          title: `${k.ru} (${k.en})`,
           snippet: k.tagline,
           url: `${ROOT}02-kiths/index.html?kith=${k.id}#kiths-arcana`
         });
@@ -1335,7 +1334,7 @@
         (k) => `
         <article class="print-kith-card p-4 space-y-2">
           <div class="flex items-baseline justify-between border-b border-[#ccc] pb-1">
-            <h3 class="font-nouveau text-xl font-bold">${k.num}. ${k.ru} <span class="text-sm font-normal">(${k.en})</span></h3>
+            <h3 class="font-nouveau text-xl font-bold">${k.ru} <span class="text-sm font-normal">(${k.en})</span></h3>
             <span class="text-xs font-semibold">Сродство: ${k.affinity} (−1 сл.)</span>
           </div>
           <p class="italic text-xs">${k.quote}</p>

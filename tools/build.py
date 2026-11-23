@@ -352,10 +352,10 @@ def render_markdown(md_text: str, root_prefix: str = "./", apply_drop_cap: bool 
 
 def status_badge_html(status: str) -> str:
     if status == "ready":
-        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Готово</span>'
+        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Открыто</span>'
     if status == "in_progress":
-        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#4b9aa8]/60 bg-[#4b9aa8]/18 text-[#9ad9e5]">◐ В переводе</span>'
-    return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В планах</span>'
+        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#4b9aa8]/60 bg-[#4b9aa8]/18 text-[#9ad9e5]">◐ Пишется</span>'
+    return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В туманах Грёзы</span>'
 
 
 def render_shell(
@@ -376,7 +376,7 @@ def render_shell(
              'border-[#f0dba8]/70 bg-[#d8b979]/15' if v['slug'] == active_slug else 'border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55'
            }">
           <div>
-            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">{html.escape(v['num'])} · {html.escape(v['part'])}</div>
+            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">{html.escape(v['part'])}</div>
             <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">{html.escape(v['title'])}</div>
             <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">{html.escape(v['summary'])}</div>
           </div>
@@ -431,10 +431,10 @@ def render_shell(
 
       <nav class="order-3 lg:order-2 w-full lg:w-auto flex items-center justify-center gap-1 sm:gap-1.5 pt-1.5 lg:pt-0 border-t border-[#d8b979]/15 lg:border-none text-xs sm:text-[13px] overflow-x-auto">
         <button type="button" data-open-volumes class="px-3 py-1 rounded-full text-[#f0eadc] hover:text-[#f0dba8] hover:bg-[#d8b979]/12 border border-[#d8b979]/25 transition shrink-0">
-          ☰ Оглавление (10 томов)
+          ☰ Оглавление
         </button>
-        <a href="{root_prefix}01-world-and-creation/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='01-world-and-creation' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Создание героя</a>
-        <a href="{root_prefix}02-kiths/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='02-kiths' else 'text-[#a69f90] hover:text-[#f0dba8]'}">13 Китов</a>
+        <a href="{root_prefix}01-world-and-creation/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='01-world-and-creation' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Пробуждение</a>
+        <a href="{root_prefix}02-kiths/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='02-kiths' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Арканы Китов</a>
         <a href="{root_prefix}lexicon/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='lexicon' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Лексикон</a>
       </nav>
 
@@ -520,7 +520,7 @@ def render_shell(
       <div class="flex items-center justify-between border-b border-[#d8b979]/20 pb-3">
         <div>
           <div class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979]">Содержание книги</div>
-          <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc]">Все 10 томов руководства</h3>
+          <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc]">Главы Книги Игрока</h3>
         </div>
         <button type="button" data-close-volumes class="w-8 h-8 rounded-full border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc]">✕</button>
       </div>
@@ -581,7 +581,7 @@ def build_site() -> dict:
 
         for sc in search_chunks:
             all_search_entries.append({
-                "part": f"{vol['num']}. {vol['part']}",
+                "part": vol["part"],
                 "title": sc["title"],
                 "text": sc["text"],
                 "url": f"{slug}/index.html{sc['anchor']}",
@@ -629,7 +629,7 @@ def build_site() -> dict:
             f"""
             <aside class="no-print hidden lg:block w-64 shrink-0">
               <div class="sticky top-20 nouveau-panel p-4 space-y-2.5 max-h-[calc(100vh-6.5rem)] overflow-y-auto">
-                <div class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979] px-2">В этом томе</div>
+                <div class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979] px-2">Содержание главы</div>
                 <nav class="space-y-0.5">{toc_links_html}</nav>
               </div>
             </aside>"""
@@ -642,8 +642,8 @@ def build_site() -> dict:
             planned_notice = """
             <div class="nouveau-panel p-5 sm:p-6 border-[#d8b979]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div class="relative z-10 space-y-1">
-                <div class="text-xs uppercase tracking-[0.2em] text-[#d8b979]">✦ Том готовится к переводу</div>
-                <p class="text-xs sm:text-sm text-[#a69f90]">Ниже представлена утверждённая структура этого тома из плана руководства C20. Вы можете наполнять главу прямо через локальную Веб-Админку или в Markdown.</p>
+                <div class="text-xs uppercase tracking-[0.2em] text-[#d8b979]">✦ Страницы скрыты Туманами</div>
+                <p class="text-xs sm:text-sm text-[#a69f90]">Туманы Грёзы ещё не рассеялись над этой главой. Ниже начертано краткое содержание грядущих разделов.</p>
               </div>
             </div>"""
 
@@ -651,8 +651,8 @@ def build_site() -> dict:
         if prev_vol:
             nav_cards.append(
                 f"""<a href="../{prev_vol['slug']}/index.html" class="nouveau-panel p-4 sm:p-5 hover:border-[#f0dba8]/65 transition block">
-                      <div class="relative z-10 text-[11px] uppercase tracking-wider text-[#a69f90]">← Предыдущий том</div>
-                      <div class="relative z-10 font-nouveau text-xl font-semibold text-[#f0dba8] mt-1">{html.escape(prev_vol['num'])}. {html.escape(prev_vol['title'])}</div>
+                      <div class="relative z-10 text-[11px] uppercase tracking-wider text-[#a69f90]">← {html.escape(prev_vol['part'])}</div>
+                      <div class="relative z-10 font-nouveau text-xl font-semibold text-[#f0dba8] mt-1">{html.escape(prev_vol['title'])}</div>
                     </a>"""
             )
         else:
@@ -661,8 +661,8 @@ def build_site() -> dict:
         if next_vol:
             nav_cards.append(
                 f"""<a href="../{next_vol['slug']}/index.html" class="nouveau-panel p-4 sm:p-5 hover:border-[#f0dba8]/65 transition block text-right">
-                      <div class="relative z-10 text-[11px] uppercase tracking-wider text-[#a69f90]">Следующий том →</div>
-                      <div class="relative z-10 font-nouveau text-xl font-semibold text-[#f0dba8] mt-1">{html.escape(next_vol['num'])}. {html.escape(next_vol['title'])}</div>
+                      <div class="relative z-10 text-[11px] uppercase tracking-wider text-[#a69f90]">{html.escape(next_vol['part'])} →</div>
+                      <div class="relative z-10 font-nouveau text-xl font-semibold text-[#f0dba8] mt-1">{html.escape(next_vol['title'])}</div>
                     </a>"""
             )
 
@@ -676,7 +676,7 @@ def build_site() -> dict:
           <section class="nouveau-hero-arch px-6 py-8 sm:px-12 sm:py-12 text-center">
             <div class="relative z-10">
               <div class="flex items-center justify-center gap-2.5 mb-3">
-                <span class="text-xs uppercase tracking-[0.25em] text-[#d8b979]">{html.escape(vol['num'])} · {html.escape(vol['part'])}</span>
+                <span class="text-xs uppercase tracking-[0.25em] text-[#d8b979]">{html.escape(vol['part'])}</span>
                 {status_badge_html(vol.get('status', 'planned'))}
                 <span class="text-xs text-[#7b7669]">· ~{read_mins} мин чтения</span>
               </div>
@@ -725,10 +725,10 @@ def build_site() -> dict:
     <main class="max-w-5xl mx-auto px-3.5 sm:px-6 pt-6 sm:pt-10 pb-12 space-y-8">
       <section class="nouveau-hero-arch px-6 py-8 sm:px-12 sm:py-12 text-center">
         <div class="relative z-10">
-          <p class="text-xs uppercase tracking-[0.26em] text-[#d8b979] mb-2">Справочник терминов · C20</p>
-          <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">Единый Лексикон игрока</h1>
+          <p class="text-xs uppercase tracking-[0.26em] text-[#d8b979] mb-2">Наречие Конкордии</p>
+          <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">Лексикон Грёзы</h1>
           <p class="text-xs sm:text-sm text-[#a69f90] max-w-2xl mx-auto mt-3">
-            Выверенный словарь из {len(lexicon)} понятий Мира Грёзы с оригинальными английскими эквивалентами. Все термины внутри карточек интерактивны и связаны в цепочки.
+            Словарь понятий Мира Грёзы и дворов Китэйнов с исконными английскими названиями. Нажимайте на выделенные слова внутри карточек, чтобы переходить от понятия к понятию.
           </p>
         </div>
       </section>
@@ -738,7 +738,7 @@ def build_site() -> dict:
     (DOCS_DIR / "lexicon").mkdir(parents=True, exist_ok=True)
     (DOCS_DIR / "lexicon" / "index.html").write_text(
         render_shell(
-            page_title="Единый Лексикон игрока",
+            page_title="Лексикон Грёзы",
             root_prefix="../",
             aura_hex="#d8b979",
             active_slug="lexicon",
@@ -761,7 +761,7 @@ def build_site() -> dict:
           <div class="relative z-10 space-y-2.5">
             <div class="flex items-center justify-between gap-2">
               <span class="text-xs font-semibold uppercase tracking-[0.2em]" style="color: {v.get('auraHex', '#d8b979')};">
-                Том {html.escape(v['num'])} · {html.escape(v['part'])}
+                {html.escape(v['part'])}
               </span>
               {status_badge_html(v.get('status', 'planned'))}
             </div>
@@ -773,7 +773,7 @@ def build_site() -> dict:
             </p>
           </div>
           <div class="relative z-10 pt-3 border-t border-[#d8b979]/15 flex items-center justify-between text-xs text-[#d8b979]">
-            <span>{'Читать главу' if v.get('status') == 'ready' else 'Открыть план тома'}</span>
+            <span>{'Открыть главу' if v.get('status') == 'ready' else 'Заглянуть за завесу'}</span>
             <span class="transition-transform group-hover:translate-x-1">→</span>
           </div>
         </a>
@@ -844,27 +844,22 @@ def build_site() -> dict:
             <p class="clearfix">{intro_drop}</p>
           </div>
 
-          <!-- Quick Action Buttons & Progress Stats -->
+          <!-- Quick Action Buttons -->
           <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a href="01-world-and-creation/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#f0dba8]/80 bg-[#d8b979]/22 text-[#f0dba8] hover:bg-[#d8b979]/32 transition">
-              ✦ Начать с Части 1 (Шаги 1–9)
+              ✦ Начать с Части Первой
             </a>
             <a href="02-kiths/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
-              Арканы 13 Китов
+              Витражные Арканы Китов
             </a>
             <a href="lexicon/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/35 bg-[#0b110f]/70 text-[#a69f90] hover:text-[#f0dba8] transition">
-              Единый Лексикон ({len(lexicon)})
+              Лексикон Грёзы
             </a>
           </div>
 
-          <div class="mt-7 max-w-lg mx-auto rounded-2xl border border-[#d8b979]/22 bg-[#0b110f]/60 px-4 py-3 text-xs text-[#a69f90]">
-            <div class="flex items-center justify-between mb-1.5">
-              <span>Готовность свода переводов</span>
-              <strong class="text-[#f0dba8]">{ready_count} из {len(volumes)} томов · {pct_ready}%</strong>
-            </div>
-            <div class="w-full h-1.5 rounded-full bg-[#15211d] overflow-hidden">
-              <div class="h-full rounded-full bg-gradient-to-r from-[#8c703b] via-[#d8b979] to-[#f0dba8]" style="width: {pct_ready}%;"></div>
-            </div>
+          <div class="no-print mt-7 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-1.5 rounded-full border border-[#d8b979]/25 bg-[#0b110f]/55 text-[11px] sm:text-xs text-[#a69f90]">
+            <span class="text-[#d8b979]">✦</span>
+            <span>Нажимайте на слова с <span class="text-[#f0dba8] border-b border-dotted border-[#d8b979]">золотым пунктиром</span> — внутри подсказок можно переходить по цепочке понятий дальше.</span>
           </div>
         </div>
       </section>
@@ -872,8 +867,8 @@ def build_site() -> dict:
       <!-- 10 VOLUMES GRID -->
       <section id="volumes" class="space-y-6 scroll-mt-24">
         <div class="text-center space-y-1.5">
-          <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Содержание книги · План и готовые главы</p>
-          <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc]">Десять томов Руководства игрока</h2>
+          <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Путеводитель по Конкордии</p>
+          <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc]">Оглавление Книги Игрока</h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           {vol_cards_html}
@@ -892,10 +887,10 @@ def build_site() -> dict:
       <section class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Часть 2 · Полный перевод готов</p>
-            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc]">Витражные Арканы 13 Китов</h2>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Часть Вторая · Народы Грёзы</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc]">Витражные Арканы Китов</h2>
           </div>
-          <a href="02-kiths/index.html" class="text-xs text-[#f0dba8] hover:underline">Открыть галерею и шпаргалку →</a>
+          <a href="02-kiths/index.html" class="text-xs text-[#f0dba8] hover:underline">Перейти к главе о Китах →</a>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3">
           {kith_strip_html}
@@ -905,8 +900,8 @@ def build_site() -> dict:
       <!-- INTERACTIVE MECHANICS PREVIEW ON PORTAL -->
       <section class="space-y-4">
         <div class="text-center space-y-1">
-          <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Тренажёр создания персонажа</p>
-          <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc]">Быстрая памятка: Темпераменты и Кантрип</h2>
+          <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Гармония души и плетение чар</p>
+          <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc]">Темпераменты и Формула Кантрипа</h2>
         </div>
         <div id="tempers-widget-mount" class="no-lex"></div>
         <div id="cantrip-widget-mount" class="no-lex"></div>

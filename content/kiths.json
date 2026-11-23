@@ -9,7 +9,7 @@
     "affinity": "Актёр",
     "affinityEn": "Actor",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><path d=\"M7 21L20 9.5L33 21\"/><path d=\"M11.5 18.5V31.5H28.5V18.5\"/><path d=\"M20 29C17.2 26.6 17.2 23.4 20 20.5C22.8 23.4 22.8 26.6 20 29Z\" fill=\"currentColor\" fill-opacity=\"0.22\"/><circle cx=\"20\" cy=\"6\" r=\"1.4\" fill=\"currentColor\"/></svg>",
-    "num": "2.1",
+    "num": "",
     "image": "",
     "quote": "«Я прибралась во фрихолде, накормила зверинец и заштопала любимую мантию герцога. Осталось уладить всего пару мелочей! К полудню должна быть готова выступать в поход!»",
     "lore": [
@@ -109,7 +109,7 @@
     "affinity": "Актёр",
     "affinityEn": "Actor",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><circle cx=\"20\" cy=\"14\" r=\"5\" fill=\"currentColor\" fill-opacity=\"0.18\"/><circle cx=\"14.5\" cy=\"21\" r=\"5\" fill=\"currentColor\" fill-opacity=\"0.18\"/><circle cx=\"25.5\" cy=\"21\" r=\"5\" fill=\"currentColor\" fill-opacity=\"0.18\"/><path d=\"M20 23V33C20 34.5 22 35 23.5 34\"/></svg>",
-    "num": "2.2",
+    "num": "",
     "image": "",
     "quote": "«Ну и вот, стоим мы: я с куском мяса у подбитого глаза, леди Марисоль с пузырём льда у губы, а шайка красных шапок в дальнем конце зала... А, вы уже слышали эту историю? Ничего, расскажу ещё разок для тех, кто на задних рядах, — в ней есть отличный урок!»",
     "lore": [
@@ -213,7 +213,7 @@
     "affinity": "Природа",
     "affinityEn": "Nature",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><path d=\"M10 25.5C10 16.5 14.5 10.5 20 8C25.5 10.5 30 16.5 30 25.5Z\" fill=\"currentColor\" fill-opacity=\"0.22\"/><path d=\"M11.5 25.5L14.5 31L17.5 25.5L20 32L22.5 25.5L25.5 31L28.5 25.5\"/><path d=\"M15.5 17L20 20L24.5 17\"/></svg>",
-    "num": "2.3",
+    "num": "",
     "image": "",
     "quote": "«Какой у тебя размер сапог, а? Ну же, говори. Или мне переломить тебе ногу в лодыжке и проверить самой?»",
     "lore": [
@@ -317,7 +317,7 @@
     "affinity": "Предмет",
     "affinityEn": "Prop",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><circle cx=\"20\" cy=\"20\" r=\"6.5\" fill=\"currentColor\" fill-opacity=\"0.18\"/><circle cx=\"20\" cy=\"20\" r=\"11\" stroke-dasharray=\"3 2.5\"/><path d=\"M20 6V9M20 31V34M6 20H9M31 20H34M10.2 10.2L12.5 12.5M27.5 27.5L29.8 29.8M29.8 10.2L27.5 12.5M12.5 27.5L10.2 29.8\"/></svg>",
-    "num": "2.4",
+    "num": "",
     "image": "",
     "quote": "«Да знаю я, знаю... Я провозился с этой чёртовой штуковиной всю неделю, и она всё равно работает криво. Может, перестанешь дышать мне в затылок, а ещё лучше — просто отвалишь от меня на хрен, и тогда я её доделаю?!»",
     "lore": [
@@ -421,7 +421,7 @@
     "affinity": "Актёр",
     "affinityEn": "Actor",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><path d=\"M20 19C13 10 7 12 8 18C9 23 15 22 20 19Z\" fill=\"currentColor\" fill-opacity=\"0.2\"/><path d=\"M20 19C27 10 33 12 32 18C31 23 25 22 20 19Z\" fill=\"currentColor\" fill-opacity=\"0.2\"/><path d=\"M20 20C14 24 11 29 14 31C17 33 19 26 20 20Z\"/><path d=\"M20 20C26 24 29 29 26 31C23 33 21 26 20 20Z\"/><path d=\"M20 9V31\"/></svg>",
-    "num": "2.5",
+    "num": "",
     "image": "",
     "quote": "«Ой! Это ваш напёрсток? Ума не приложу, как он очутился у меня в кармане. Конечно же, забирайте обратно... если только он не нужен вам прямо сейчас. Я с радостью приберегу его для вас, пока не понадобится!»",
     "lore": [
@@ -525,7 +525,7 @@
     "affinity": "Природа",
     "affinityEn": "Nature",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><path d=\"M11 16L14 9L18 15H22L26 9L29 16C31 21 28 29 20 31C12 29 9 21 11 16Z\" fill=\"currentColor\" fill-opacity=\"0.18\"/><path d=\"M14.5 21Q16.5 19 18.5 21M21.5 21Q23.5 19 25.5 21\"/><path d=\"M17.5 26Q20 28 22.5 26\"/></svg>",
-    "num": "2.6",
+    "num": "",
     "image": "",
     "quote": "«Что есть истина, как не то, о чём мы все условились? А раз так — если мы все дружно сойдёмся на одной лжи, разве не станет она истиной?»",
     "lore": [
@@ -634,7 +634,7 @@
     "affinity": "Фея",
     "affinityEn": "Fae",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><path d=\"M15 26C10 23 8 15 12 10C15 7 18 11 16 15\"/><path d=\"M25 26C30 23 32 15 28 10C25 7 22 11 24 15\"/><path d=\"M15 25H25L23 32H17L15 25Z\" fill=\"currentColor\" fill-opacity=\"0.2\"/><path d=\"M18 18V25M22 18V25\"/></svg>",
-    "num": "2.7",
+    "num": "",
     "image": "",
     "quote": "«Ешь, пей и веселись, ибо завтра мы тоже будем есть, пить и веселиться!»",
     "lore": [
@@ -737,7 +737,7 @@
     "affinity": "Предмет",
     "affinityEn": "Prop",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><circle cx=\"20\" cy=\"15.5\" r=\"5.5\" fill=\"currentColor\" fill-opacity=\"0.18\"/><path d=\"M16.5 20L14.5 32H25.5L23.5 20\"/><circle cx=\"20\" cy=\"15.5\" r=\"12\" stroke-opacity=\"0.45\"/><path d=\"M20 3.5V7M20 32V36.5M3.5 15.5H8M32 15.5H36.5\" stroke-opacity=\"0.45\"/></svg>",
-    "num": "2.8",
+    "num": "",
     "image": "",
     "quote": "«Мне ведомо множество тайн... тайны живых и тайны мёртвых... и, быть может, даже кое-какие из твоих».",
     "lore": [
@@ -843,7 +843,7 @@
     "affinity": "Фея",
     "affinityEn": "Fae",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><path d=\"M10 10H30V21C30 27.5 25 31.5 20 34C15 31.5 10 27.5 10 21V10Z\" fill=\"currentColor\" fill-opacity=\"0.18\"/><path d=\"M20 7V34M14 16H26\"/></svg>",
-    "num": "2.9",
+    "num": "",
     "image": "",
     "quote": "«Обнажай клинок. Зови друзей. Неси топор, меч, пули. Я не сдвинусь с места».",
     "lore": [
@@ -949,7 +949,7 @@
     "affinity": "Природа",
     "affinityEn": "Nature",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><path d=\"M22 9A10 10 0 1 0 30 22A8 8 0 1 1 22 9Z\" fill=\"currentColor\" fill-opacity=\"0.2\"/><path d=\"M7 28C11 25 14 25 18 28C22 31 25 31 29 28C31 26.7 32.5 26.5 34 27\"/><path d=\"M9 33C13 30.5 16 30.5 20 33C24 35.5 27 35.5 31 33\" opacity=\"0.65\"/></svg>",
-    "num": "2.10",
+    "num": "",
     "image": "",
     "quote": "«Море зовёт меня, любовь моя, и я должна внять его зову. Я вернусь... однажды... обещаю».",
     "lore": [
@@ -1053,7 +1053,7 @@
     "affinity": "Время",
     "affinityEn": "Time",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><path d=\"M9 28L12 15L20 21L28 15L31 28H9Z\" fill=\"currentColor\" fill-opacity=\"0.2\"/><path d=\"M20 7L22.2 12.2L20 15L17.8 12.2L20 7Z\"/><path d=\"M11 32H29\"/></svg>",
-    "num": "2.11",
+    "num": "",
     "image": "",
     "quote": "«Вы мните благородство привилегией, завидуете нам и негодуете, но вам невдомёк, что это ещё и тяжкое бремя, нести которое по доброй воле пожелали бы немногие».",
     "lore": [
@@ -1158,7 +1158,7 @@
     "affinity": "Фея",
     "affinityEn": "Fae",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><path d=\"M20 7L23 14L30 12L26 19L31 24L23 25L20 33L17 25L9 24L14 19L10 12L17 14Z\" fill=\"currentColor\" fill-opacity=\"0.2\"/><path d=\"M20 14V33\"/></svg>",
-    "num": "2.12",
+    "num": "",
     "image": "",
     "quote": "«Можете думать, будто все мы бежали, когда закрылись врата, но мы строили и трудились плечом к плечу с простолюдинами. Своё право править мы заслужили».",
     "lore": [
@@ -1264,7 +1264,7 @@
     "affinity": "Сцена",
     "affinityEn": "Scene",
     "emblem": "<svg viewBox=\"0 0 40 40\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\"><circle cx=\"20\" cy=\"20\" r=\"12\" stroke-opacity=\"0.45\"/><path d=\"M20 6L23 17L34 20L23 23L20 34L17 23L6 20L17 17Z\" fill=\"currentColor\" fill-opacity=\"0.2\"/><circle cx=\"20\" cy=\"20\" r=\"2\" fill=\"currentColor\"/></svg>",
-    "num": "2.13",
+    "num": "",
     "image": "",
     "quote": "«То, что мы свершим сегодня, будет жить долго после нас — в историях, которые расскажут наши дети и дети наших детей. Как говаривала мне моя бабушка...»",
     "lore": [
