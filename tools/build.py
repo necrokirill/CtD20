@@ -753,7 +753,7 @@ def build_site() -> dict:
           <p class="text-xs uppercase tracking-[0.26em] text-[#d8b979] mb-2">Наречие Конкордии</p>
           <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">Лексикон Грёзы</h1>
           <p class="text-xs sm:text-sm text-[#a69f90] max-w-2xl mx-auto mt-3">
-            Словарь мира Грёзы <span class="text-[#f0dba8]">(выделен золотым)</span> и памятки правил игры <span class="text-[#7be3c8]">(выделены бирюзовым)</span>. Нажимайте на подчёркнутые слова внутри карточек, чтобы переходить от понятия к понятию.
+            Словарь мира Грёзы и памятки правил игры с исконными английскими названиями. Нажимайте на выделенные слова внутри карточек, чтобы переходить от понятия к понятию.
           </p>
         </div>
       </section>

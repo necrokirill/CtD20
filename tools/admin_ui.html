@@ -331,8 +331,8 @@
           <div>
             <label class="block text-[#a69f90] mb-1">Тип подсказки</label>
             <select id="lx-kind" class="adm-input">
-              <option value="lore">✦ Словарь мира (золотой пунктир)</option>
-              <option value="rule">◈ Правило игры (изумрудно-бирюзовый)</option>
+              <option value="lore">✦ Словарь мира (лор)</option>
+              <option value="rule">◈ Правило игры (с блоком «Система»)</option>
             </select>
           </div>
         </div>
@@ -892,7 +892,7 @@
               : 'border-[#d8b979]/15 bg-[#0b110f]/50 text-[#f0eadc] hover:border-[#d8b979]/45'
           }">
             <span class="text-xs font-medium truncate">${item.ru} <span class="text-[#7b7669]">(${item.en})</span></span>
-            <span class="text-[10px] ${item.kind === 'rule' ? 'text-[#7be3c8]' : 'text-[#d8b979]'} shrink-0">${item.kind === 'rule' ? `◈ Правило · ${item.cat}` : item.cat}</span>
+            <span class="text-[10px] ${item.kind === 'rule' ? 'text-[#f0dba8]' : 'text-[#d8b979]'} shrink-0">${item.kind === 'rule' ? `◈ Правило · ${item.cat}` : item.cat}</span>
           </button>`
         )
         .join('');

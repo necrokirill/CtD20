@@ -14,12 +14,6 @@
   --gold-outer: rgba(214, 179, 106, 0.30);
   --gold-inner: rgba(214, 179, 106, 0.14);
 
-  --rule: #38b89a;
-  --rule-bright: #7be3c8;
-  --rule-deep: #1e6b59;
-  --rule-outer: rgba(56, 184, 154, 0.42);
-  --rule-inner: rgba(123, 227, 200, 0.16);
-
   --ivory: #f0eadc;
   --parchment: #a69f90;
   --parchment-dim: #7b7669;
@@ -566,23 +560,13 @@ main, header, footer {
   outline: none;
 }
 
-.lex-term.lex-rule {
-  color: var(--rule-bright);
-  border-bottom-color: var(--rule);
-}
-.lex-term.lex-rule:hover,
-.lex-term.lex-rule:focus-visible {
-  background-color: rgba(56, 184, 154, 0.16);
-  border-bottom-style: solid;
-}
-
 .rule-system-box {
   margin-top: 0.65rem;
   padding: 0.72rem 0.9rem;
   border-radius: 10px;
-  border: 1px solid var(--rule-outer);
-  border-left: 2.5px solid var(--rule);
-  background: linear-gradient(160deg, rgba(56, 184, 154, 0.12), rgba(11, 17, 15, 0.78));
+  border: 1px solid var(--gold-outer);
+  border-left: 2.5px solid var(--gold);
+  background: linear-gradient(160deg, rgba(216, 185, 121, 0.10), rgba(11, 17, 15, 0.78));
 }
 
 .rule-system-title {
@@ -590,7 +574,7 @@ main, header, footer {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  color: var(--rule-bright);
+  color: var(--gold-bright);
   margin-bottom: 0.42rem;
 }
 
@@ -617,11 +601,11 @@ main, header, footer {
   left: 0;
   top: 0.05rem;
   font-size: 0.58rem;
-  color: var(--rule);
+  color: var(--gold);
 }
 
 .rule-system-list strong {
-  color: var(--rule-bright);
+  color: var(--gold-bright);
   font-weight: 600;
 }
 
@@ -663,12 +647,6 @@ body.mode-table .table-mode-only {
   border-radius: 10px;
   pointer-events: none;
 }
-#desktop-popover.is-rule {
-  border-color: rgba(56, 184, 154, 0.72);
-}
-#desktop-popover.is-rule::after {
-  border-color: rgba(123, 227, 200, 0.22);
-}
 
 #sheet-backdrop,
 .modal-backdrop {
@@ -707,9 +685,6 @@ body.mode-table .table-mode-only {
 }
 #bottom-sheet.open {
   transform: translateY(0);
-}
-#bottom-sheet.is-rule {
-  border-top-color: var(--rule);
 }
 
 .toc-link {
@@ -858,25 +833,21 @@ body.mode-table .table-mode-only {
     color: #1c1d1c !important;
     border-bottom: 1px dotted #777 !important;
   }
-  .lex-term.lex-rule {
-    color: #1c1d1c !important;
-    border-bottom: 1px dotted #4a7c6f !important;
-  }
   .rule-system-box {
-    background: #f5f9f8 !important;
-    border: 1px solid #4a7c6f !important;
-    border-left: 2.5px solid #2b6859 !important;
+    background: #faf7f1 !important;
+    border: 1px solid #8c7b5a !important;
+    border-left: 2.5px solid #6b562e !important;
     color: #1c1d1c !important;
   }
   .rule-system-title,
   .rule-system-list strong {
-    color: #1f594b !important;
+    color: #5c4824 !important;
   }
   .rule-system-list li {
     color: #1c1d1c !important;
   }
   .rule-system-list li::before {
-    color: #2b6859 !important;
+    color: #6b562e !important;
   }
 
   .wod-dot {

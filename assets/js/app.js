@@ -133,7 +133,7 @@
       if (!id || id === excludeId) return full;
       const item = LEX_MAP[id];
       const isRule = Boolean(item && item.kind === 'rule');
-      return `${prefix}<button type="button" class="lex-term${isRule ? ' lex-rule' : ''}" data-term="${id}"${isRule ? ' data-kind="rule"' : ''}>${word}</button>`;
+      return `${prefix}<button type="button" class="lex-term" data-term="${id}"${isRule ? ' data-kind="rule"' : ''}>${word}</button>`;
     });
   }
 
@@ -2132,21 +2132,12 @@
     if (!grid) return;
 
     document.querySelectorAll('.lkind-btn').forEach((b) => {
-      const k = b.getAttribute('data-lkind');
-      const act = k === state.lexKind;
-      if (k === 'rule') {
-        b.className = `lkind-btn px-3 py-1 rounded-full text-xs border transition ${
-          act
-            ? 'border-[#38b89a]/80 bg-[#38b89a]/20 text-[#7be3c8]'
-            : 'border-[#38b89a]/30 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#7be3c8]'
-        }`;
-      } else {
-        b.className = `lkind-btn px-3 py-1 rounded-full text-xs border transition ${
-          act
-            ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
-            : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
-        }`;
-      }
+      const act = b.getAttribute('data-lkind') === state.lexKind;
+      b.className = `lkind-btn px-3 py-1 rounded-full text-xs border transition ${
+        act
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
     });
 
     document.querySelectorAll('.lcat-btn').forEach((b) => {
@@ -2182,16 +2173,16 @@
       .map((item) => {
         const isRule = item.kind === 'rule';
         return `
-      <article id="term-${item.id}" class="nouveau-panel p-5 space-y-2 ${isRule ? '!border-[#38b89a]/40' : ''}">
+      <article id="term-${item.id}" class="nouveau-panel p-5 space-y-2">
         <div class="relative z-10 space-y-2">
           <div class="flex items-start justify-between gap-2">
             <div>
-              <h3 class="font-nouveau text-2xl font-semibold ${isRule ? 'text-[#7be3c8]' : 'text-[#f0dba8]'} leading-tight">${item.ru}</h3>
+              <h3 class="font-nouveau text-2xl font-semibold text-[#f0dba8] leading-tight">${item.ru}</h3>
               <div class="text-[11px] uppercase tracking-[0.14em] text-[#a69f90]">${item.en}</div>
             </div>
             <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border shrink-0 ${
               isRule
-                ? 'border-[#38b89a]/45 bg-[#38b89a]/12 text-[#7be3c8]'
+                ? 'border-[#f0dba8]/55 bg-[#d8b979]/18 text-[#f0dba8]'
                 : 'border-[#d8b979]/35 bg-[#d8b979]/10 text-[#d8b979]'
             }">${isRule ? `Правило · ${item.cat}` : item.cat}</span>
           </div>
@@ -2255,18 +2246,17 @@
     const backBtn =
       state.chain.length > 1
         ? `<button type="button" data-chain-back="1" class="px-2 py-0.5 rounded-full border border-[#d8b979]/50 bg-[#d8b979]/15 text-[#f0dba8] font-medium shrink-0 hover:bg-[#d8b979]/25 transition">← Назад</button>`
-        : `<span class="${firstIsRule ? 'text-[#38b89a]' : 'text-[#d8b979]'} shrink-0">${firstIsRule ? '◈' : '✦'}</span>`;
+        : `<span class="text-[#d8b979] shrink-0">${firstIsRule ? '◈' : '✦'}</span>`;
 
     const trail = state.chain
       .map((id, idx) => {
         const t = LEX_MAP[id];
         const isCurrent = idx === state.chain.length - 1;
-        const activeCls = t && t.kind === 'rule' ? 'text-[#7be3c8] font-semibold' : 'text-[#f0dba8] font-semibold';
         return `
           ${idx > 0 ? '<span class="text-[#7b7669] shrink-0">›</span>' : ''}
           <button type="button" data-chain-idx="${idx}"
             class="shrink-0 px-1 py-0.5 rounded transition ${
-              isCurrent ? activeCls : 'text-[#a69f90] hover:text-[#f0eadc]'
+              isCurrent ? 'text-[#f0dba8] font-semibold' : 'text-[#a69f90] hover:text-[#f0eadc]'
             }">
             ${t.ru.split(' / ')[0]}
           </button>
@@ -2298,12 +2288,12 @@
     return `
       <div class="flex items-start justify-between gap-2">
         <div>
-          <h4 class="font-nouveau text-2xl font-semibold ${isRule ? 'text-[#7be3c8]' : 'text-[#f0dba8]'} leading-tight">${item.ru}</h4>
+          <h4 class="font-nouveau text-2xl font-semibold text-[#f0dba8] leading-tight">${item.ru}</h4>
           <div class="text-[11px] uppercase tracking-[0.14em] text-[#a69f90]">${item.en}</div>
         </div>
         <span class="px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider border shrink-0 ${
           isRule
-            ? 'border-[#38b89a]/45 bg-[#38b89a]/12 text-[#7be3c8]'
+            ? 'border-[#f0dba8]/55 bg-[#d8b979]/18 text-[#f0dba8]'
             : 'border-[#d8b979]/35 bg-[#d8b979]/10 text-[#d8b979]'
         }">${isRule ? `Правило · ${item.cat}` : item.cat}</span>
       </div>
@@ -2317,8 +2307,6 @@
   function renderDesktopPopover() {
     const current = LEX_MAP[state.chain[state.chain.length - 1]];
     if (!current) return;
-    const pop = document.getElementById('desktop-popover');
-    if (pop) pop.classList.toggle('is-rule', current.kind === 'rule');
     document.getElementById('pop-breadcrumbs').innerHTML = buildBreadcrumbsHTML();
     document.getElementById('pop-content').innerHTML = buildTermBodyHTML(current);
 
@@ -2361,13 +2349,11 @@
   function renderBottomSheet() {
     const current = LEX_MAP[state.chain[state.chain.length - 1]];
     if (!current) return;
-    const sheet = document.getElementById('bottom-sheet');
-    if (sheet) sheet.classList.toggle('is-rule', current.kind === 'rule');
     document.getElementById('sheet-breadcrumbs').innerHTML = buildBreadcrumbsHTML();
     document.getElementById('sheet-content').innerHTML = `
       ${buildTermBodyHTML(current)}
       <p class="pt-3 border-t border-[#d8b979]/15 text-[11px] text-[#7b7669]">
-        Нажмите на любой выделенный термин выше — <span class="text-[#f0dba8]">золотой</span> (словарь мира) или <span class="text-[#7be3c8]">бирюзовый</span> (правило игры), — чтобы перейти дальше по цепочке.
+        Нажмите на любой золотой термин выше, чтобы перейти дальше по цепочке понятий и правил.
       </p>
     `;
   }
