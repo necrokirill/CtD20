@@ -141,6 +141,14 @@ def render_markdown(md_text: str, root_prefix: str = "./", apply_drop_cap: bool 
             out.append('<div id="houses-widget-mount" class="no-lex"></div>')
             i += 1
             continue
+        if stripped == "{{widget:legacies-mirror}}":
+            out.append('<div id="legacies-widget-mount" class="no-lex"></div>')
+            i += 1
+            continue
+        if stripped == "{{widget:thresholds-compass}}":
+            out.append('<div id="thresholds-widget-mount" class="no-lex"></div>')
+            i += 1
+            continue
         if stripped == "{{widget:tempers}}":
             out.append('<div id="tempers-widget-mount" class="no-lex"></div>')
             i += 1
@@ -440,6 +448,7 @@ def render_shell(
         <a href="{root_prefix}01-world-and-creation/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='01-world-and-creation' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Пробуждение</a>
         <a href="{root_prefix}02-kiths/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='02-kiths' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Арканы Китов</a>
         <a href="{root_prefix}03-noble-houses/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='03-noble-houses' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Дома</a>
+        <a href="{root_prefix}04-legacies-thresholds/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='04-legacies-thresholds' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Наследия</a>
         <a href="{root_prefix}lexicon/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='lexicon' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Лексикон</a>
       </nav>
 
@@ -557,6 +566,10 @@ def build_site() -> dict:
     kiths = json.loads((CONTENT_DIR / "kiths.json").read_text(encoding="utf-8"))
     houses_path = CONTENT_DIR / "houses.json"
     houses = json.loads(houses_path.read_text(encoding="utf-8")) if houses_path.exists() else []
+    legacies_path = CONTENT_DIR / "legacies.json"
+    legacies_data = json.loads(legacies_path.read_text(encoding="utf-8")) if legacies_path.exists() else {}
+    legacies = legacies_data.get("legacies", [])
+    thresholds = legacies_data.get("thresholds", [])
 
     site_meta = manifest["site"]
     volumes = manifest["volumes"]
@@ -600,6 +613,9 @@ def build_site() -> dict:
             plain_words += sum(len(" ".join(k.get("lore", []))) // 6 for k in kiths)
         elif slug == "03-noble-houses":
             plain_words += sum(len(" ".join(h.get("lore", []))) // 6 for h in houses)
+        elif slug == "04-legacies-thresholds":
+            plain_words += sum(len(l.get("desc", "")) // 6 for l in legacies)
+            plain_words += sum(len(t.get("desc", "")) // 6 for t in thresholds)
         read_mins = max(2, round(plain_words / 190))
 
         prev_vol = volumes[idx - 1] if idx > 0 else None
@@ -880,6 +896,9 @@ def build_site() -> dict:
             <a href="03-noble-houses/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
               Благородные Дома
             </a>
+            <a href="04-legacies-thresholds/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
+              Наследия и Пороги
+            </a>
             <a href="lexicon/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/35 bg-[#0b110f]/70 text-[#a69f90] hover:text-[#f0dba8] transition">
               Лексикон Грёзы
             </a>
@@ -969,6 +988,8 @@ def build_site() -> dict:
         "lexicon": lexicon,
         "kiths": kiths,
         "houses": houses,
+        "legacies": legacies,
+        "thresholds": thresholds,
         "volumes": volumes,
         "search": all_search_entries,
     }
@@ -982,6 +1003,8 @@ def build_site() -> dict:
         "ready": ready_count,
         "kiths": len(kiths),
         "houses": len(houses),
+        "legacies": len(legacies),
+        "thresholds": len(thresholds),
         "lexicon": len(lexicon),
         "searchChunks": len(all_search_entries),
     }

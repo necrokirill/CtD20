@@ -8,11 +8,13 @@
 (function () {
   'use strict';
 
-  const BUNDLE = window.CTD_BUNDLE || { lexicon: [], kiths: [], houses: [], volumes: [], search: [] };
+  const BUNDLE = window.CTD_BUNDLE || { lexicon: [], kiths: [], houses: [], legacies: [], thresholds: [], volumes: [], search: [] };
   const ROOT = document.documentElement.getAttribute('data-root') || './';
   const LEXICON = BUNDLE.lexicon || [];
   const KITHS = BUNDLE.kiths || [];
   const HOUSES = BUNDLE.houses || [];
+  const LEGACIES = BUNDLE.legacies || [];
+  const THRESHOLDS = BUNDLE.thresholds || [];
   const LEX_MAP = Object.fromEntries(LEXICON.map((item) => [item.id, item]));
 
   /* ------------------------------------------------------------------------
@@ -62,7 +64,42 @@
     'Отблески',
     'Отблесков',
     'Отблесками',
-    'Отблесках'
+    'Отблесках',
+    'Порог',
+    'Порога',
+    'Порогу',
+    'Порогом',
+    'Пороге',
+    'Пороги',
+    'Порогов',
+    'Порогам',
+    'Порогами',
+    'Порогах',
+    'Призвание',
+    'Призвания',
+    'Призванию',
+    'Призванием',
+    'Запрет',
+    'Запрета',
+    'Запрету',
+    'Запретом',
+    'Сокровище',
+    'Сокровища',
+    'Сокровищу',
+    'Сокровищем',
+    'Сокровищ',
+    'Сокровищам',
+    'Сокровищами',
+    'Сокровищах',
+    'Темперамент',
+    'Темперамента',
+    'Темпераменту',
+    'Темпераменте',
+    'Темпераменты',
+    'Темпераментов',
+    'Темпераментам',
+    'Темпераментами',
+    'Темпераментах'
   ]);
   const EXACT_LOOKUP = new Map();
   const LOWER_LOOKUP = new Map();
@@ -171,6 +208,14 @@
     houseDetailTab: 'lore',   // 'lore' | 'powers' | 'factions' | 'members'
     houseCourtFilter: 'all',
     houseViewMode: 'arcana',  // 'arcana' | 'scroll'
+    selectedSeelieLegacyId: 'paladin',
+    selectedUnseelieLegacyId: 'fool',
+    legacyLeadCourt: 'Благой',
+    legacyCourtFilter: 'all',
+    legacyQuery: '',
+    legacyViewMode: 'pair',   // 'pair' | 'scroll'
+    selectedThresholdId: 'foster_dreams',
+    thresholdMode: 'musing',  // 'musing' | 'ravaging' | 'pairs'
     tableMode: localStorage.getItem('ctd20_table_mode') === '1',
     forceSheet: false,
     seeming: 'wilder',
@@ -1195,6 +1240,552 @@
   }
 
   /* ------------------------------------------------------------------------
+     3C. WIDGET: 28 LEGACIES MIRROR & SOUL PAIR SELECTOR
+     ------------------------------------------------------------------------ */
+  function initLegaciesWidget() {
+    const mount = document.getElementById('legacies-widget-mount');
+    if (!mount || !LEGACIES.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qLeg = params.get('legacy');
+    if (qLeg) {
+      const found = LEGACIES.find((l) => l.id === qLeg);
+      if (found) {
+        if (found.court === 'Благой') {
+          state.selectedSeelieLegacyId = found.id;
+          state.legacyLeadCourt = 'Благой';
+        } else {
+          state.selectedUnseelieLegacyId = found.id;
+          state.legacyLeadCourt = 'Неблагой';
+        }
+      }
+    }
+
+    const seelieCount = LEGACIES.filter((l) => l.court === 'Благой').length;
+    const unseelieCount = LEGACIES.filter((l) => l.court === 'Неблагой').length;
+
+    mount.innerHTML = `
+      <section id="legacies-mirror" class="space-y-6 my-8 scroll-mt-24">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Двойственность души · Призвание и Запрет</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Двадцать восемь Наследий
+            </h2>
+          </div>
+          <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
+            <button type="button" id="lview-pair" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ✦ Подбор пары
+            </button>
+            <button type="button" id="lview-scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ☰ Книжный свиток
+            </button>
+          </div>
+        </div>
+
+        <div id="legacies-filter-bar" class="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[11px] uppercase tracking-wider text-[#a69f90] mr-1">Наследие:</span>
+            <button type="button" data-lcourt="all" class="leg-court-btn px-3 py-1 rounded-full text-xs border transition">Все (${LEGACIES.length})</button>
+            <button type="button" data-lcourt="Благой" class="leg-court-btn px-3 py-1 rounded-full text-xs border transition">☀ Благие (${seelieCount})</button>
+            <button type="button" data-lcourt="Неблагой" class="leg-court-btn px-3 py-1 rounded-full text-xs border transition">☽ Неблагие (${unseelieCount})</button>
+          </div>
+          <input type="search" id="leg-search-input" placeholder="Найти Наследие (Паладин, Шут, Мудрец)..."
+            class="w-full sm:w-64 rounded-full border border-[#d8b979]/30 bg-[#0b110f]/75 px-3.5 py-1.5 text-xs text-[#f0eadc] placeholder-[#7b7669] focus:outline-none focus:border-[#f0dba8]" />
+        </div>
+
+        <div id="legacies-interactive-area" class="space-y-6">
+          <div id="legacies-pair-spotlight" class="nouveau-panel p-5 sm:p-7 scroll-mt-24" aria-live="polite"></div>
+          <div id="legacies-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
+        </div>
+
+        <div id="legacies-scroll-area" class="hidden space-y-6"></div>
+        <div id="print-legacies-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    document.getElementById('lview-pair').addEventListener('click', () => {
+      state.legacyViewMode = 'pair';
+      syncLegacyViewMode();
+    });
+    document.getElementById('lview-scroll').addEventListener('click', () => {
+      state.legacyViewMode = 'scroll';
+      syncLegacyViewMode();
+    });
+
+    mount.querySelectorAll('.leg-court-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.legacyCourtFilter = btn.getAttribute('data-lcourt');
+        renderLegaciesGrid();
+      });
+    });
+
+    const legInp = document.getElementById('leg-search-input');
+    if (legInp) {
+      legInp.addEventListener('input', (e) => {
+        state.legacyQuery = e.target.value.trim().toLowerCase();
+        renderLegaciesGrid();
+      });
+    }
+
+    renderLegaciesPairSpotlight();
+    renderLegaciesGrid();
+    renderLegaciesScrollArea();
+    syncLegacyViewMode();
+  }
+
+  function syncLegacyViewMode() {
+    const pairArea = document.getElementById('legacies-interactive-area');
+    const scrollArea = document.getElementById('legacies-scroll-area');
+    const filterBar = document.getElementById('legacies-filter-bar');
+    const bPair = document.getElementById('lview-pair');
+    const bScr = document.getElementById('lview-scroll');
+    if (!pairArea || !scrollArea) return;
+
+    const isPair = state.legacyViewMode === 'pair';
+    pairArea.classList.toggle('hidden', !isPair);
+    filterBar.classList.toggle('hidden', !isPair);
+    scrollArea.classList.toggle('hidden', isPair);
+
+    bPair.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      isPair ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+    bScr.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      !isPair ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+  }
+
+  function renderLegaciesGrid() {
+    const grid = document.getElementById('legacies-grid');
+    if (!grid) return;
+
+    document.querySelectorAll('.leg-court-btn').forEach((btn) => {
+      const act = btn.getAttribute('data-lcourt') === state.legacyCourtFilter;
+      btn.className = `leg-court-btn px-3 py-1 rounded-full text-xs border transition ${
+        act
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+
+    const filtered = LEGACIES.filter((l) => {
+      if (state.legacyCourtFilter !== 'all' && l.court !== state.legacyCourtFilter) return false;
+      if (!state.legacyQuery) return true;
+      return `${l.ru} ${l.en} ${l.tagline} ${l.desc} ${l.quest} ${l.ban}`.toLowerCase().includes(state.legacyQuery);
+    });
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-[#a69f90]">Ни одно Наследие не соответствует запросу.</div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered
+      .map((l) => {
+        const rgb = l.auraRgb || hexToRgbStr(l.auraHex);
+        const isSelected = l.id === state.selectedSeelieLegacyId || l.id === state.selectedUnseelieLegacyId;
+        const courtIcon = l.court === 'Благой' ? '☀' : '☽';
+        return `
+          <button
+            type="button"
+            data-leg-card="${l.id}"
+            class="tarot-card group text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0dba8] ${
+              isSelected ? 'active' : ''
+            }"
+            style="--card-aura: ${l.auraHex}; --card-aura-rgb: ${rgb};"
+          >
+            <span class="tarot-foil" aria-hidden="true"></span>
+            <div class="relative z-10 w-11 h-11 rounded-full flex items-center justify-center mb-2 border transition-transform duration-300 group-hover:scale-105"
+                 style="color: ${l.auraHex}; border-color: rgba(${rgb}, 0.52); background: radial-gradient(circle, rgba(${rgb}, 0.19), rgba(11, 17, 15, 0.76));">
+              <div class="w-7 h-7">${l.emblem || ''}</div>
+            </div>
+            <h3 class="relative z-10 font-nouveau text-lg font-semibold text-[#f0eadc] leading-tight">${l.ru}</h3>
+            <div class="relative z-10 text-[10px] uppercase tracking-[0.14em] text-[#a69f90] mt-0.5">${l.en}</div>
+            <div class="relative z-10 my-1.5 w-8 h-px" style="background: linear-gradient(90deg, transparent, ${l.auraHex}, transparent);"></div>
+            <p class="relative z-10 lore-only text-[11px] text-[#a69f90] leading-snug mb-2 line-clamp-2">${l.tagline}</p>
+            <span class="relative z-10 mt-auto inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] border"
+                  style="border-color: rgba(${rgb}, 0.45); background: rgba(${rgb}, 0.12); color: #f0eadc;">
+              <span style="color: ${l.auraHex};">${courtIcon}</span>
+              ${isSelected ? 'Выбрано в пару' : `${l.court}`}
+            </span>
+          </button>
+        `;
+      })
+      .join('');
+
+    grid.querySelectorAll('[data-leg-card]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const l = LEGACIES.find((x) => x.id === btn.getAttribute('data-leg-card'));
+        if (!l) return;
+        if (l.court === 'Благой') state.selectedSeelieLegacyId = l.id;
+        else state.selectedUnseelieLegacyId = l.id;
+
+        const rgb = l.auraRgb || hexToRgbStr(l.auraHex);
+        document.documentElement.style.setProperty('--aura-hex', l.auraHex);
+        document.documentElement.style.setProperty('--aura-rgb', rgb);
+
+        renderLegaciesGrid();
+        renderLegaciesPairSpotlight();
+        const panel = document.getElementById('legacies-pair-spotlight');
+        if (panel) {
+          const rect = panel.getBoundingClientRect();
+          if (rect.top < 55 || rect.top > window.innerHeight * 0.65) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+      });
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        btn.style.setProperty('--mx', `${(((e.clientX - rect.left) / rect.width) * 100).toFixed(1)}%`);
+        btn.style.setProperty('--my', `${(((e.clientY - rect.top) / rect.height) * 100).toFixed(1)}%`);
+      });
+    });
+  }
+
+  function renderLegaciesPairSpotlight() {
+    const spot = document.getElementById('legacies-pair-spotlight');
+    if (!spot) return;
+    const seelie = LEGACIES.find((l) => l.id === state.selectedSeelieLegacyId) || LEGACIES.find((l) => l.court === 'Благой');
+    const unseelie = LEGACIES.find((l) => l.id === state.selectedUnseelieLegacyId) || LEGACIES.find((l) => l.court === 'Неблагой');
+    if (!seelie || !unseelie) return;
+
+    const buildHalfCard = (l) => {
+      const isPrimary = l.court === state.legacyLeadCourt;
+      const rgb = l.auraRgb || hexToRgbStr(l.auraHex);
+      const badgeText = isPrimary ? '✦ Ведущее Наследие' : '◇ Теневое Наследие';
+      return `
+        <div class="rounded-xl border p-4 sm:p-5 flex flex-col justify-between gap-3.5 transition"
+             style="border-color: rgba(${rgb}, ${isPrimary ? '0.68' : '0.28'}); background: linear-gradient(160deg, rgba(${rgb}, ${
+        isPrimary ? '0.14' : '0.05'
+      }), rgba(11, 17, 15, 0.82));">
+          <div class="space-y-3">
+            <div class="flex items-start justify-between gap-2 border-b border-[#d8b979]/15 pb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border"
+                     style="color: ${l.auraHex}; border-color: rgba(${rgb}, 0.55); background: rgba(${rgb}, 0.16);">
+                  <div class="w-6 h-6">${l.emblem || ''}</div>
+                </div>
+                <div>
+                  <h4 class="font-nouveau text-2xl font-semibold text-[#f0eadc] leading-none">${l.ru}</h4>
+                  <div class="text-[11px] uppercase tracking-[0.14em] text-[#a69f90] mt-0.5">${l.en} · ${l.court} Двор</div>
+                </div>
+              </div>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-medium border shrink-0"
+                    style="border-color: rgba(${rgb}, ${isPrimary ? '0.65' : '0.30'}); color: ${
+        isPrimary ? '#f0dba8' : '#a69f90'
+      }; background: rgba(${rgb}, ${isPrimary ? '0.18' : '0.06'});">
+                ${badgeText}
+              </span>
+            </div>
+
+            <p class="lore-only text-xs sm:text-[13.8px] text-[#f0eadc]/90 leading-relaxed">${linkifyHTML(formatInlineMd(l.desc))}</p>
+          </div>
+
+          <div class="space-y-2 pt-2 border-t border-[#d8b979]/15 text-xs sm:text-[13px]">
+            <div class="rounded-lg border border-[#d8b979]/25 bg-[#0b110f]/65 p-2.5">
+              <span class="font-semibold text-[#f0dba8]">✦ ${linkifyText('Призвание')} (+1 ${linkifyText('Сила Воли')}):</span>
+              <span class="text-[#f0eadc]/92"> ${linkifyHTML(formatInlineMd(l.quest))}</span>
+            </div>
+            <div class="rounded-lg border border-[#a83b4a]/35 bg-[#0b110f]/65 p-2.5">
+              <span class="font-semibold text-[#e6989f]">◈ ${linkifyText('Запрет')} (−1 ${linkifyText('Сила Воли')}):</span>
+              <span class="text-[#f0eadc]/92"> ${linkifyHTML(formatInlineMd(l.ban))}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    spot.innerHTML = `
+      <div class="spotlight-anim relative z-10 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#d8b979]/20 pb-3.5">
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.2em] text-[#d8b979]">Зеркальная пара души</div>
+            <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc] !mt-0.5 !mb-0">
+              ${seelie.ru} & ${unseelie.ru}
+            </h3>
+            <p class="text-xs text-[#a69f90] mt-0.5">Нажмите на любую карту ниже, чтобы сменить Благое или Неблагое Наследие пары.</p>
+          </div>
+          <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/80 p-1 shrink-0 self-start sm:self-center">
+            <button type="button" data-lead-court="Благой" class="px-3 py-1 rounded-full text-xs font-medium transition ${
+              state.legacyLeadCourt === 'Благой' ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+            }">☀ Ведёт Благой</button>
+            <button type="button" data-lead-court="Неблагой" class="px-3 py-1 rounded-full text-xs font-medium transition ${
+              state.legacyLeadCourt === 'Неблагой' ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+            }">☽ Ведёт Неблагой</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          ${buildHalfCard(seelie)}
+          ${buildHalfCard(unseelie)}
+        </div>
+      </div>
+    `;
+
+    spot.querySelectorAll('[data-lead-court]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.legacyLeadCourt = btn.getAttribute('data-lead-court');
+        renderLegaciesPairSpotlight();
+      });
+    });
+  }
+
+  function renderLegaciesScrollArea() {
+    const area = document.getElementById('legacies-scroll-area');
+    if (!area) return;
+    const renderGroup = (title, items) => `
+      <div class="space-y-4">
+        <h3 class="font-nouveau text-2xl font-semibold text-[#f0dba8] border-b border-[#d8b979]/20 pb-2">${title}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ${items
+            .map((l) => {
+              const rgb = l.auraRgb || hexToRgbStr(l.auraHex);
+              return `
+                <article id="legacy-${l.id}" class="nouveau-panel p-5 space-y-2.5 scroll-mt-24">
+                  <div class="flex items-center gap-3 border-b border-[#d8b979]/15 pb-2.5">
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center border shrink-0"
+                         style="color:${l.auraHex}; border-color:rgba(${rgb},0.5); background:rgba(${rgb},0.14);">
+                      <div class="w-5 h-5">${l.emblem || ''}</div>
+                    </div>
+                    <div>
+                      <h4 class="font-nouveau text-xl font-semibold text-[#f0eadc] !mt-0 !mb-0">${l.ru} <span class="text-xs font-sans font-normal text-[#a69f90]">(${l.en})</span></h4>
+                    </div>
+                  </div>
+                  <p class="lore-only text-xs sm:text-[13.5px] leading-relaxed">${linkifyHTML(formatInlineMd(l.desc))}</p>
+                  <div class="space-y-1.5 text-xs pt-1">
+                    <p><strong class="text-[#f0dba8]">✦ Призвание:</strong> ${linkifyHTML(formatInlineMd(l.quest))}</p>
+                    <p><strong class="text-[#e6989f]">◈ Запрет:</strong> ${linkifyHTML(formatInlineMd(l.ban))}</p>
+                  </div>
+                </article>`;
+            })
+            .join('')}
+        </div>
+      </div>
+    `;
+    area.innerHTML =
+      renderGroup('☀ Благие Наследия (Seelie Legacies)', LEGACIES.filter((l) => l.court === 'Благой')) +
+      renderGroup('☽ Неблагие Наследия (Unseelie Legacies)', LEGACIES.filter((l) => l.court === 'Неблагой'));
+  }
+
+  /* ------------------------------------------------------------------------
+     3D. WIDGET: 14 THRESHOLDS COMPASS (MUSING, RAVAGING & MIRROR PAIRS)
+     ------------------------------------------------------------------------ */
+  function initThresholdsWidget() {
+    const mount = document.getElementById('thresholds-widget-mount');
+    if (!mount || !THRESHOLDS.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qThr = params.get('threshold');
+    if (qThr) {
+      const found = THRESHOLDS.find((t) => t.id === qThr);
+      if (found) {
+        state.selectedThresholdId = found.id;
+        state.thresholdMode = found.type;
+      }
+    }
+
+    mount.innerHTML = `
+      <section id="thresholds-compass" class="space-y-6 my-8 scroll-mt-24">
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Эпифания · Семь зеркальных пар</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Четырнадцать Порогов Гламура
+            </h2>
+          </div>
+          <div class="no-print flex flex-wrap gap-1 rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start lg:self-auto">
+            <button type="button" data-tmode="musing" class="thr-mode-btn px-3 py-1.5 rounded-full text-xs font-medium transition">
+              ☀ Вдохновение (7)
+            </button>
+            <button type="button" data-tmode="ravaging" class="thr-mode-btn px-3 py-1.5 rounded-full text-xs font-medium transition">
+              ☽ Опустошение (7)
+            </button>
+            <button type="button" data-tmode="pairs" class="thr-mode-btn px-3 py-1.5 rounded-full text-xs font-medium transition">
+              ⇄ Зеркальные пары (7)
+            </button>
+          </div>
+        </div>
+
+        <div id="thresholds-interactive-area" class="space-y-6"></div>
+        <div id="print-thresholds-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    mount.querySelectorAll('.thr-mode-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.thresholdMode = btn.getAttribute('data-tmode');
+        if (state.thresholdMode === 'musing' || state.thresholdMode === 'ravaging') {
+          const cur = THRESHOLDS.find((t) => t.id === state.selectedThresholdId);
+          if (!cur || cur.type !== state.thresholdMode) {
+            const firstMatch = THRESHOLDS.find((t) => t.type === state.thresholdMode);
+            if (firstMatch) state.selectedThresholdId = firstMatch.id;
+          }
+        }
+        renderThresholdsUI();
+      });
+    });
+
+    renderThresholdsUI();
+  }
+
+  function renderThresholdsUI() {
+    const area = document.getElementById('thresholds-interactive-area');
+    if (!area) return;
+
+    document.querySelectorAll('.thr-mode-btn').forEach((btn) => {
+      const act = btn.getAttribute('data-tmode') === state.thresholdMode;
+      btn.className = `thr-mode-btn px-3 py-1.5 rounded-full text-xs font-medium transition ${
+        act ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+
+    if (state.thresholdMode === 'pairs') {
+      const pairs = [];
+      for (let idx = 1; idx <= 7; idx++) {
+        const m = THRESHOLDS.find((t) => t.pairIndex === idx && t.type === 'musing');
+        const r = THRESHOLDS.find((t) => t.pairIndex === idx && t.type === 'ravaging');
+        if (m && r) pairs.push([m, r]);
+      }
+
+      area.innerHTML = `
+        <div class="space-y-4">
+          ${pairs
+            .map(
+              ([m, r]) => `
+            <div class="nouveau-panel p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="rounded-xl border p-4 space-y-2" style="border-color:rgba(${m.auraRgb},0.4); background:rgba(${m.auraRgb},0.07);">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center border shrink-0" style="color:${m.auraHex}; border-color:rgba(${m.auraRgb},0.5);">
+                    <div class="w-5 h-5">${m.emblem || ''}</div>
+                  </div>
+                  <div>
+                    <div class="font-nouveau text-xl font-semibold text-[#f0dba8]">☀ ${m.ru}</div>
+                    <div class="text-[10px] uppercase tracking-wider text-[#a69f90]">${m.en} · Вдохновение</div>
+                  </div>
+                </div>
+                <p class="text-xs sm:text-[13.5px] text-[#f0eadc]/90 leading-relaxed">${linkifyHTML(formatInlineMd(m.desc))}</p>
+                <p class="lore-only text-[11.5px] text-[#a69f90] italic">${linkifyHTML(formatInlineMd(m.sceneHint))}</p>
+              </div>
+              <div class="rounded-xl border p-4 space-y-2" style="border-color:rgba(${r.auraRgb},0.42); background:rgba(${r.auraRgb},0.07);">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center border shrink-0" style="color:${r.auraHex}; border-color:rgba(${r.auraRgb},0.5);">
+                    <div class="w-5 h-5">${r.emblem || ''}</div>
+                  </div>
+                  <div>
+                    <div class="font-nouveau text-xl font-semibold text-[#e6989f]">☽ ${r.ru}</div>
+                    <div class="text-[10px] uppercase tracking-wider text-[#a69f90]">${r.en} · Опустошение</div>
+                  </div>
+                </div>
+                <p class="text-xs sm:text-[13.5px] text-[#f0eadc]/90 leading-relaxed">${linkifyHTML(formatInlineMd(r.desc))}</p>
+                <p class="lore-only text-[11.5px] text-[#a69f90] italic">${linkifyHTML(formatInlineMd(r.sceneHint))}</p>
+              </div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      `;
+      return;
+    }
+
+    const list = THRESHOLDS.filter((t) => t.type === state.thresholdMode);
+    const activeT = list.find((t) => t.id === state.selectedThresholdId) || list[0];
+    if (!activeT) return;
+    state.selectedThresholdId = activeT.id;
+    const mirror = THRESHOLDS.find((t) => t.id === activeT.mirrorId);
+    const rgb = activeT.auraRgb || hexToRgbStr(activeT.auraHex);
+    const tIcon = activeT.type === 'musing' ? '☀' : '☽';
+
+    area.innerHTML = `
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+        ${list
+          .map((t) => {
+            const trgb = t.auraRgb || hexToRgbStr(t.auraHex);
+            const act = t.id === activeT.id;
+            return `
+              <button type="button" data-thr-card="${t.id}"
+                class="tarot-card group text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0dba8] ${act ? 'active' : ''}"
+                style="--card-aura: ${t.auraHex}; --card-aura-rgb: ${trgb}; padding: 1rem 0.65rem 0.9rem;">
+                <span class="tarot-foil" aria-hidden="true"></span>
+                <div class="relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-2 border"
+                     style="color:${t.auraHex}; border-color:rgba(${trgb},0.5); background:rgba(${trgb},0.16);">
+                  <div class="w-6 h-6">${t.emblem || ''}</div>
+                </div>
+                <div class="relative z-10 font-nouveau text-base font-semibold text-[#f0eadc] leading-tight">${t.ru}</div>
+                <div class="relative z-10 text-[9.5px] uppercase tracking-wider text-[#a69f90] mt-0.5">${t.en}</div>
+              </button>
+            `;
+          })
+          .join('')}
+      </div>
+
+      <div id="threshold-spotlight" class="nouveau-panel p-5 sm:p-7 space-y-4">
+        <div class="spotlight-anim relative z-10 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#d8b979]/20 pb-3.5">
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 border"
+                   style="color:${activeT.auraHex}; border-color:rgba(${rgb},0.55); background:rgba(${rgb},0.18);">
+                <div class="w-7 h-7">${activeT.emblem || ''}</div>
+              </div>
+              <div>
+                <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc] leading-none">${tIcon} ${activeT.ru}</h3>
+                <div class="text-xs uppercase tracking-[0.16em] text-[#a69f90] mt-1">${activeT.en} · ${activeT.typeRu}</div>
+              </div>
+            </div>
+            ${
+              mirror
+                ? `<button type="button" id="btn-flip-threshold"
+                     class="px-3.5 py-1.5 rounded-full text-xs border border-[#d8b979]/35 bg-[#0b110f]/75 text-[#f0dba8] hover:border-[#f0dba8] transition self-start sm:self-center">
+                     ⇄ Зеркало: ${mirror.ru}
+                   </button>`
+                : ''
+            }
+          </div>
+
+          <p class="text-sm sm:text-[15px] text-[#f0eadc]/92 leading-relaxed">${linkifyHTML(formatInlineMd(activeT.desc))}</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs sm:text-[13px]">
+            <div class="lore-only rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/60 p-4 space-y-1">
+              <div class="text-[10.5px] uppercase tracking-[0.18em] text-[#d8b979]">Игровая сцена</div>
+              <p class="text-[#f0eadc]/88 leading-relaxed">${linkifyHTML(formatInlineMd(activeT.sceneHint))}</p>
+            </div>
+            <div class="rounded-xl border p-4 space-y-1" style="border-color:rgba(${rgb},0.42); background:rgba(${rgb},0.08);">
+              <div class="text-[10.5px] uppercase tracking-[0.18em]" style="color:${activeT.auraHex};">✦ Сила Порога в Эпифании</div>
+              <p class="text-[#f0eadc]/90 leading-relaxed">
+                ${
+                  activeT.type === 'musing'
+                    ? linkifyText('При 5 и более успехах в завершающем броске Вдохновения (Манипулирование + Способность, сл. 6) через свой Порог Вдохновения подменыш получает +1 постоянную точку Гламура.')
+                    : linkifyText('Проведя Опустошение через свой Порог по системе Вдохновения (изучив жертву по Восприятие + Кеннинг сл. 8 и набрав 5+ успехов на финальном броске сл. 6), подменыш получает +1 постоянную точку Гламура.')
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    area.querySelectorAll('[data-thr-card]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.selectedThresholdId = btn.getAttribute('data-thr-card');
+        renderThresholdsUI();
+      });
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        btn.style.setProperty('--mx', `${(((e.clientX - rect.left) / rect.width) * 100).toFixed(1)}%`);
+        btn.style.setProperty('--my', `${(((e.clientY - rect.top) / rect.height) * 100).toFixed(1)}%`);
+      });
+    });
+
+    const flipBtn = document.getElementById('btn-flip-threshold');
+    if (flipBtn && mirror) {
+      flipBtn.addEventListener('click', () => {
+        state.selectedThresholdId = mirror.id;
+        state.thresholdMode = mirror.type;
+        renderThresholdsUI();
+      });
+    }
+  }
+
+  /* ------------------------------------------------------------------------
      4. WIDGETS: STEP 4 TEMPERS & STEP 3 CANTRIP EQUATION
      ------------------------------------------------------------------------ */
   const CANTRIP_EXAMPLES = {
@@ -1790,6 +2381,31 @@
       }
     });
 
+    // 2c. Legacy & Threshold hits
+    LEGACIES.forEach((l) => {
+      const hay = `${l.ru} ${l.en} ${l.tagline} ${l.desc} ${l.quest} ${l.ban}`.toLowerCase();
+      if (hay.includes(q)) {
+        hits.push({
+          badge: `Наследие · ${l.court} Двор`,
+          title: `${l.ru} (${l.en})`,
+          snippet: l.tagline,
+          url: `${ROOT}04-legacies-thresholds/index.html?legacy=${l.id}#legacies-mirror`
+        });
+      }
+    });
+
+    THRESHOLDS.forEach((t) => {
+      const hay = `${t.ru} ${t.en} ${t.tagline} ${t.desc} ${t.sceneHint}`.toLowerCase();
+      if (hay.includes(q)) {
+        hits.push({
+          badge: `Порог · ${t.typeRu}`,
+          title: `${t.ru} (${t.en})`,
+          snippet: t.tagline,
+          url: `${ROOT}04-legacies-thresholds/index.html?threshold=${t.id}#thresholds-compass`
+        });
+      }
+    });
+
     // 3. Chapter section hits
     (BUNDLE.search || []).forEach((s) => {
       if (s.title.toLowerCase().includes(q) || s.text.toLowerCase().includes(q)) {
@@ -1921,6 +2537,35 @@
       ).join('');
     }
 
+    const legaciesPrint = document.getElementById('print-legacies-container');
+    if (legaciesPrint && LEGACIES.length) {
+      legaciesPrint.innerHTML = LEGACIES.map(
+        (l) => `
+        <article class="print-legacy-card p-3 space-y-1">
+          <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+            <h4 class="font-nouveau text-lg font-bold">${l.ru} <span class="text-xs font-normal">(${l.en})</span></h4>
+            <span class="text-xs font-semibold">${l.court} Двор</span>
+          </div>
+          <p class="text-xs">${l.desc}</p>
+          <p class="text-xs"><strong>Призвание:</strong> ${l.quest} · <strong>Запрет:</strong> ${l.ban}</p>
+        </article>`
+      ).join('');
+    }
+
+    const thresholdsPrint = document.getElementById('print-thresholds-container');
+    if (thresholdsPrint && THRESHOLDS.length) {
+      thresholdsPrint.innerHTML = THRESHOLDS.map(
+        (t) => `
+        <article class="print-threshold-card p-3 space-y-1">
+          <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+            <h4 class="font-nouveau text-lg font-bold">${t.ru} <span class="text-xs font-normal">(${t.en})</span></h4>
+            <span class="text-xs font-semibold">Порог · ${t.typeRu}</span>
+          </div>
+          <p class="text-xs">${t.desc}</p>
+        </article>`
+      ).join('');
+    }
+
     const lexPrint = document.getElementById('print-lexicon-container');
     if (lexPrint && LEXICON.length) {
       const sorted = [...LEXICON].sort((a, b) => a.ru.localeCompare(b.ru, 'ru'));
@@ -1941,6 +2586,8 @@
 
     initKithsGallery();
     initHousesGallery();
+    initLegaciesWidget();
+    initThresholdsWidget();
     initTempersWidget();
     initCantripWidget();
     initLexiconDirectory();

@@ -234,12 +234,16 @@ class AdminRequestHandler(SimpleHTTPRequestHandler):
             kiths = json.loads((CONTENT_DIR / "kiths.json").read_text(encoding="utf-8"))
             houses_path = CONTENT_DIR / "houses.json"
             houses = json.loads(houses_path.read_text(encoding="utf-8")) if houses_path.exists() else []
+            legacies_path = CONTENT_DIR / "legacies.json"
+            legacies_data = json.loads(legacies_path.read_text(encoding="utf-8")) if legacies_path.exists() else {}
             images = list_all_images()
             self._send_json({
                 "manifest": manifest,
                 "lexicon": lexicon,
                 "kiths": kiths,
                 "houses": houses,
+                "legacies": legacies_data.get("legacies", []),
+                "thresholds": legacies_data.get("thresholds", []),
                 "images": images,
                 "git": get_git_status_payload(),
             })

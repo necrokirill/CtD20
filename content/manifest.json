@@ -54,11 +54,11 @@
       "part": "Часть Четвёртая",
       "title": "Наследия и Пороги Гламура",
       "summary": "Двадцать восемь Наследий души, четырнадцать Порогов вдохновения и личная Антитеза",
-      "status": "planned",
+      "status": "ready",
       "auraHex": "#c86d8a",
       "coverImage": "",
-      "epigraph": "",
-      "epigraphAuthor": "",
+      "epigraph": "«В снах начинается ответственность».",
+      "epigraphAuthor": "Уильям Батлер Йейтс, «Ответственности»",
       "file": "04-legacies-thresholds.md"
     },
     {

@@ -710,6 +710,8 @@ body.mode-table .table-mode-only {
   aside,
   #kiths-interactive-area,
   #houses-interactive-area,
+  #legacies-interactive-area,
+  #thresholds-interactive-area,
   #desktop-popover,
   #sheet-backdrop,
   #bottom-sheet,
@@ -728,6 +730,8 @@ body.mode-table .table-mode-only {
   .mech-card,
   .print-kith-card,
   .print-house-card,
+  .print-legacy-card,
+  .print-threshold-card,
   .callout-sidebar,
   .callout-mechanics {
     background: #ffffff !important;
@@ -743,6 +747,8 @@ body.mode-table .table-mode-only {
   .nouveau-panel::after,
   .print-kith-card::after,
   .print-house-card::after,
+  .print-legacy-card::after,
+  .print-threshold-card::after,
   .callout-sidebar::after {
     content: "";
     position: absolute;
