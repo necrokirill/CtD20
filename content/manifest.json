@@ -93,11 +93,11 @@
       "part": "Часть Седьмая",
       "title": "Законы Магии и Владения",
       "summary": "Плетение Кантрипов, театральные Уловки, шкала Кошмара, дикое Высвобождение и шесть Владений",
-      "status": "planned",
+      "status": "ready",
       "auraHex": "#4b9aa8",
       "coverImage": "",
-      "epigraph": "",
-      "epigraphAuthor": "",
+      "epigraph": "«Я научил тебя драться и летать. Чего же ещё желать?»",
+      "epigraphAuthor": "Дж. М. Барри, «Питер Пэн и Венди»",
       "file": "07-laws-of-glamour-realms.md"
     },
     {

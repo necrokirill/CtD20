@@ -22,6 +22,10 @@
   const MERITS_FLAWS_DATA = BUNDLE.meritsFlaws || { items: [], animalFeatures: [] };
   const MF_ITEMS = MERITS_FLAWS_DATA.items || [];
   const ANIMAL_FEATURES = MERITS_FLAWS_DATA.animalFeatures || [];
+  const REALMS_DATA = BUNDLE.realmsData || { realms: [], cantripModifiers: [], bunkExamples: [] };
+  const REALMS = REALMS_DATA.realms || [];
+  const CANTRIP_MODS = REALMS_DATA.cantripModifiers || [];
+  const BUNK_EXAMPLES = REALMS_DATA.bunkExamples || [];
   const LEX_MAP = Object.fromEntries(LEXICON.map((item) => [item.id, item]));
 
   /* ------------------------------------------------------------------------
@@ -138,7 +142,12 @@
     'Отголосков',
     'Отголоскам',
     'Отголосками',
-    'Отголосках'
+    'Отголосках',
+    'Сродство',
+    'Сродства',
+    'Сродству',
+    'Сродством',
+    'Сродстве'
   ]);
   const EXACT_LOOKUP = new Map();
   const LOWER_LOOKUP = new Map();
@@ -271,6 +280,29 @@
     mfQuery: '',
     mfViewMode: 'atlas',      // 'atlas' | 'scroll'
     selectedMfChoices: [],    // [{ id, ru, kind, cost, uid }]
+    cfTab: 'cantrip',         // 'cantrip' | 'unleash' | 'bunks'
+    cfWyrd: true,
+    cfArt: 3,
+    cfRealm: 2,
+    cfCheated: 0,
+    cfNightmare: 1,
+    cfBunk: -2,
+    cfGlamour: 4,
+    cfBunkFilter: 'all',      // 'all' | '-1' | '-2' | '-3' | '-4' | '-5'
+    cfBunkQuery: '',
+    cfMods: {
+      target_banality: false,
+      location_banality: false,
+      scene_realm: false,
+      time_realm: false,
+      higher_title: false,
+      freehold: false,
+      enchanted_kinain: false,
+      kith_affinity: false,
+      voluntary_nightmare: false
+    },
+    selectedRealmId: 'actor',
+    realmViewMode: 'atlas',   // 'atlas' | 'scroll'
     tableMode: localStorage.getItem('ctd20_table_mode') === '1',
     forceSheet: false,
     seeming: 'wilder',
@@ -3113,6 +3145,651 @@
   }
 
   /* ------------------------------------------------------------------------
+     3H. WIDGETS: CANTRIP FORGE (CALCULATOR, UNLEASHING & 42 BUNKS) + REALMS ATLAS
+     ------------------------------------------------------------------------ */
+  function cfStepperHTML(key, label, val, min, max, hint = '') {
+    return `
+      <div class="rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/68 px-3.5 py-2.5 flex items-center justify-between gap-2">
+        <div>
+          <div class="text-xs font-medium text-[#f0eadc]">${label}</div>
+          ${hint ? `<div class="text-[10.5px] text-[#a69f90]">${hint}</div>` : ''}
+        </div>
+        <div class="inline-flex items-center gap-1.5 shrink-0">
+          <button type="button" data-cf-step="${key}" data-cf-dir="-1" ${val <= min ? 'disabled' : ''}
+            class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#101916] text-sm text-[#f0dba8] hover:border-[#f0dba8] disabled:opacity-35 transition">−</button>
+          <span class="w-6 text-center font-nouveau text-xl font-bold text-[#f0dba8]">${val}</span>
+          <button type="button" data-cf-step="${key}" data-cf-dir="1" ${val >= max ? 'disabled' : ''}
+            class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#101916] text-sm text-[#f0dba8] hover:border-[#f0dba8] disabled:opacity-35 transition">+</button>
+        </div>
+      </div>`;
+  }
+
+  function initCantripForge() {
+    const mount = document.getElementById('cantrip-forge-widget-mount');
+    if (!mount || (!CANTRIP_MODS.length && !BUNK_EXAMPLES.length)) return;
+
+    const tabs = [
+      { id: 'cantrip', label: '✦ Расчёт Кантрипа' },
+      { id: 'unleash', label: '⚡ Высвобождение' },
+      { id: 'bunks', label: `🎭 Примеры Уловок (${BUNK_EXAMPLES.length})` }
+    ];
+
+    mount.innerHTML = `
+      <section id="cantrip-forge" class="space-y-5 my-8 scroll-mt-24">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979] !mt-0 !mb-0">Плетение чар и театр Грёзы · Справочная панель</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Расчёт Кантрипа и каталог Уловок
+            </h2>
+          </div>
+          <div class="no-print flex flex-wrap gap-1.5 rounded-2xl sm:rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
+            ${tabs
+              .map(
+                (t) => `
+              <button type="button" data-cf-tab="${t.id}" class="cf-tab-btn px-3 py-1.5 rounded-full text-xs font-medium transition">
+                ${t.label}
+              </button>`
+              )
+              .join('')}
+          </div>
+        </div>
+
+        <div id="cantrip-forge-interactive" class="nouveau-panel p-5 sm:p-7"></div>
+        <div id="print-bunks-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    mount.querySelectorAll('.cf-tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.cfTab = btn.getAttribute('data-cf-tab');
+        renderCantripForge();
+      });
+    });
+
+    renderCantripForge();
+  }
+
+  function renderCantripForge() {
+    const body = document.getElementById('cantrip-forge-interactive');
+    if (!body) return;
+
+    document.querySelectorAll('.cf-tab-btn').forEach((btn) => {
+      const act = btn.getAttribute('data-cf-tab') === state.cfTab;
+      btn.className = `cf-tab-btn px-3 py-1.5 rounded-full text-xs font-medium transition ${
+        act ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+
+    if (state.cfTab === 'cantrip') {
+      const basePool = state.cfArt + state.cfRealm;
+      const baseNm = Math.min(basePool, state.cfNightmare);
+      const normalBeforeVol = basePool - baseNm;
+      const canVoluntary = normalBeforeVol >= 3;
+      const volActive = canVoluntary && state.cfMods.voluntary_nightmare;
+      const finalNm = baseNm + (volActive ? 3 : 0);
+      const finalNormal = basePool - finalNm;
+
+      const glamourCost = (state.cfWyrd ? 1 : 0) + state.cfCheated;
+
+      let diffSum = 8 + state.cfBunk;
+      const breakdown = ['8 (база)'];
+      if (state.cfBunk !== 0) breakdown.push(`−${Math.abs(state.cfBunk)} (Уловка)`);
+
+      CANTRIP_MODS.forEach((cm) => {
+        if (cm.id === 'bunk' || typeof cm.mod !== 'number') return;
+        if (cm.id === 'voluntary_nightmare') {
+          if (volActive) {
+            diffSum += cm.mod;
+            breakdown.push(`${cm.modLabel} (+3 куб. Кошмара)`);
+          }
+          return;
+        }
+        if (state.cfMods[cm.id]) {
+          diffSum += cm.mod;
+          breakdown.push(`${cm.modLabel} (${cm.ru})`);
+        }
+      });
+
+      const shownDiff = Math.max(3, Math.min(10, diffSum));
+      const diffNote =
+        diffSum < 3
+          ? `расчёт ${diffSum}, обычно не ниже 3`
+          : diffSum > 10
+          ? `расчёт ${diffSum}, потолок сложности 10`
+          : 'итоговая сложность';
+
+      const penaltyMods = CANTRIP_MODS.filter((cm) => cm.group === 'penalty');
+      const bonusMods = CANTRIP_MODS.filter((cm) => cm.group === 'bonus');
+
+      body.innerHTML = `
+        <div class="relative z-10 space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#d8b979]/20 pb-3">
+            <div class="inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1">
+              <button type="button" data-cf-wyrd="0" class="px-3.5 py-1 rounded-full text-xs font-medium transition ${
+                !state.cfWyrd ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+              }">Химерический (0 Гламура)</button>
+              <button type="button" data-cf-wyrd="1" class="px-3.5 py-1 rounded-full text-xs font-medium transition ${
+                state.cfWyrd ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+              }">Вирд-кантрип (1 Гламур)</button>
+            </div>
+            <div class="text-xs text-[#a69f90]">
+              Запас = <strong class="text-[#f0eadc]">Искусство + младшее основное Владение</strong>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            ${cfStepperHTML('art', 'Рейтинг Искусства', state.cfArt, 1, 5, 'ступень от 1 до 5')}
+            ${cfStepperHTML('realm', 'Младшее основное Владение', state.cfRealm, 0, 5, state.cfRealm === 0 ? 'обход: +0 куб.' : 'Актёр / Фея / Природа / Предмет')}
+            ${cfStepperHTML('cheated', 'Обойдено Владений', state.cfCheated, 0, 4, '+1 Гламур за каждое')}
+            ${cfStepperHTML('nightmare', 'Текущий Кошмар', state.cfNightmare, 0, 10, 'заменяет кубики запаса')}
+          </div>
+
+          ${
+            state.cfRealm === 0 && state.cfCheated === 0
+              ? `<div class="rounded-lg border border-[#d8b979]/30 bg-[#d8b979]/10 px-3.5 py-2 text-[11.5px] text-[#f0dba8]">
+                   Примечание: при основном Владении 0 необходимо добавить минимум 1 в счётчик «Обойдено Владений» (+1 Гламур).
+                 </div>`
+              : ''
+          }
+
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-medium text-[#f0dba8]">Сила Уловки:</span>
+              <button type="button" id="cf-goto-bunks" class="text-[11px] text-[#d8b979] hover:text-[#f0dba8] underline decoration-dotted">
+                Посмотреть 42 примера Уловок →
+              </button>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              ${[0, -1, -2, -3, -4, -5]
+                .map(
+                  (v) => `
+                <button type="button" data-cf-bunk="${v}" class="px-3 py-1 rounded-full text-xs border transition ${
+                  state.cfBunk === v
+                    ? 'border-[#f0dba8]/80 bg-[#d8b979]/22 text-[#f0dba8]'
+                    : 'border-[#d8b979]/25 bg-[#0b110f]/60 text-[#a69f90] hover:text-[#f0eadc]'
+                }">${v === 0 ? 'Без Уловки (0)' : `Уловка ${v}`}</button>`
+                )
+                .join('')}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <div class="text-[11px] uppercase tracking-wider text-[#d98a7c]">Осложнения (+1)</div>
+              <div class="space-y-1.5">
+                ${penaltyMods
+                  .map(
+                    (cm) => `
+                  <button type="button" data-cf-mod="${cm.id}"
+                    class="w-full text-left px-3 py-2 rounded-lg border text-xs flex items-center justify-between gap-2 transition ${
+                      state.cfMods[cm.id]
+                        ? 'border-[#d98a7c]/65 bg-[#d98a7c]/15 text-[#f0eadc]'
+                        : 'border-[#d8b979]/20 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+                    }">
+                    <span>${cm.ru}</span>
+                    <span class="font-semibold text-[#f0b4a8] shrink-0">${cm.modLabel}</span>
+                  </button>`
+                  )
+                  .join('')}
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div class="text-[11px] uppercase tracking-wider text-[#f0dba8]">Облегчения (−1)</div>
+              <div class="space-y-1.5">
+                ${bonusMods
+                  .map((cm) => {
+                    const isVol = cm.id === 'voluntary_nightmare';
+                    const disabled = isVol && !canVoluntary;
+                    const on = !disabled && state.cfMods[cm.id];
+                    return `
+                      <button type="button" data-cf-mod="${cm.id}" ${disabled ? 'disabled' : ''}
+                        class="w-full text-left px-3 py-2 rounded-lg border text-xs flex items-center justify-between gap-2 transition ${
+                          disabled
+                            ? 'border-[#d8b979]/12 bg-[#0b110f]/35 text-[#7b7669] opacity-65 cursor-not-allowed'
+                            : on
+                            ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0eadc]'
+                            : 'border-[#d8b979]/20 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+                        }">
+                        <span>${cm.ru}${disabled ? ' (нужно ≥ 3 обычных кубиков)' : ''}</span>
+                        <span class="font-semibold text-[#f0dba8] shrink-0">${cm.modLabel}</span>
+                      </button>`;
+                  })
+                  .join('')}
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+            <div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/75 p-4 text-center space-y-1">
+              <div class="text-[10.5px] uppercase tracking-widest text-[#a69f90]">Цена в Гламуре</div>
+              <div class="font-nouveau text-3xl font-bold text-[#f0dba8]">${glamourCost}</div>
+              <div class="text-[11px] text-[#a69f90]">${state.cfWyrd ? 'Вирд: 1' : 'Химерический: 0'} + обход: ${state.cfCheated}</div>
+            </div>
+            <div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/75 p-4 text-center space-y-1">
+              <div class="text-[10.5px] uppercase tracking-widest text-[#a69f90]">Запас кубиков</div>
+              <div class="font-nouveau text-3xl font-bold text-[#f0eadc]">${basePool}</div>
+              <div class="text-[11px] text-[#a69f90]">
+                <strong class="text-[#f0eadc]">${finalNormal}</strong> обычных + <strong class="text-[#c4a8ff]">${finalNm}</strong> Кошмара${volActive ? ' (+3 добровольно)' : ''}
+              </div>
+            </div>
+            <div class="rounded-xl border border-[#f0dba8]/55 bg-[#d8b979]/12 p-4 text-center space-y-1">
+              <div class="text-[10.5px] uppercase tracking-widest text-[#f0dba8]">Сложность броска</div>
+              <div class="font-nouveau text-3xl font-bold text-[#f0dba8]">${shownDiff}</div>
+              <div class="text-[11px] text-[#f0eadc]/85">${diffNote}</div>
+            </div>
+          </div>
+
+          <div class="text-[11.5px] text-[#a69f90] leading-relaxed">
+            <strong class="text-[#f0dba8]">Расчёт сложности:</strong> ${breakdown.join(' ')} = <strong class="text-[#f0eadc]">${diffSum}</strong>.
+            Каждая «10» на кубике Кошмара сразу добавляет +1 к шкале Кошмара; при достижении 10 шкала сбрасывается в Дисбаланс и приносит +1 временный Гламур.
+          </div>
+        </div>
+      `;
+
+      body.querySelectorAll('[data-cf-wyrd]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.cfWyrd = btn.getAttribute('data-cf-wyrd') === '1';
+          renderCantripForge();
+        });
+      });
+      body.querySelectorAll('[data-cf-bunk]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.cfBunk = Number(btn.getAttribute('data-cf-bunk'));
+          renderCantripForge();
+        });
+      });
+      body.querySelectorAll('[data-cf-mod]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-cf-mod');
+          state.cfMods[id] = !state.cfMods[id];
+          renderCantripForge();
+        });
+      });
+      const gotoBtn = document.getElementById('cf-goto-bunks');
+      if (gotoBtn) {
+        gotoBtn.addEventListener('click', () => {
+          state.cfTab = 'bunks';
+          renderCantripForge();
+        });
+      }
+      bindCfSteppers(body);
+    } else if (state.cfTab === 'unleash') {
+      const nmBefore = Math.min(state.cfNightmare, 9);
+      const nmAfter = nmBefore + 1;
+      const unleashPool = state.cfGlamour + nmAfter;
+
+      body.innerHTML = `
+        <div class="relative z-10 space-y-5">
+          <div class="text-xs sm:text-[13.5px] text-[#f0eadc]/90 leading-relaxed">
+            Высвобождение отбрасывает ограничения Владений и прорывает Грёзу напрямую через выбранное Искусство. Перед броском игрок называет простое намерение, тратит <strong class="text-[#f0dba8]">2 пункта Гламура</strong> и прибавляет <strong class="text-[#c4a8ff]">+1 к рейтингу Кошмара</strong>.
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            ${cfStepperHTML('glamour', 'Постоянный Гламур', state.cfGlamour, 1, 10, 'входит в запас и срок Вирда')}
+            ${cfStepperHTML('art', 'Рейтинг Искусства', state.cfArt, 1, 5, 'порог контроля над магией')}
+            ${cfStepperHTML('nightmare_unleash', 'Кошмар до броска', nmBefore, 0, 9, `после +1 перед броском станет ${nmAfter}`)}
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/75 p-4 text-center space-y-1">
+              <div class="text-[10.5px] uppercase tracking-widest text-[#a69f90]">Цена до броска</div>
+              <div class="font-nouveau text-2xl font-bold text-[#f0dba8]">2 Гламура + 1 Кошмар</div>
+              <div class="text-[11px] text-[#a69f90]">Владения не требуются</div>
+            </div>
+            <div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/75 p-4 text-center space-y-1">
+              <div class="text-[10.5px] uppercase tracking-widest text-[#a69f90]">Запас Высвобождения</div>
+              <div class="font-nouveau text-2xl font-bold text-[#f0eadc]">${unleashPool} кубиков</div>
+              <div class="text-[11px] text-[#a69f90]">${state.cfGlamour} обычных + ${nmAfter} Кошмара</div>
+            </div>
+            <div class="rounded-xl border border-[#f0dba8]/55 bg-[#d8b979]/12 p-4 text-center space-y-1">
+              <div class="text-[10.5px] uppercase tracking-widest text-[#f0dba8]">Сложность</div>
+              <div class="font-nouveau text-2xl font-bold text-[#f0dba8]">7</div>
+              <div class="text-[11px] text-[#f0eadc]/85">Порог контроля: до ${state.cfArt} успехов</div>
+            </div>
+          </div>
+
+          ${
+            nmAfter === 10
+              ? `<div class="rounded-lg border border-[#d98a7c]/55 bg-[#d98a7c]/12 px-3.5 py-2 text-xs text-[#f0b4a8]">
+                   Осторожно: обязательный +1 Кошмар доводит шкалу до 10 — срабатывает переполнение в Дисбаланс (+1 временный Гламур).
+                 </div>`
+              : ''
+          }
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs leading-relaxed">
+            <div class="rounded-xl border border-[#f0dba8]/40 bg-[#0b110f]/68 p-4 space-y-1">
+              <div class="font-semibold text-[#f0dba8]">✦ Успех под контролем (успехов: 1–${state.cfArt})</div>
+              <p class="text-[#f0eadc]/90 !my-0">${linkifyText(`Эффект описывает сам игрок. Облик феи проявляется наяву, а Вирд включается на число ходов, равное Гламуру (${state.cfGlamour})`)} <em>(за 1 пункт Силы Воли — на всю сцену)</em>.</p>
+            </div>
+            <div class="rounded-xl border border-[#c4a8ff]/40 bg-[#0b110f]/68 p-4 space-y-1">
+              <div class="font-semibold text-[#dfd0ff]">❖ Потеря контроля (успехов: ${state.cfArt + 1} и более)</div>
+              <p class="text-[#f0eadc]/90 !my-0">${linkifyText('Замысел сбывается искажённо с опасными осложнениями по воле Рассказчика; +1 Кошмар, а Вирд активен всю сцену.')}</p>
+            </div>
+            <div class="rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/68 p-4 space-y-1">
+              <div class="font-semibold text-[#a69f90]">✕ Провал</div>
+              <p class="text-[#f0eadc]/90 !my-0">${linkifyText('Высвобождение не срабатывает; Триггер Банальности, и это Искусство закрыто для вас до конца сцены.')}</p>
+            </div>
+            <div class="rounded-xl border border-[#d98a7c]/50 bg-[#0b110f]/68 p-4 space-y-1">
+              <div class="font-semibold text-[#f0b4a8]">☠ Критический провал (ботч)</div>
+              <p class="text-[#f0eadc]/90 !my-0">${linkifyText('Сразу 1 Дисбаланс')} <em>(без сброса Кошмара)</em>, ${linkifyText('1 ход хаоса вокруг, затем Триггер Банальности и запрет на трату Гламура и любые Искусства до конца сцены.')}</p>
+            </div>
+          </div>
+        </div>
+      `;
+      bindCfSteppers(body);
+    } else {
+      const bFilters = [
+        { id: 'all', label: `Все (${BUNK_EXAMPLES.length})` },
+        { id: '-1', label: `−1 (${BUNK_EXAMPLES.filter((b) => b.mod === -1).length})` },
+        { id: '-2', label: `−2 (${BUNK_EXAMPLES.filter((b) => b.mod === -2).length})` },
+        { id: '-3', label: `−3 (${BUNK_EXAMPLES.filter((b) => b.mod === -3).length})` },
+        { id: '-4', label: `−4 (${BUNK_EXAMPLES.filter((b) => b.mod === -4).length})` },
+        { id: '-5', label: `−5 (${BUNK_EXAMPLES.filter((b) => b.mod === -5).length})` }
+      ];
+
+      const filtered = BUNK_EXAMPLES.filter((b) => {
+        if (state.cfBunkFilter !== 'all' && String(b.mod) !== state.cfBunkFilter) return false;
+        if (state.cfBunkQuery) {
+          const hay = `${b.ru} ${b.en} ${b.label}`.toLowerCase();
+          if (!hay.includes(state.cfBunkQuery)) return false;
+        }
+        return true;
+      });
+
+      body.innerHTML = `
+        <div class="relative z-10 space-y-4">
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <div class="flex flex-wrap gap-1.5">
+              ${bFilters
+                .map(
+                  (f) => `
+                <button type="button" data-bf="${f.id}" class="px-2.5 py-1 rounded-full text-xs border transition ${
+                  state.cfBunkFilter === f.id
+                    ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+                    : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+                }">${f.label}</button>`
+                )
+                .join('')}
+            </div>
+            <input type="search" id="cf-bunk-search" value="${state.cfBunkQuery.replace(/"/g, '&quot;')}" placeholder="Поиск среди 42 примеров Уловок..."
+              class="w-full sm:w-64 rounded-full border border-[#d8b979]/30 bg-[#0b110f]/75 px-3.5 py-1.5 text-xs text-[#f0eadc] placeholder-[#7b7669] focus:outline-none focus:border-[#f0dba8]" />
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-1">
+            ${
+              filtered.length
+                ? filtered
+                    .map(
+                      (b) => `
+                  <button type="button" data-apply-bunk="${b.mod}"
+                    class="text-left p-3 rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/60 hover:border-[#f0dba8]/65 hover:bg-[#15211d] flex items-start justify-between gap-2.5 transition">
+                    <div>
+                      <div class="text-xs sm:text-[13px] font-medium text-[#f0eadc] leading-snug">${b.ru}</div>
+                      <div class="text-[10.5px] text-[#a69f90] mt-0.5">${b.en}</div>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border border-[#f0dba8]/45 bg-[#d8b979]/15 text-[#f0dba8] shrink-0" title="Подставить в расчёт Кантрипа">
+                      ${b.label}
+                    </span>
+                  </button>`
+                    )
+                    .join('')
+                : '<div class="col-span-full py-6 text-center text-xs text-[#a69f90]">Ни одна Уловка не подходит под запрос.</div>'
+            }
+          </div>
+          <div class="text-[11px] text-[#7b7669]">Нажмите на любой пример, чтобы сразу перенести поправку в расчёт Кантрипа.</div>
+        </div>
+      `;
+
+      body.querySelectorAll('[data-bf]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.cfBunkFilter = btn.getAttribute('data-bf');
+          renderCantripForge();
+        });
+      });
+      const inp = document.getElementById('cf-bunk-search');
+      if (inp) {
+        inp.addEventListener('input', (e) => {
+          state.cfBunkQuery = e.target.value.trim().toLowerCase();
+          renderCantripForge();
+          const newInp = document.getElementById('cf-bunk-search');
+          if (newInp) {
+            newInp.focus();
+            newInp.setSelectionRange(newInp.value.length, newInp.value.length);
+          }
+        });
+      }
+      body.querySelectorAll('[data-apply-bunk]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.cfBunk = Number(btn.getAttribute('data-apply-bunk'));
+          state.cfTab = 'cantrip';
+          renderCantripForge();
+        });
+      });
+    }
+  }
+
+  function bindCfSteppers(root) {
+    root.querySelectorAll('[data-cf-step]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-cf-step');
+        const dir = Number(btn.getAttribute('data-cf-dir'));
+        if (key === 'art') state.cfArt = Math.max(1, Math.min(5, state.cfArt + dir));
+        else if (key === 'realm') state.cfRealm = Math.max(0, Math.min(5, state.cfRealm + dir));
+        else if (key === 'cheated') state.cfCheated = Math.max(0, Math.min(4, state.cfCheated + dir));
+        else if (key === 'nightmare') state.cfNightmare = Math.max(0, Math.min(10, state.cfNightmare + dir));
+        else if (key === 'nightmare_unleash') state.cfNightmare = Math.max(0, Math.min(9, Math.min(state.cfNightmare, 9) + dir));
+        else if (key === 'glamour') state.cfGlamour = Math.max(1, Math.min(10, state.cfGlamour + dir));
+        renderCantripForge();
+      });
+    });
+  }
+
+  function initRealmsAtlas() {
+    const mount = document.getElementById('realms-widget-mount');
+    if (!mount || !REALMS.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qRealm = params.get('realm');
+    if (qRealm && REALMS.some((r) => r.id === qRealm)) {
+      state.selectedRealmId = qRealm;
+    } else if (!REALMS.some((r) => r.id === state.selectedRealmId)) {
+      state.selectedRealmId = REALMS[0].id;
+    }
+
+    mount.innerHTML = `
+      <section id="realms-atlas" class="space-y-6 my-8 scroll-mt-24">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979] !mt-0 !mb-0">Четыре основных и два модифицирующих · Тридцать ступеней</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Атлас шести Владений
+            </h2>
+          </div>
+          <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
+            <button type="button" id="rview-atlas" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ✦ Атлас Владений
+            </button>
+            <button type="button" id="rview-scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ☰ Книжный свиток
+            </button>
+          </div>
+        </div>
+
+        <div id="realms-interactive-area" class="space-y-5">
+          <div id="realms-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
+          <div id="realm-spotlight" class="nouveau-panel p-5 sm:p-7 scroll-mt-24" aria-live="polite"></div>
+        </div>
+
+        <div id="realms-scroll-area" class="hidden space-y-5 no-print"></div>
+        <div id="print-realms-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    document.getElementById('rview-atlas').addEventListener('click', () => {
+      state.realmViewMode = 'atlas';
+      syncRealmViewMode();
+    });
+    document.getElementById('rview-scroll').addEventListener('click', () => {
+      state.realmViewMode = 'scroll';
+      syncRealmViewMode();
+    });
+
+    renderRealmsGrid();
+    renderRealmSpotlight(false);
+    renderRealmsScrollArea();
+    syncRealmViewMode();
+  }
+
+  function syncRealmViewMode() {
+    const atlas = document.getElementById('realms-interactive-area');
+    const scroll = document.getElementById('realms-scroll-area');
+    const bAtl = document.getElementById('rview-atlas');
+    const bScr = document.getElementById('rview-scroll');
+    if (!atlas || !scroll) return;
+    const isAtl = state.realmViewMode === 'atlas';
+    atlas.classList.toggle('hidden', !isAtl);
+    scroll.classList.toggle('hidden', isAtl);
+    bAtl.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+    bScr.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      !isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+  }
+
+  function renderRealmsGrid() {
+    const grid = document.getElementById('realms-grid');
+    if (!grid) return;
+
+    grid.innerHTML = REALMS.map((r) => {
+      const active = r.id === state.selectedRealmId;
+      const isMod = r.kind === 'modifier';
+      return `
+        <button type="button" data-realm-card="${r.id}"
+          class="text-left p-3.5 rounded-xl border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0dba8] flex flex-col justify-between gap-2 ${
+            active
+              ? 'border-[#f0dba8]/85 bg-[#d8b979]/18 shadow-[0_0_22px_rgba(216,185,121,0.16)]'
+              : 'border-[#d8b979]/22 bg-[#101916]/82 hover:border-[#d8b979]/55 hover:bg-[#15211d]'
+          }">
+          <div>
+            <div class="flex items-center justify-between gap-1.5">
+              <span class="font-nouveau text-xl sm:text-2xl font-semibold text-[#f0eadc] leading-tight">${r.ru}</span>
+              <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:${r.auraHex};"></span>
+            </div>
+            <div class="text-[10px] uppercase tracking-[0.14em] text-[#a69f90] mt-0.5">${r.en}</div>
+            <p class="text-[11.5px] text-[#a69f90] leading-snug !mt-1.5 !mb-0">${r.summary}</p>
+          </div>
+          <span class="self-start px-2.5 py-0.5 rounded-full text-[10px] border ${
+            isMod
+              ? 'border-[#c4a8ff]/45 bg-[#c4a8ff]/12 text-[#dfd0ff]'
+              : 'border-[#d8b979]/45 bg-[#d8b979]/12 text-[#f0dba8]'
+          }">${r.kindRu}</span>
+        </button>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('[data-realm-card]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.selectedRealmId = btn.getAttribute('data-realm-card');
+        renderRealmsGrid();
+        renderRealmSpotlight(true);
+      });
+    });
+  }
+
+  function renderRealmSpotlight(scrollToPanel = false) {
+    const spot = document.getElementById('realm-spotlight');
+    if (!spot) return;
+    const r = REALMS.find((x) => x.id === state.selectedRealmId) || REALMS[0];
+    if (!r) return;
+
+    const isMod = r.kind === 'modifier';
+    spot.innerHTML = `
+      <div class="spotlight-anim relative z-10 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#d8b979]/20 pb-3">
+          <div>
+            <h3 class="font-nouveau text-3xl font-semibold text-[#f0eadc] !mt-0 !mb-0 leading-none">${r.ru}</h3>
+            <div class="text-xs uppercase tracking-[0.16em] text-[#a69f90] mt-1">${r.en}</div>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs border self-start sm:self-auto ${
+            isMod
+              ? 'border-[#c4a8ff]/45 bg-[#c4a8ff]/12 text-[#dfd0ff]'
+              : 'border-[#f0dba8]/55 bg-[#d8b979]/18 text-[#f0dba8]'
+          }">${isMod ? '⇄ Модификатор · +1 к сложности' : '✦ Основное Владение'}</span>
+        </div>
+
+        <div class="space-y-2.5 text-sm sm:text-[15px] text-[#f0eadc]/92 leading-relaxed">
+          ${(r.desc || []).map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+        </div>
+
+        ${
+          r.specialNote
+            ? `<div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/70 px-4 py-3 text-xs sm:text-[13.5px] text-[#f0eadc]/92 leading-relaxed">
+                 <span class="font-semibold text-[#f0dba8]">◈ Особое правило Владения:</span> ${linkifyHTML(formatInlineMd(r.specialNote))}
+               </div>`
+            : ''
+        }
+
+        <div class="space-y-2.5 pt-1">
+          ${(r.levels || [])
+            .map(
+              (lv) => `
+            <div class="rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/60 p-3.5 sm:p-4 space-y-1.5">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                  ${renderSmallDotsHTML(lv.dots, 5)}
+                  <span class="font-nouveau text-xl font-semibold text-[#f0dba8]">${lv.ru}</span>
+                </div>
+                <span class="text-[10.5px] uppercase tracking-[0.14em] text-[#a69f90]">${lv.en}</span>
+              </div>
+              <p class="text-xs sm:text-[13.5px] text-[#f0eadc]/92 leading-relaxed !my-0">${linkifyHTML(formatInlineMd(lv.desc))}</p>
+              <div class="text-[11.5px] text-[#a69f90] leading-relaxed">
+                <strong class="text-[#d8b979]">Примеры:</strong> ${linkifyHTML(formatInlineMd(lv.examples))}
+              </div>
+            </div>`
+            )
+            .join('')}
+        </div>
+      </div>
+    `;
+
+    if (scrollToPanel) {
+      const rect = spot.getBoundingClientRect();
+      if (rect.top < 60 || rect.top > window.innerHeight * 0.72) {
+        spot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  function renderRealmsScrollArea() {
+    const area = document.getElementById('realms-scroll-area');
+    if (!area) return;
+
+    area.innerHTML = REALMS.map((r) => `
+      <article class="nouveau-panel p-5 space-y-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-[#d8b979]/15 pb-2">
+          <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc] !mt-0 !mb-0">${r.ru} <span class="text-xs font-sans font-normal text-[#a69f90]">(${r.en})</span></h3>
+          <span class="text-[11px] text-[#d8b979]">${r.kindRu}</span>
+        </div>
+        ${(r.desc || []).map((p) => `<p class="text-xs sm:text-[13.5px] leading-relaxed !my-0">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+        ${r.specialNote ? `<p class="text-xs text-[#f0dba8]/90 !my-0"><strong>◈ Особое правило:</strong> ${linkifyHTML(formatInlineMd(r.specialNote))}</p>` : ''}
+        <div class="space-y-1.5 text-xs sm:text-[13px] pt-1">
+          ${(r.levels || [])
+            .map(
+              (lv) => `
+            <div>
+              <strong class="text-[#f0dba8]">${'●'.repeat(lv.dots)} ${lv.ru} (${lv.en}):</strong> ${linkifyHTML(formatInlineMd(lv.desc))}
+              <span class="text-[#a69f90]"><em>Примеры:</em> ${linkifyHTML(formatInlineMd(lv.examples))}</span>
+            </div>`
+            )
+            .join('')}
+        </div>
+      </article>
+    `).join('');
+  }
+
+  /* ------------------------------------------------------------------------
      4. WIDGETS: STEP 4 TEMPERS & STEP 3 CANTRIP EQUATION
      ------------------------------------------------------------------------ */
   const CANTRIP_EXAMPLES = {
@@ -3848,6 +4525,20 @@
       }
     });
 
+    // 2g. Realms hits
+    REALMS.forEach((r) => {
+      const lvText = (r.levels || []).map((lv) => `${lv.ru} ${lv.en} ${lv.desc} ${lv.examples}`).join(' ');
+      const hay = `${r.ru} ${r.en} ${r.kindRu} ${r.summary} ${(r.desc || []).join(' ')} ${r.specialNote || ''} ${lvText}`.toLowerCase();
+      if (hay.includes(q)) {
+        hits.push({
+          badge: `Владение · ${r.kind === 'modifier' ? 'Модификатор' : 'Основное'}`,
+          title: `${r.ru} (${r.en})`,
+          snippet: (r.summary || (r.desc && r.desc[0]) || '').slice(0, 150) + '…',
+          url: `${ROOT}07-laws-of-glamour-realms/index.html?realm=${r.id}#realms-atlas`
+        });
+      }
+    });
+
     // 3. Chapter section hits
     (BUNDLE.search || []).forEach((s) => {
       if (s.title.toLowerCase().includes(q) || s.text.toLowerCase().includes(q)) {
@@ -4103,6 +4794,49 @@
         .join('');
     }
 
+    const bunksPrint = document.getElementById('print-bunks-container');
+    if (bunksPrint && BUNK_EXAMPLES.length) {
+      const grouped = [-1, -2, -3, -4, -5].map((mod) => {
+        const list = BUNK_EXAMPLES.filter((b) => b.mod === mod);
+        const label = list[0] ? list[0].label : String(mod);
+        return `
+          <div class="text-xs mt-1">
+            <strong>Уловки (${label}):</strong> ${list.map((b) => `${b.ru} <em>(${b.en})</em>`).join(' · ')}
+          </div>`;
+      });
+      bunksPrint.innerHTML = `
+        <article class="print-bunks-card p-3 space-y-1.5">
+          <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+            <h4 class="font-nouveau text-lg font-bold">Примеры Уловок (Bunk Examples)</h4>
+            <span class="text-xs font-semibold">${BUNK_EXAMPLES.length} примеров</span>
+          </div>
+          ${grouped.join('')}
+        </article>`;
+    }
+
+    const realmsPrint = document.getElementById('print-realms-container');
+    if (realmsPrint && REALMS.length) {
+      realmsPrint.innerHTML = REALMS.map(
+        (r) => `
+        <article class="print-realm-card p-3 space-y-1">
+          <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+            <h4 class="font-nouveau text-lg font-bold">${r.ru} <span class="text-xs font-normal">(${r.en})</span></h4>
+            <span class="text-xs font-semibold">${r.kindRu}</span>
+          </div>
+          <p class="text-xs">${(r.desc || []).map((p) => formatInlineMd(p)).join(' ')}</p>
+          ${r.specialNote ? `<p class="text-xs"><strong>Особое правило:</strong> ${formatInlineMd(r.specialNote)}</p>` : ''}
+          <div class="text-[11px] leading-snug space-y-0.5 pt-0.5">
+            ${(r.levels || [])
+              .map(
+                (lv) =>
+                  `<div><strong>${'●'.repeat(lv.dots)} ${lv.ru} (${lv.en}):</strong> ${formatInlineMd(lv.desc)} <em>Примеры:</em> ${formatInlineMd(lv.examples)}</div>`
+              )
+              .join('')}
+          </div>
+        </article>`
+      ).join('');
+    }
+
     const lexPrint = document.getElementById('print-lexicon-container');
     if (lexPrint && LEXICON.length) {
       const sorted = [...LEXICON].sort((a, b) => a.ru.localeCompare(b.ru, 'ru'));
@@ -4134,6 +4868,8 @@
     initTraitsCompendium();
     initBackgroundsVault();
     initMeritsFlawsAtlas();
+    initCantripForge();
+    initRealmsAtlas();
     initTempersWidget();
     initCantripWidget();
     initLexiconDirectory();
