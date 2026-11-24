@@ -169,6 +169,10 @@ def render_markdown(md_text: str, root_prefix: str = "./", apply_drop_cap: bool 
             out.append('<div id="realms-widget-mount" class="no-lex"></div>')
             i += 1
             continue
+        if stripped == "{{widget:arts-grimoire}}":
+            out.append('<div id="arts-widget-mount" class="no-lex"></div>')
+            i += 1
+            continue
         if stripped == "{{widget:tempers}}":
             out.append('<div id="tempers-widget-mount" class="no-lex"></div>')
             i += 1
@@ -472,6 +476,7 @@ def render_shell(
         <a href="{root_prefix}05-traits-backgrounds/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='05-traits-backgrounds' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Черты</a>
         <a href="{root_prefix}06-merits-flaws/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='06-merits-flaws' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Достоинства</a>
         <a href="{root_prefix}07-laws-of-glamour-realms/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='07-laws-of-glamour-realms' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Магия</a>
+        <a href="{root_prefix}08-grimoire-arts/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='08-grimoire-arts' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Гримуар</a>
         <a href="{root_prefix}lexicon/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='lexicon' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Лексикон</a>
       </nav>
 
@@ -602,6 +607,9 @@ def build_site() -> dict:
     realms_path = CONTENT_DIR / "realms.json"
     realms_data = json.loads(realms_path.read_text(encoding="utf-8")) if realms_path.exists() else {"realms": [], "cantripModifiers": [], "bunkExamples": []}
 
+    arts_path = CONTENT_DIR / "arts.json"
+    arts_data = json.loads(arts_path.read_text(encoding="utf-8")) if arts_path.exists() else {"groups": [], "arts": []}
+
     site_meta = manifest["site"]
     volumes = manifest["volumes"]
 
@@ -667,6 +675,17 @@ def build_site() -> dict:
                 for r in realms_data.get("realms", [])
             )
             plain_words += sum(len(b.get("ru", "")) // 6 for b in realms_data.get("bunkExamples", []))
+        elif slug == "08-grimoire-arts":
+            plain_words += sum(
+                len(" ".join(a.get("lore", []))) // 6
+                + len(a.get("unleashing", "")) // 6
+                + len(a.get("bunks", "")) // 6
+                + sum(
+                    len(" ".join(c.get("lore", []))) // 6 + len(" ".join(c.get("system", []))) // 6
+                    for c in a.get("cantrips", [])
+                )
+                for a in arts_data.get("arts", [])
+            )
         read_mins = max(2, round(plain_words / 190))
 
         prev_vol = volumes[idx - 1] if idx > 0 else None
@@ -959,6 +978,9 @@ def build_site() -> dict:
             <a href="07-laws-of-glamour-realms/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
               Законы Магии и Владения
             </a>
+            <a href="08-grimoire-arts/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
+              Гримуар Искусств
+            </a>
             <a href="lexicon/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/35 bg-[#0b110f]/70 text-[#a69f90] hover:text-[#f0dba8] transition">
               Лексикон Грёзы
             </a>
@@ -1053,6 +1075,7 @@ def build_site() -> dict:
         "traits": traits_data,
         "meritsFlaws": merits_flaws_data,
         "realmsData": realms_data,
+        "artsData": arts_data,
         "volumes": volumes,
         "search": all_search_entries,
     }
@@ -1074,6 +1097,8 @@ def build_site() -> dict:
         "meritsFlaws": len(merits_flaws_data.get("items", [])),
         "realms": len(realms_data.get("realms", [])),
         "bunkExamples": len(realms_data.get("bunkExamples", [])),
+        "arts": len(arts_data.get("arts", [])),
+        "cantrips": sum(len(a.get("cantrips", [])) for a in arts_data.get("arts", [])),
         "lexicon": len(lexicon),
         "searchChunks": len(all_search_entries),
     }

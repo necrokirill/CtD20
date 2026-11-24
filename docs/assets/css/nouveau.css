@@ -799,6 +799,7 @@ body.mode-table .table-mode-only {
   #mf-interactive-area,
   #cantrip-forge-interactive,
   #realms-interactive-area,
+  #arts-interactive-area,
   #desktop-popover,
   #sheet-backdrop,
   #bottom-sheet,
@@ -824,6 +825,7 @@ body.mode-table .table-mode-only {
   .print-mf-card,
   .print-realm-card,
   .print-bunks-card,
+  .print-art-card,
   .callout-sidebar,
   .callout-mechanics {
     background: #ffffff !important;
@@ -846,6 +848,7 @@ body.mode-table .table-mode-only {
   .print-mf-card::after,
   .print-realm-card::after,
   .print-bunks-card::after,
+  .print-art-card::after,
   .callout-sidebar::after {
     content: "";
     position: absolute;

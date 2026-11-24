@@ -26,6 +26,9 @@
   const REALMS = REALMS_DATA.realms || [];
   const CANTRIP_MODS = REALMS_DATA.cantripModifiers || [];
   const BUNK_EXAMPLES = REALMS_DATA.bunkExamples || [];
+  const ARTS_DATA = BUNDLE.artsData || { groups: [], arts: [] };
+  const ARTS = ARTS_DATA.arts || [];
+  const ART_GROUPS = ARTS_DATA.groups || [];
   const LEX_MAP = Object.fromEntries(LEXICON.map((item) => [item.id, item]));
 
   /* ------------------------------------------------------------------------
@@ -317,6 +320,12 @@
     },
     selectedRealmId: 'actor',
     realmViewMode: 'atlas',   // 'atlas' | 'scroll'
+    selectedArtId: 'autumn',
+    artGroup: 'all',
+    artTypeFilter: 'all',     // 'all' | 'wyrd' | 'chimerical' | 'either'
+    artDotFilter: 'all',      // 'all' | 1..5
+    artQuery: '',
+    artViewMode: 'atlas',     // 'atlas' | 'scroll'
     tableMode: localStorage.getItem('ctd20_table_mode') === '1',
     forceSheet: false,
     seeming: 'wilder',
@@ -3820,6 +3829,523 @@
     `).join('');
   }
 
+  function artTypeMeta(c) {
+    if (c.type === 'wyrd') {
+      return {
+        label: '✦ Вирд · 1 Гламур',
+        short: 'Вирд',
+        cls: 'border-[#f0dba8]/55 bg-[#d8b979]/18 text-[#f0dba8]'
+      };
+    }
+    if (c.type === 'chimerical') {
+      return {
+        label: '☾ Химерический · 0 Гламура',
+        short: 'Химерический',
+        cls: 'border-[#9cc2b8]/45 bg-[#203832]/75 text-[#c9e6dc]'
+      };
+    }
+    return {
+      label: '⇄ Химерический или Вирд',
+      short: 'На выбор',
+      cls: 'border-[#c4a8ff]/45 bg-[#c4a8ff]/12 text-[#dfd0ff]'
+    };
+  }
+
+  function renderCantripCardHTML(c) {
+    const meta = artTypeMeta(c);
+    const sysItems = c.system || [];
+    const tableHTML =
+      c.successTable && c.successTable.length
+        ? `<div class="nouveau-table-wrap !my-2.5">
+             <table class="nouveau-table text-xs sm:text-[13px]">
+               <thead><tr><th>Успехи</th><th>Эффект</th></tr></thead>
+               <tbody>
+                 ${c.successTable
+                   .map(
+                     (row) =>
+                       `<tr><td class="font-semibold text-[#f0dba8] whitespace-nowrap">${row.successes}</td><td>${linkifyHTML(formatInlineMd(row.effect))}</td></tr>`
+                   )
+                   .join('')}
+               </tbody>
+             </table>
+           </div>`
+        : '';
+    const specialHTML =
+      c.specialBlocks && c.specialBlocks.length
+        ? c.specialBlocks
+            .map(
+              (sb) => `
+              <div class="rounded-lg border border-[#c4a8ff]/35 bg-[#1a1526]/70 px-3.5 py-2.5 space-y-1 text-xs sm:text-[13px] leading-relaxed">
+                <div class="font-semibold text-[#dfd0ff]">◈ ${formatInlineMd(sb.title)}</div>
+                <p class="text-[#f0eadc]/90 !my-0">${linkifyHTML(formatInlineMd(sb.text))}</p>
+              </div>`
+            )
+            .join('')
+        : '';
+
+    return `
+      <article id="art-cantrip-${c.dots}" class="rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/65 p-4 sm:p-5 space-y-3 scroll-mt-24 transition">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+          <div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              ${renderSmallDotsHTML(c.dots, 5)}
+              <h4 class="font-nouveau text-2xl font-semibold text-[#f0dba8] !my-0 leading-tight">${c.ru}</h4>
+            </div>
+            <div class="text-[11px] uppercase tracking-[0.14em] text-[#a69f90] mt-0.5">${c.en}</div>
+          </div>
+          <div class="flex flex-col items-start sm:items-end gap-1 shrink-0">
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] border ${meta.cls}">${meta.label}</span>
+            ${c.typeNote ? `<span class="text-[10.5px] text-[#a69f90] sm:text-right"><em>${c.typeNote}</em></span>` : ''}
+          </div>
+        </div>
+
+        ${
+          c.lore && c.lore.length
+            ? `<div class="lore-only space-y-2 text-xs sm:text-[14px] text-[#f0eadc]/88 leading-relaxed">
+                 ${c.lore.map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+               </div>`
+            : ''
+        }
+
+        <div class="rounded-lg border border-[#d8b979]/25 bg-[#101916]/85 p-3 sm:p-3.5 space-y-2 text-xs sm:text-[13.5px] leading-relaxed">
+          <div class="text-[10.5px] uppercase tracking-[0.18em] text-[#f0dba8] font-semibold">◈ Система</div>
+          ${
+            sysItems.length === 1
+              ? `<p class="text-[#f0eadc]/92 !my-0">${linkifyHTML(formatInlineMd(sysItems[0]))}</p>`
+              : `<ul class="!pl-3 !my-0 space-y-1.5 text-[#f0eadc]/92">
+                   ${sysItems.map((p) => `<li>${linkifyHTML(formatInlineMd(p))}</li>`).join('')}
+                 </ul>`
+          }
+          ${tableHTML}
+          ${specialHTML}
+        </div>
+      </article>
+    `;
+  }
+
+  function initArtsGrimoire() {
+    const mount = document.getElementById('arts-widget-mount');
+    if (!mount || !ARTS.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qArt = params.get('art');
+    const qDotRaw = params.get('dot');
+    const qDot = qDotRaw ? Number(qDotRaw) : null;
+    if (qArt && ARTS.some((a) => a.id === qArt)) {
+      state.selectedArtId = qArt;
+      state.artGroup = 'all';
+      state.artTypeFilter = 'all';
+      state.artDotFilter = 'all';
+    } else if (!ARTS.some((a) => a.id === state.selectedArtId)) {
+      state.selectedArtId = ARTS[0].id;
+    }
+
+    const totalCantrips = ARTS.reduce((acc, a) => acc + (a.cantrips ? a.cantrips.length : 0), 0);
+    const progressText =
+      ARTS.length >= 18
+        ? `${ARTS.length} Искусств · ${totalCantrips} Кантрипов`
+        : `Открыто Искусств: ${ARTS.length} из 18 · Кантрипов: ${totalCantrips} из 90`;
+
+    mount.innerHTML = `
+      <section id="arts-grimoire" class="space-y-6 my-8 scroll-mt-24">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979] !mt-0 !mb-0">${progressText}</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Единый Гримуар Искусств
+            </h2>
+          </div>
+          <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
+            <button type="button" id="aview-atlas" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ✦ Гримуар
+            </button>
+            <button type="button" id="aview-scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ☰ Книжный свиток
+            </button>
+          </div>
+        </div>
+
+        <div id="arts-interactive-area" class="space-y-5">
+          <div id="arts-controls" class="space-y-3"></div>
+          <div id="arts-cantrip-hits" class="hidden space-y-2"></div>
+          <div id="arts-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
+          <div id="art-spotlight" class="nouveau-panel p-5 sm:p-7 scroll-mt-24" aria-live="polite"></div>
+        </div>
+
+        <div id="arts-scroll-area" class="hidden space-y-5 no-print"></div>
+        <div id="print-arts-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    document.getElementById('aview-atlas').addEventListener('click', () => {
+      state.artViewMode = 'atlas';
+      syncArtViewMode();
+    });
+    document.getElementById('aview-scroll').addEventListener('click', () => {
+      state.artViewMode = 'scroll';
+      syncArtViewMode();
+    });
+
+    renderArtsControls();
+    renderArtsGrid();
+    renderArtSpotlight(false, qDot && qDot >= 1 && qDot <= 5 ? qDot : null);
+    renderArtsScrollArea();
+    syncArtViewMode();
+  }
+
+  function syncArtViewMode() {
+    const atlas = document.getElementById('arts-interactive-area');
+    const scroll = document.getElementById('arts-scroll-area');
+    const bAtl = document.getElementById('aview-atlas');
+    const bScr = document.getElementById('aview-scroll');
+    if (!atlas || !scroll) return;
+    const isAtl = state.artViewMode === 'atlas';
+    atlas.classList.toggle('hidden', !isAtl);
+    scroll.classList.toggle('hidden', isAtl);
+    bAtl.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+    bScr.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      !isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+  }
+
+  function renderArtsControls() {
+    const wrap = document.getElementById('arts-controls');
+    const hitsWrap = document.getElementById('arts-cantrip-hits');
+    if (!wrap) return;
+
+    const visibleGroups = ART_GROUPS.filter(
+      (g) => g.id === 'all' || ARTS.some((a) => a.group === g.id)
+    );
+
+    wrap.innerHTML = `
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        <div class="flex flex-wrap gap-1.5">
+          ${visibleGroups
+            .map((g) => {
+              const cnt = g.id === 'all' ? ARTS.length : ARTS.filter((a) => a.group === g.id).length;
+              const act = state.artGroup === g.id;
+              return `
+                <button type="button" data-art-group="${g.id}"
+                  class="px-3 py-1 rounded-full text-xs border transition ${
+                    act
+                      ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+                      : 'border-[#d8b979]/25 bg-[#0b110f]/60 text-[#a69f90] hover:text-[#f0eadc]'
+                  }">
+                  ${g.label} (${cnt})
+                </button>`;
+            })
+            .join('')}
+        </div>
+        <div class="relative w-full sm:w-72">
+          <input type="search" id="arts-search" value="${state.artQuery.replace(/"/g, '&quot;')}"
+            placeholder="Поиск по Искусствам и Кантрипам..."
+            class="w-full rounded-full border border-[#d8b979]/30 bg-[#0b110f]/75 px-3.5 py-1.5 pr-8 text-xs text-[#f0eadc] placeholder-[#7b7669] focus:outline-none focus:border-[#f0dba8]" />
+          ${
+            state.artQuery
+              ? `<button type="button" id="arts-search-clear" aria-label="Очистить поиск"
+                   class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#a69f90] hover:text-[#f0dba8]">✕</button>`
+              : ''
+          }
+        </div>
+      </div>
+    `;
+
+    wrap.querySelectorAll('[data-art-group]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.artGroup = btn.getAttribute('data-art-group');
+        renderArtsControls();
+        renderArtsGrid();
+      });
+    });
+
+    const inp = document.getElementById('arts-search');
+    if (inp) {
+      inp.addEventListener('input', (e) => {
+        state.artQuery = e.target.value.trim().toLowerCase();
+        renderArtsControls();
+        renderArtsGrid();
+        const freshInp = document.getElementById('arts-search');
+        if (freshInp) {
+          freshInp.focus();
+          freshInp.setSelectionRange(freshInp.value.length, freshInp.value.length);
+        }
+      });
+    }
+
+    const clr = document.getElementById('arts-search-clear');
+    if (clr) {
+      clr.addEventListener('click', () => {
+        state.artQuery = '';
+        renderArtsControls();
+        renderArtsGrid();
+      });
+    }
+
+    if (hitsWrap) {
+      if (!state.artQuery) {
+        hitsWrap.classList.add('hidden');
+        hitsWrap.innerHTML = '';
+      } else {
+        const matchedCantrips = [];
+        ARTS.forEach((a) => {
+          (a.cantrips || []).forEach((c) => {
+            const hay = `${a.ru} ${a.en} ${c.ru} ${c.en} ${(c.lore || []).join(' ')} ${(c.system || []).join(' ')}`.toLowerCase();
+            if (hay.includes(state.artQuery)) matchedCantrips.push({ art: a, cantrip: c });
+          });
+        });
+
+        hitsWrap.classList.remove('hidden');
+        hitsWrap.innerHTML = matchedCantrips.length
+          ? `<div class="rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/70 p-3.5 space-y-2">
+               <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">Найденные Кантрипы (${matchedCantrips.length})</div>
+               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                 ${matchedCantrips
+                   .slice(0, 12)
+                   .map(({ art, cantrip }) => {
+                     const meta = artTypeMeta(cantrip);
+                     return `
+                       <button type="button" data-jump-art="${art.id}" data-jump-dot="${cantrip.dots}"
+                         class="text-left p-2.5 rounded-lg border border-[#d8b979]/20 bg-[#101916]/85 hover:border-[#f0dba8]/65 hover:bg-[#15211d] transition space-y-1">
+                         <div class="flex items-center justify-between gap-1.5">
+                           <span class="text-[10.5px] font-medium text-[#d8b979]">${art.ru} · ${'•'.repeat(cantrip.dots)}</span>
+                           <span class="text-[10px] px-1.5 py-0.2 rounded-full border ${meta.cls}">${meta.short}</span>
+                         </div>
+                         <div class="font-nouveau text-base font-semibold text-[#f0eadc] leading-tight">${cantrip.ru}</div>
+                         <div class="text-[10px] text-[#a69f90]">${cantrip.en}</div>
+                       </button>`;
+                   })
+                   .join('')}
+               </div>
+             </div>`
+          : `<div class="rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/55 px-4 py-3 text-xs text-[#a69f90]">Ни одного Искусства или Кантрипа по этому запросу не найдено.</div>`;
+
+        hitsWrap.querySelectorAll('[data-jump-art]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            state.selectedArtId = btn.getAttribute('data-jump-art');
+            state.artTypeFilter = 'all';
+            state.artDotFilter = 'all';
+            const dot = Number(btn.getAttribute('data-jump-dot'));
+            renderArtsGrid();
+            renderArtSpotlight(false, dot);
+          });
+        });
+      }
+    }
+  }
+
+  function renderArtsGrid() {
+    const grid = document.getElementById('arts-grid');
+    if (!grid) return;
+
+    const list = ARTS.filter((a) => {
+      if (state.artGroup !== 'all' && a.group !== state.artGroup) return false;
+      if (state.artQuery) {
+        const cantripStr = (a.cantrips || [])
+          .map((c) => `${c.ru} ${c.en} ${(c.system || []).join(' ')}`)
+          .join(' ');
+        const hay = `${a.ru} ${a.en} ${a.summary} ${a.groupRu} ${cantripStr}`.toLowerCase();
+        if (!hay.includes(state.artQuery)) return false;
+      }
+      return true;
+    });
+
+    if (!list.length) {
+      grid.innerHTML = '';
+      return;
+    }
+
+    if (!list.some((a) => a.id === state.selectedArtId) && !state.artQuery) {
+      state.selectedArtId = list[0].id;
+    }
+
+    grid.innerHTML = list
+      .map((a) => {
+        const active = a.id === state.selectedArtId;
+        return `
+          <button type="button" data-art-card="${a.id}"
+            class="text-left p-3.5 rounded-xl border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0dba8] flex flex-col justify-between gap-2 ${
+              active
+                ? 'border-[#f0dba8]/85 bg-[#d8b979]/18 shadow-[0_0_22px_rgba(216,185,121,0.16)]'
+                : 'border-[#d8b979]/22 bg-[#101916]/82 hover:border-[#d8b979]/55 hover:bg-[#15211d]'
+            }">
+            <div>
+              <div class="flex items-center justify-between gap-1.5">
+                <span class="font-nouveau text-xl sm:text-2xl font-semibold text-[#f0eadc] leading-tight">${a.ru}</span>
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:${a.auraHex};"></span>
+              </div>
+              <div class="text-[10px] uppercase tracking-[0.14em] text-[#a69f90] mt-0.5">${a.en}</div>
+              <p class="text-[11.5px] text-[#a69f90] leading-snug !mt-1.5 !mb-0">${a.summary}</p>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] border border-[#d8b979]/35 bg-[#d8b979]/10 text-[#f0dba8]">${a.groupRu}</span>
+              <span class="text-[10.5px] text-[#a69f90]">${(a.cantrips || []).length} ступеней</span>
+            </div>
+          </button>`;
+      })
+      .join('');
+
+    grid.querySelectorAll('[data-art-card]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.selectedArtId = btn.getAttribute('data-art-card');
+        renderArtsGrid();
+        renderArtSpotlight(true);
+      });
+    });
+  }
+
+  function renderArtSpotlight(scrollToPanel = false, highlightDot = null) {
+    const spot = document.getElementById('art-spotlight');
+    if (!spot) return;
+    const a = ARTS.find((x) => x.id === state.selectedArtId) || ARTS[0];
+    if (!a) return;
+
+    const dotFilters = [
+      { id: 'all', label: 'Все' },
+      { id: '1', label: '•' },
+      { id: '2', label: '••' },
+      { id: '3', label: '•••' },
+      { id: '4', label: '••••' },
+      { id: '5', label: '•••••' }
+    ];
+    const typeFilters = [
+      { id: 'all', label: 'Все типы' },
+      { id: 'wyrd', label: 'Вирд' },
+      { id: 'chimerical', label: 'Химерический' },
+      { id: 'either', label: 'На выбор' }
+    ];
+
+    const filteredCantrips = (a.cantrips || []).filter((c) => {
+      if (state.artDotFilter !== 'all' && String(c.dots) !== String(state.artDotFilter)) return false;
+      if (state.artTypeFilter !== 'all' && c.type !== state.artTypeFilter) return false;
+      return true;
+    });
+
+    spot.innerHTML = `
+      <div class="spotlight-anim relative z-10 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#d8b979]/20 pb-3">
+          <div>
+            <h3 class="font-nouveau text-3xl font-semibold text-[#f0eadc] !mt-0 !mb-0 leading-none">${a.ru}</h3>
+            <div class="text-xs uppercase tracking-[0.16em] text-[#a69f90] mt-1">${a.en}</div>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs border border-[#f0dba8]/45 bg-[#d8b979]/15 text-[#f0dba8] self-start sm:self-auto">
+            ✦ ${a.groupRu}
+          </span>
+        </div>
+
+        <div class="lore-only space-y-2.5 text-sm sm:text-[15px] text-[#f0eadc]/92 leading-relaxed">
+          ${(a.lore || []).map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div class="rounded-xl border border-[#c4a8ff]/30 bg-[#0b110f]/70 px-4 py-3 space-y-1 text-xs sm:text-[13.5px] leading-relaxed">
+            <div class="font-semibold text-[#dfd0ff]">⚡ Высвобождение</div>
+            <p class="text-[#f0eadc]/90 !my-0">${linkifyHTML(formatInlineMd(a.unleashing))}</p>
+          </div>
+          <div class="rounded-xl border border-[#d8b979]/30 bg-[#0b110f]/70 px-4 py-3 space-y-1 text-xs sm:text-[13.5px] leading-relaxed">
+            <div class="font-semibold text-[#f0dba8]">🎭 Характерные Уловки</div>
+            <p class="text-[#f0eadc]/90 !my-0">${linkifyHTML(formatInlineMd(a.bunks))}</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-t border-b border-[#d8b979]/15 py-2.5">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[11px] text-[#a69f90] mr-1">Ступень:</span>
+            ${dotFilters
+              .map(
+                (df) => `
+              <button type="button" data-art-dot="${df.id}"
+                class="px-2.5 py-0.5 rounded-full text-xs border transition ${
+                  String(state.artDotFilter) === df.id
+                    ? 'border-[#f0dba8]/75 bg-[#d8b979]/22 text-[#f0dba8]'
+                    : 'border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90] hover:text-[#f0eadc]'
+                }">${df.label}</button>`
+              )
+              .join('')}
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            ${typeFilters
+              .map(
+                (tf) => `
+              <button type="button" data-art-type="${tf.id}"
+                class="px-2.5 py-0.5 rounded-full text-[11px] border transition ${
+                  state.artTypeFilter === tf.id
+                    ? 'border-[#f0dba8]/75 bg-[#d8b979]/22 text-[#f0dba8]'
+                    : 'border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90] hover:text-[#f0eadc]'
+                }">${tf.label}</button>`
+              )
+              .join('')}
+          </div>
+        </div>
+
+        <div class="space-y-3.5">
+          ${
+            filteredCantrips.length
+              ? filteredCantrips.map((c) => renderCantripCardHTML(c)).join('')
+              : `<div class="rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/55 py-6 text-center text-xs text-[#a69f90]">
+                   В Искусстве «${a.ru}» нет Кантрипов под выбранный фильтр — нажмите «Все» или «Все типы».
+                 </div>`
+          }
+        </div>
+      </div>
+    `;
+
+    spot.querySelectorAll('[data-art-dot]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.artDotFilter = btn.getAttribute('data-art-dot');
+        renderArtSpotlight(false);
+      });
+    });
+    spot.querySelectorAll('[data-art-type]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.artTypeFilter = btn.getAttribute('data-art-type');
+        renderArtSpotlight(false);
+      });
+    });
+
+    if (highlightDot) {
+      const targetCard = document.getElementById(`art-cantrip-${highlightDot}`);
+      if (targetCard) {
+        targetCard.classList.add('ring-2', 'ring-[#f0dba8]/75');
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
+
+    if (scrollToPanel) {
+      const rect = spot.getBoundingClientRect();
+      if (rect.top < 60 || rect.top > window.innerHeight * 0.72) {
+        spot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  function renderArtsScrollArea() {
+    const area = document.getElementById('arts-scroll-area');
+    if (!area) return;
+
+    area.innerHTML = ARTS.map(
+      (a) => `
+      <article class="nouveau-panel p-5 sm:p-6 space-y-4">
+        <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-[#d8b979]/20 pb-2.5">
+          <h3 class="font-nouveau text-3xl font-semibold text-[#f0eadc] !mt-0 !mb-0">${a.ru} <span class="text-sm font-sans font-normal text-[#a69f90]">(${a.en})</span></h3>
+          <span class="text-xs text-[#d8b979]">${a.groupRu}</span>
+        </div>
+        <div class="lore-only space-y-2 text-sm text-[#f0eadc]/90 leading-relaxed">
+          ${(a.lore || []).map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+        </div>
+        <div class="space-y-1.5 text-xs sm:text-[13.5px] leading-relaxed">
+          <p class="!my-0"><strong class="text-[#dfd0ff]">⚡ Высвобождение:</strong> ${linkifyHTML(formatInlineMd(a.unleashing))}</p>
+          <p class="!my-0"><strong class="text-[#f0dba8]">🎭 Характерные Уловки:</strong> ${linkifyHTML(formatInlineMd(a.bunks))}</p>
+        </div>
+        <div class="space-y-3 pt-1">
+          ${(a.cantrips || []).map((c) => renderCantripCardHTML(c)).join('')}
+        </div>
+      </article>`
+    ).join('');
+  }
+
   /* ------------------------------------------------------------------------
      4. WIDGETS: STEP 4 TEMPERS & STEP 3 CANTRIP EQUATION
      ------------------------------------------------------------------------ */
@@ -4570,6 +5096,32 @@
       }
     });
 
+    // 2h. Arts & Cantrips hits
+    ARTS.forEach((a) => {
+      const artHay = `${a.ru} ${a.en} ${a.groupRu} ${a.summary} ${(a.lore || []).join(' ')} ${a.unleashing || ''} ${a.bunks || ''}`.toLowerCase();
+      if (artHay.includes(q)) {
+        hits.push({
+          badge: `Искусство · ${a.groupRu}`,
+          title: `${a.ru} (${a.en})`,
+          snippet: (a.summary || '').slice(0, 150) + '…',
+          url: `${ROOT}08-grimoire-arts/index.html?art=${a.id}#arts-grimoire`
+        });
+      }
+      (a.cantrips || []).forEach((c) => {
+        const meta = artTypeMeta(c);
+        const sysStr = (c.system || []).join(' ');
+        const hay = `${c.ru} ${c.en} ${(c.lore || []).join(' ')} ${sysStr}`.toLowerCase();
+        if (hay.includes(q)) {
+          hits.push({
+            badge: `Кантрип · ${a.ru} ${'•'.repeat(c.dots)} · ${meta.short}`,
+            title: `${c.ru} (${c.en})`,
+            snippet: (sysStr.replace(/\*\*|\*/g, '') || '').slice(0, 150) + '…',
+            url: `${ROOT}08-grimoire-arts/index.html?art=${a.id}&dot=${c.dots}#arts-grimoire`
+          });
+        }
+      });
+    });
+
     // 3. Chapter section hits
     (BUNDLE.search || []).forEach((s) => {
       if (s.title.toLowerCase().includes(q) || s.text.toLowerCase().includes(q)) {
@@ -4868,6 +5420,37 @@
       ).join('');
     }
 
+    const artsPrint = document.getElementById('print-arts-container');
+    if (artsPrint && ARTS.length) {
+      artsPrint.innerHTML = ARTS.map(
+        (a) => `
+        <article class="print-art-card p-3 space-y-1.5">
+          <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+            <h4 class="font-nouveau text-lg font-bold">${a.ru} <span class="text-xs font-normal">(${a.en})</span></h4>
+            <span class="text-xs font-semibold">${a.groupRu}</span>
+          </div>
+          <p class="text-xs"><strong>Высвобождение:</strong> ${formatInlineMd(a.unleashing)}</p>
+          <p class="text-xs"><strong>Уловки:</strong> ${formatInlineMd(a.bunks)}</p>
+          <div class="text-[11px] leading-snug space-y-1 pt-0.5">
+            ${(a.cantrips || [])
+              .map((c) => {
+                const sys = (c.system || []).map((s) => formatInlineMd(s)).join(' ');
+                const tbl =
+                  c.successTable && c.successTable.length
+                    ? ` <em>Шкала успехов:</em> ${c.successTable.map((r) => `${r.successes} — ${r.effect}`).join('; ')}.`
+                    : '';
+                const sbs =
+                  c.specialBlocks && c.specialBlocks.length
+                    ? ` ${c.specialBlocks.map((sb) => `<strong>${formatInlineMd(sb.title)}:</strong> ${formatInlineMd(sb.text)}`).join(' ')}`
+                    : '';
+                return `<div><strong>${'●'.repeat(c.dots)} ${c.ru} (${c.en})</strong> <em>[${c.typeRu}${c.typeNote ? ` — ${c.typeNote}` : ''}]</em>: ${sys}${tbl}${sbs}</div>`;
+              })
+              .join('')}
+          </div>
+        </article>`
+      ).join('');
+    }
+
     const lexPrint = document.getElementById('print-lexicon-container');
     if (lexPrint && LEXICON.length) {
       const sorted = [...LEXICON].sort((a, b) => a.ru.localeCompare(b.ru, 'ru'));
@@ -4901,6 +5484,7 @@
     initMeritsFlawsAtlas();
     initCantripForge();
     initRealmsAtlas();
+    initArtsGrimoire();
     initTempersWidget();
     initCantripWidget();
     initLexiconDirectory();

@@ -101,30 +101,17 @@
       "file": "07-laws-of-glamour-realms.md"
     },
     {
-      "slug": "08a-grimoire-arts-1",
-      "num": "VIII · I",
-      "part": "Часть Восьмая · Книга Первая",
-      "title": "Гримуар Искусств: Стихии и Времена Года",
-      "summary": "Весна, Лето, Осень, Зима, Первозданность, Пиретика, Небесное ремесло, Странствие и Метаморфоз",
-      "status": "planned",
-      "auraHex": "#69a860",
-      "coverImage": "",
-      "epigraph": "",
-      "epigraphAuthor": "",
-      "file": "08a-grimoire-arts-1.md"
-    },
-    {
-      "slug": "08b-grimoire-arts-2",
-      "num": "VIII · II",
-      "part": "Часть Восьмая · Книга Вторая",
-      "title": "Гримуар Искусств: Власть, Судьба и Имена",
-      "summary": "Владычество, Плутовство, Предзнаменование, Контракт, Онейромантия, Ловкость рук, Хронос, Наречение и Гнев Дракона",
-      "status": "planned",
+      "slug": "08-grimoire-arts",
+      "num": "VIII",
+      "part": "Часть Восьмая",
+      "title": "Гримуар Искусств",
+      "summary": "Восемнадцать магических Искусств Китэйнов и девяносто Кантрипов — от времён года и стихий до власти, снов, судьбы и Истинных Имён",
+      "status": "ready",
       "auraHex": "#9d6bc4",
       "coverImage": "",
       "epigraph": "",
       "epigraphAuthor": "",
-      "file": "08b-grimoire-arts-2.md"
+      "file": "08-grimoire-arts.md"
     },
     {
       "slug": "09-systems-drama-combat",
