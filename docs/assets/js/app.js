@@ -2684,13 +2684,13 @@
           <span class="font-nouveau text-2xl text-[#d8b979] leading-none">+</span>
           <div class="px-4 py-2.5 rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/65 min-w-[148px]">
             <div class="font-nouveau text-lg font-semibold text-[#f0dba8]">${linkifyText('Уловка')} / ${linkifyText('Бунк')}</div>
-            <div class="text-[11px] text-[#a69f90]">снижает сл. на 1–5</div>
+            <div class="text-[11px] text-[#a69f90]">снижает сложность на 1–5</div>
           </div>
           <span class="font-nouveau text-2xl text-[#d8b979] leading-none">=</span>
           <div class="px-5 py-2.5 rounded-xl border border-[#f0dba8]/70 min-w-[152px]"
                style="background: linear-gradient(145deg, rgba(216, 185, 121, 0.20), rgba(11, 17, 15, 0.86));">
             <div class="font-nouveau text-xl font-bold text-[#f0dba8]">✦ ${linkifyText('Кантрип')}</div>
-            <div class="text-[11px] text-[#f0eadc]/82">Сродство Кита: −1 сл.</div>
+            <div class="text-[11px] text-[#f0eadc]/82">Сродство Кита: −1 к сложности</div>
           </div>
         </div>
         <div class="no-print flex flex-wrap items-center justify-center gap-2 pt-1">
