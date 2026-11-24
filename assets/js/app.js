@@ -2539,7 +2539,7 @@
           <h4 class="font-nouveau ${compact ? 'text-lg' : 'text-xl'} font-semibold text-[#f0dba8] !mt-0 !mb-0">
             Таблица Звериных черт (Animal Features)
           </h4>
-          <span class="text-[11px] text-[#a69f90]">3–5 очков · Боевой запас героя</span>
+          <span class="text-[11px] text-[#a69f90]">3–5 очков · Боевой запас персонажа</span>
         </div>
         <div class="overflow-x-auto">
           <table class="nouveau-table w-full text-xs">
@@ -2789,7 +2789,7 @@
              .join('')}
            <button type="button" id="mf-clear-choices" class="ml-auto text-[11px] text-[#a69f90] hover:text-[#f0dba8] underline decoration-dotted">Сбросить отбор</button>
          </div>`
-      : `<div class="text-[11px] text-[#7b7669]">Отмечайте черты прямо в карточке внизу, чтобы примерить бюджет Свободных очков для будущего героя.</div>`;
+      : `<div class="text-[11px] text-[#7b7669]">Отмечайте черты прямо в карточке внизу, чтобы примерить бюджет Свободных очков для будущего персонажа.</div>`;
 
     bar.innerHTML = `
       <div class="flex flex-wrap items-center justify-between gap-2">
