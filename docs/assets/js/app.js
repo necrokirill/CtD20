@@ -1983,7 +1983,7 @@
     const q = state.traitQuery;
     if (q) {
       const safeQ = q.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      banner.innerHTML = `Поиск по всем 42 Чертам по запросу <strong class="text-[#f0dba8]">«${safeQ}»</strong>.`;
+      banner.innerHTML = `Поиск по всем Атрибутам и Способностям по запросу <strong class="text-[#f0dba8]">«${safeQ}»</strong>.`;
       const allTraits = [...ATTRIBUTES, ...ABILITIES].filter((item) => {
         const hay = `${item.ru} ${item.en} ${item.groupRu} ${item.desc} ${item.mechanicNote || ''} ${(item.possessedBy || []).join(' ')} ${(item.specialties || []).join(' ')} ${(item.levels || []).map((l) => l.text).join(' ')}`.toLowerCase();
         return hay.includes(q);
@@ -1992,6 +1992,10 @@
         grid.className = '';
         grid.innerHTML = `<div class="text-xs text-[#a69f90] py-6 text-center rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/50">По вашему запросу Черты не найдены.</div>`;
         return;
+      }
+      if (!allTraits.some((item) => item.id === state.selectedTraitId)) {
+        state.selectedTraitId = allTraits[0].id;
+        renderTraitSpotlight(false);
       }
       grid.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2';
       grid.innerHTML = allTraits.map((item) => buildTraitCardBtnHTML(item, true)).join('');
