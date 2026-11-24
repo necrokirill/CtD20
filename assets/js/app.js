@@ -3274,13 +3274,13 @@
               }">Вирд-кантрип (1 Гламур)</button>
             </div>
             <div class="text-xs text-[#a69f90]">
-              Запас = <strong class="text-[#f0eadc]">Искусство + младшее основное Владение</strong>
+              Запас = <strong class="text-[#f0eadc]">Искусство + наименьшее основное Владение</strong>
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             ${cfStepperHTML('art', 'Рейтинг Искусства', state.cfArt, 1, 5, 'ступень от 1 до 5')}
-            ${cfStepperHTML('realm', 'Младшее основное Владение', state.cfRealm, 0, 5, state.cfRealm === 0 ? 'обход: +0 кубиков' : 'Актёр / Фея / Природа / Предмет')}
+            ${cfStepperHTML('realm', 'Наименьшее основное Владение', state.cfRealm, 0, 5, state.cfRealm === 0 ? 'обход: +0 кубиков' : 'Актёр / Фея / Природа / Предмет')}
             ${cfStepperHTML('cheated', 'Обойдено Владений', state.cfCheated, 0, 6, '+1 Гламур за каждое')}
             ${cfStepperHTML('nightmare', 'Текущий Кошмар', state.cfNightmare, 0, 10, 'заменяет кубики запаса')}
           </div>
