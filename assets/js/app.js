@@ -2437,6 +2437,7 @@
                    (st) => `
                  <div class="rounded-xl border border-[#d8b979]/20 bg-[#0b110f]/55 p-3.5 space-y-1.5">
                    <div class="font-semibold text-xs text-[#f0dba8]">${st.title} (${st.en})</div>
+                   <p class="text-[11.5px] text-[#a69f90] leading-relaxed">${linkifyHTML(formatInlineMd(st.desc))}</p>
                    <div class="space-y-1 text-xs">
                      ${(st.levels || []).map((lv) => `<div><strong class="text-[#f0dba8]">${'●'.repeat(lv.dots)}:</strong> ${linkifyHTML(formatInlineMd(lv.text))}</div>`).join('')}
                    </div>
@@ -3350,6 +3351,9 @@
           </div>
           <p class="text-xs">${formatInlineMd(item.desc)}</p>
           ${item.mechanicNote ? `<p class="text-xs"><strong>Механика:</strong> ${formatInlineMd(item.mechanicNote)}</p>` : ''}
+          <p class="text-[11px] leading-snug"><strong>Шкала:</strong> ${(item.levels || [])
+            .map((lv) => `<strong>${'●'.repeat(lv.dots)} ${lv.label}:</strong> ${formatInlineMd(lv.text)}`)
+            .join(' · ')}</p>
           <p class="text-xs"><strong>${item.specialtiesLabel || 'Специализации'}:</strong> ${(item.specialties || []).join(', ')}.</p>
         </article>`
         )
@@ -3359,12 +3363,19 @@
     const bgsPrint = document.getElementById('print-backgrounds-container');
     if (bgsPrint && BACKGROUNDS.length) {
       bgsPrint.innerHTML = BACKGROUNDS.map((b) => {
-        const lvlText =
+        const lvlHTML =
           b.subtracks && b.subtracks.length
             ? b.subtracks
-                .map((st) => `<strong>${st.title}:</strong> ${(st.levels || []).map((lv) => `${lv.dots} — ${formatInlineMd(lv.text)}`).join('; ')}`)
-                .join(' · ')
-            : (b.levels || []).map((lv) => `${lv.dots} — ${formatInlineMd(lv.text)}`).join('; ');
+                .map(
+                  (st) =>
+                    `<div class="text-xs mt-1"><strong>${st.title} (${st.en}):</strong> ${formatInlineMd(st.desc)}<br/>${(st.levels || [])
+                      .map((lv) => `<strong>${'●'.repeat(lv.dots)}:</strong> ${formatInlineMd(lv.text)}`)
+                      .join(' · ')}</div>`
+                )
+                .join('')
+            : `<p class="text-xs">${(b.levels || [])
+                .map((lv) => `<strong>${'●'.repeat(lv.dots)}:</strong> ${formatInlineMd(lv.text)}`)
+                .join(' · ')}</p>`;
         return `
         <article class="print-bg-card p-3 space-y-1">
           <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
@@ -3372,7 +3383,8 @@
             <span class="text-xs font-semibold">${b.poolable ? 'Объединяется в Мотли' : 'Личное'}</span>
           </div>
           <p class="text-xs">${(b.desc || []).map((p) => formatInlineMd(p)).join(' ')}</p>
-          <p class="text-xs">${lvlText}</p>
+          ${b.mechanicNote ? `<p class="text-xs"><strong>Механика:</strong> ${formatInlineMd(b.mechanicNote)}</p>` : ''}
+          ${lvlHTML}
         </article>`;
       }).join('');
     }
