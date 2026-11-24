@@ -209,11 +209,11 @@ main, header, footer {
 
 @media (min-width: 640px) {
   .tarot-card {
-    border-radius: 96px 96px 14px 14px;
-    padding: 1.75rem 1.05rem 1.25rem;
+    border-radius: 76px 76px 14px 14px;
+    padding: 1.45rem 0.85rem 1.15rem;
   }
   .tarot-card::before {
-    border-radius: 90px 90px 8px 8px;
+    border-radius: 70px 70px 8px 8px;
   }
 }
 
@@ -252,6 +252,24 @@ main, header, footer {
 }
 .tarot-card.active::before {
   border-color: rgba(var(--card-aura-rgb), 0.58);
+}
+
+.tarot-card h3,
+.chapter-prose .tarot-card h3 {
+  margin: 0;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(1.06rem, 0.96rem + 0.25vw, 1.24rem);
+  font-weight: 600;
+  line-height: 1.16;
+  color: var(--ivory);
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.tarot-card p,
+.chapter-prose .tarot-card p {
+  margin: 0;
+  line-height: 1.38;
 }
 
 /* ================================================================

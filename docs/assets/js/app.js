@@ -337,7 +337,7 @@
 
         <!-- Interactive Arcana Mode -->
         <div id="kiths-interactive-area" class="space-y-6">
-          <div id="kiths-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"></div>
+          <div id="kiths-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"></div>
           <div id="kith-spotlight" class="nouveau-panel p-5 sm:p-8 scroll-mt-24" aria-live="polite"></div>
         </div>
 
@@ -435,14 +435,16 @@
           >
             <span class="tarot-foil" aria-hidden="true"></span>
             ${portraitHTML}
-            <h3 class="relative z-10 font-nouveau text-lg sm:text-xl font-semibold text-[#f0eadc] leading-tight">
-              ${k.ru}
-            </h3>
-            <div class="relative z-10 text-[10px] uppercase tracking-[0.15em] text-[#a69f90] mt-0.5">
-              ${k.en}
+            <div class="relative z-10 w-full min-h-[3.5rem] flex flex-col items-center justify-center">
+              <h3 class="font-nouveau text-lg sm:text-xl font-semibold text-[#f0eadc] leading-tight">
+                ${k.ru}
+              </h3>
+              <div class="text-[10px] uppercase tracking-[0.12em] text-[#a69f90] mt-0.5">
+                ${k.en}
+              </div>
             </div>
             <div class="relative z-10 my-2 w-9 h-px" style="background: linear-gradient(90deg, transparent, ${k.auraHex}, transparent);"></div>
-            <p class="relative z-10 lore-only text-[11px] text-[#a69f90] leading-snug mb-2.5 line-clamp-2">
+            <p class="relative z-10 text-[11px] text-[#a69f90] leading-snug mb-3 line-clamp-3">
               ${k.tagline || ''}
             </p>
             <span class="relative z-10 mt-auto inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] border"
@@ -857,7 +859,7 @@
 
         <!-- Interactive Heraldic Mode -->
         <div id="houses-interactive-area" class="space-y-6">
-          <div id="houses-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"></div>
+          <div id="houses-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"></div>
           <div id="house-spotlight" class="nouveau-panel p-5 sm:p-8 scroll-mt-24" aria-live="polite"></div>
         </div>
 
@@ -957,14 +959,16 @@
                  style="color: ${h.auraHex}; border-color: rgba(${rgb}, 0.52); background: radial-gradient(circle, rgba(${rgb}, 0.19), rgba(11, 17, 15, 0.76));">
               <div class="w-8 h-8">${h.emblem || ''}</div>
             </div>
-            <h3 class="relative z-10 font-nouveau text-lg sm:text-xl font-semibold text-[#f0eadc] leading-tight">
-              ${h.ru}
-            </h3>
-            <div class="relative z-10 text-[10px] uppercase tracking-[0.15em] text-[#a69f90] mt-0.5">
-              ${h.en}
+            <div class="relative z-10 w-full min-h-[3.5rem] flex flex-col items-center justify-center">
+              <h3 class="font-nouveau text-lg sm:text-xl font-semibold text-[#f0eadc] leading-tight">
+                ${h.ru}
+              </h3>
+              <div class="text-[10px] uppercase tracking-[0.12em] text-[#a69f90] mt-0.5">
+                ${h.en}
+              </div>
             </div>
             <div class="relative z-10 my-2 w-9 h-px" style="background: linear-gradient(90deg, transparent, ${h.auraHex}, transparent);"></div>
-            <p class="relative z-10 lore-only text-[11px] text-[#a69f90] leading-snug mb-2.5 line-clamp-2">
+            <p class="relative z-10 text-[11px] text-[#a69f90] leading-snug mb-3 line-clamp-3">
               ${h.tagline || ''}
             </p>
             <span class="relative z-10 mt-auto inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] border"
@@ -1338,7 +1342,7 @@
 
         <div id="legacies-interactive-area" class="space-y-6">
           <div id="legacies-pair-spotlight" class="nouveau-panel p-5 sm:p-7 scroll-mt-24" aria-live="polite"></div>
-          <div id="legacies-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
+          <div id="legacies-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
         </div>
 
         <div id="legacies-scroll-area" class="hidden space-y-6"></div>
@@ -1440,10 +1444,12 @@
                  style="color: ${l.auraHex}; border-color: rgba(${rgb}, 0.52); background: radial-gradient(circle, rgba(${rgb}, 0.19), rgba(11, 17, 15, 0.76));">
               <div class="w-7 h-7">${l.emblem || ''}</div>
             </div>
-            <h3 class="relative z-10 font-nouveau text-lg font-semibold text-[#f0eadc] leading-tight">${l.ru}</h3>
-            <div class="relative z-10 text-[10px] uppercase tracking-[0.14em] text-[#a69f90] mt-0.5">${l.en}</div>
+            <div class="relative z-10 w-full min-h-[3.2rem] flex flex-col items-center justify-center">
+              <h3 class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-tight">${l.ru}</h3>
+              <div class="text-[10px] uppercase tracking-[0.12em] text-[#a69f90] mt-0.5">${l.en}</div>
+            </div>
             <div class="relative z-10 my-1.5 w-8 h-px" style="background: linear-gradient(90deg, transparent, ${l.auraHex}, transparent);"></div>
-            <p class="relative z-10 lore-only text-[11px] text-[#a69f90] leading-snug mb-2 line-clamp-2">${l.tagline}</p>
+            <p class="relative z-10 text-[11px] text-[#a69f90] leading-snug mb-2.5 line-clamp-3">${l.tagline}</p>
             <span class="relative z-10 mt-auto inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] border"
                   style="border-color: rgba(${rgb}, 0.45); background: rgba(${rgb}, 0.12); color: #f0eadc;">
               <span style="color: ${l.auraHex};">${courtIcon}</span>
@@ -1738,7 +1744,7 @@
     const tIcon = activeT.type === 'musing' ? '☀' : '☽';
 
     area.innerHTML = `
-      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
         ${list
           .map((t) => {
             const trgb = t.auraRgb || hexToRgbStr(t.auraHex);
@@ -3230,7 +3236,11 @@
     if (textEl && dotEl && btn) {
       textEl.textContent = state.tableMode ? 'Режим стола' : 'Лор + Правила';
       dotEl.style.backgroundColor = state.tableMode ? '#f0dba8' : '#d8b979';
+      dotEl.style.boxShadow = state.tableMode ? '0 0 8px #f0dba8' : '';
       btn.style.borderColor = state.tableMode ? '#f0dba8' : 'rgba(216, 185, 121, 0.30)';
+      btn.style.backgroundColor = state.tableMode ? 'rgba(216, 185, 121, 0.24)' : '';
+      btn.style.boxShadow = state.tableMode ? '0 0 16px rgba(216, 185, 121, 0.28)' : '';
+      btn.style.color = state.tableMode ? '#f0dba8' : '';
     }
     if (state.tableMode && state.kithDetailTab === 'essence') {
       state.kithDetailTab = 'powers';
