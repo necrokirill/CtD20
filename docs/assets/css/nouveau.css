@@ -796,6 +796,7 @@ body.mode-table .table-mode-only {
   #thresholds-interactive-area,
   #traits-interactive-area,
   #backgrounds-interactive-area,
+  #mf-interactive-area,
   #desktop-popover,
   #sheet-backdrop,
   #bottom-sheet,
@@ -818,6 +819,7 @@ body.mode-table .table-mode-only {
   .print-threshold-card,
   .print-trait-card,
   .print-bg-card,
+  .print-mf-card,
   .callout-sidebar,
   .callout-mechanics {
     background: #ffffff !important;
@@ -837,6 +839,7 @@ body.mode-table .table-mode-only {
   .print-threshold-card::after,
   .print-trait-card::after,
   .print-bg-card::after,
+  .print-mf-card::after,
   .callout-sidebar::after {
     content: "";
     position: absolute;

@@ -157,6 +157,10 @@ def render_markdown(md_text: str, root_prefix: str = "./", apply_drop_cap: bool 
             out.append('<div id="backgrounds-widget-mount" class="no-lex"></div>')
             i += 1
             continue
+        if stripped == "{{widget:merits-flaws-atlas}}":
+            out.append('<div id="merits-flaws-widget-mount" class="no-lex"></div>')
+            i += 1
+            continue
         if stripped == "{{widget:tempers}}":
             out.append('<div id="tempers-widget-mount" class="no-lex"></div>')
             i += 1
@@ -458,6 +462,7 @@ def render_shell(
         <a href="{root_prefix}03-noble-houses/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='03-noble-houses' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Дома</a>
         <a href="{root_prefix}04-legacies-thresholds/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='04-legacies-thresholds' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Наследия</a>
         <a href="{root_prefix}05-traits-backgrounds/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='05-traits-backgrounds' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Черты</a>
+        <a href="{root_prefix}06-merits-flaws/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='06-merits-flaws' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Достоинства</a>
         <a href="{root_prefix}lexicon/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='lexicon' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Лексикон</a>
       </nav>
 
@@ -582,6 +587,9 @@ def build_site() -> dict:
     traits_path = CONTENT_DIR / "traits.json"
     traits_data = json.loads(traits_path.read_text(encoding="utf-8")) if traits_path.exists() else {"attributes": [], "abilities": [], "backgrounds": []}
 
+    mf_path = CONTENT_DIR / "merits_flaws.json"
+    merits_flaws_data = json.loads(mf_path.read_text(encoding="utf-8")) if mf_path.exists() else {"items": [], "animalFeatures": []}
+
     site_meta = manifest["site"]
     volumes = manifest["volumes"]
 
@@ -631,6 +639,14 @@ def build_site() -> dict:
             plain_words += sum(len(a.get("desc", "")) // 6 + len(a.get("mechanicNote", "")) // 6 for a in traits_data.get("attributes", []))
             plain_words += sum(len(a.get("desc", "")) // 6 + len(a.get("mechanicNote", "")) // 6 for a in traits_data.get("abilities", []))
             plain_words += sum(len(" ".join(b.get("desc", []))) // 6 + len(b.get("mechanicNote", "")) // 6 for b in traits_data.get("backgrounds", []))
+        elif slug == "06-merits-flaws":
+            plain_words += sum(
+                len(" ".join(m.get("desc", []))) // 6
+                + len(m.get("mechanicNote", "")) // 6
+                + sum(len(t.get("text", "")) // 6 for t in m.get("tiers", []))
+                for m in merits_flaws_data.get("items", [])
+            )
+            plain_words += sum(len(af.get("effect", "")) // 6 for af in merits_flaws_data.get("animalFeatures", []))
         read_mins = max(2, round(plain_words / 190))
 
         prev_vol = volumes[idx - 1] if idx > 0 else None
@@ -917,6 +933,9 @@ def build_site() -> dict:
             <a href="05-traits-backgrounds/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
               Черты и Дополнения
             </a>
+            <a href="06-merits-flaws/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
+              Достоинства и Недостатки
+            </a>
             <a href="lexicon/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/35 bg-[#0b110f]/70 text-[#a69f90] hover:text-[#f0dba8] transition">
               Лексикон Грёзы
             </a>
@@ -1009,6 +1028,7 @@ def build_site() -> dict:
         "legacies": legacies,
         "thresholds": thresholds,
         "traits": traits_data,
+        "meritsFlaws": merits_flaws_data,
         "volumes": volumes,
         "search": all_search_entries,
     }
@@ -1027,6 +1047,7 @@ def build_site() -> dict:
         "attributes": len(traits_data.get("attributes", [])),
         "abilities": len(traits_data.get("abilities", [])),
         "backgrounds": len(traits_data.get("backgrounds", [])),
+        "meritsFlaws": len(merits_flaws_data.get("items", [])),
         "lexicon": len(lexicon),
         "searchChunks": len(all_search_entries),
     }

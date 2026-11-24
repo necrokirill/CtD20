@@ -19,6 +19,9 @@
   const ATTRIBUTES = TRAITS_DATA.attributes || [];
   const ABILITIES = TRAITS_DATA.abilities || [];
   const BACKGROUNDS = TRAITS_DATA.backgrounds || [];
+  const MERITS_FLAWS_DATA = BUNDLE.meritsFlaws || { items: [], animalFeatures: [] };
+  const MF_ITEMS = MERITS_FLAWS_DATA.items || [];
+  const ANIMAL_FEATURES = MERITS_FLAWS_DATA.animalFeatures || [];
   const LEX_MAP = Object.fromEntries(LEXICON.map((item) => [item.id, item]));
 
   /* ------------------------------------------------------------------------
@@ -131,7 +134,12 @@
     'Туманами',
     'Туманам',
     'Туманах',
-    'Туманов'
+    'Туманов',
+    'Отголоски',
+    'Отголосков',
+    'Отголоскам',
+    'Отголосками',
+    'Отголосках'
   ]);
   const EXACT_LOOKUP = new Map();
   const LOWER_LOOKUP = new Map();
@@ -257,6 +265,13 @@
     selectedBgId: 'chimera',
     bgFilter: 'all',          // 'all' | 'poolable' | 'personal'
     bgViewMode: 'atlas',      // 'atlas' | 'scroll'
+    selectedMfId: 'acute_sense',
+    mfKindFilter: 'all',      // 'all' | 'merit' | 'flaw'
+    mfCatFilter: 'all',       // 'all' | 'physical' | 'mental' | 'social' | 'supernatural'
+    mfCostFilter: 'all',      // 'all' | '1' | '2' | '3' | '4' | '5+'
+    mfQuery: '',
+    mfViewMode: 'atlas',      // 'atlas' | 'scroll'
+    selectedMfChoices: [],    // [{ id, ru, kind, cost, uid }]
     tableMode: localStorage.getItem('ctd20_table_mode') === '1',
     forceSheet: false,
     seeming: 'wilder',
@@ -2473,6 +2488,632 @@
   }
 
   /* ------------------------------------------------------------------------
+     3G. WIDGET: MERITS & FLAWS ATLAS (121 TRAITS + 7 ANIMAL FEATURES)
+     ------------------------------------------------------------------------ */
+  const MF_CATEGORIES = {
+    physical: 'Физические',
+    mental: 'Ментальные',
+    social: 'Социальные',
+    supernatural: 'Сверхъестественные'
+  };
+
+  function mfExcludeLexId(m) {
+    if (!m) return null;
+    if (m.id === 'echoes') return 'echoes';
+    if (m.id === 'geas') return 'geas';
+    return null;
+  }
+
+  function mfKindMeta(kind) {
+    if (kind === 'merit') {
+      return {
+        label: 'Достоинство',
+        pillClass: 'border-[#f0dba8]/55 bg-[#d8b979]/15 text-[#f0dba8]'
+      };
+    }
+    if (kind === 'flaw') {
+      return {
+        label: 'Недостаток',
+        pillClass: 'border-[#d98a7c]/45 bg-[#d98a7c]/12 text-[#f0b4a8]'
+      };
+    }
+    return {
+      label: 'Достоинство / Недостаток',
+      pillClass: 'border-[#c4a8ff]/45 bg-[#c4a8ff]/12 text-[#dfd0ff]'
+    };
+  }
+
+  function mfEffectiveCosts(m) {
+    if (m.kind === 'both') {
+      if (state.mfKindFilter === 'merit' && typeof m.meritCost === 'number') return [m.meritCost];
+      if (state.mfKindFilter === 'flaw' && typeof m.flawCost === 'number') return [m.flawCost];
+    }
+    return Array.isArray(m.costs) ? m.costs : [];
+  }
+
+  function mfAnimalTableHTML(compact = false) {
+    if (!ANIMAL_FEATURES.length) return '';
+    return `
+      <div class="rounded-xl border border-[#d8b979]/28 bg-[#0b110f]/68 p-3.5 sm:p-4 space-y-2.5">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h4 class="font-nouveau ${compact ? 'text-lg' : 'text-xl'} font-semibold text-[#f0dba8] !mt-0 !mb-0">
+            Таблица Звериных черт (Animal Features)
+          </h4>
+          <span class="text-[11px] text-[#a69f90]">3–5 очков · Боевой запас героя</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="nouveau-table w-full text-xs">
+            <thead>
+              <tr>
+                <th>Черта</th>
+                <th>Цена</th>
+                <th>Эффект в игре</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ANIMAL_FEATURES.map(
+                (af) => `
+                <tr>
+                  <td class="whitespace-nowrap">
+                    <strong class="text-[#f0eadc]">${af.ru}</strong>
+                    <span class="block text-[10px] uppercase tracking-wider text-[#a69f90]">${af.en}</span>
+                  </td>
+                  <td class="whitespace-nowrap font-medium text-[#f0dba8]">${af.cost} очк.</td>
+                  <td class="text-[#f0eadc]/90">${linkifyHTML(formatInlineMd(af.effect))}</td>
+                </tr>`
+              ).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function initMeritsFlawsAtlas() {
+    const mount = document.getElementById('merits-flaws-widget-mount');
+    if (!mount || !MF_ITEMS.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qMf = params.get('mf');
+    if (qMf && MF_ITEMS.some((m) => m.id === qMf)) {
+      state.selectedMfId = qMf;
+    } else if (!MF_ITEMS.some((m) => m.id === state.selectedMfId)) {
+      state.selectedMfId = MF_ITEMS[0].id;
+    }
+
+    const totalCount = MF_ITEMS.length;
+    const meritCount = MF_ITEMS.filter((m) => m.kind === 'merit' || m.kind === 'both').length;
+    const flawCount = MF_ITEMS.filter((m) => m.kind === 'flaw' || m.kind === 'both').length;
+
+    const kindFilters = [
+      { id: 'all', label: `Все (${totalCount})` },
+      { id: 'merit', label: `✦ Достоинства (${meritCount})` },
+      { id: 'flaw', label: `❖ Недостатки (${flawCount})` }
+    ];
+
+    const catFilters = [
+      { id: 'all', label: 'Все категории' },
+      ...Object.entries(MF_CATEGORIES).map(([id, title]) => ({
+        id,
+        label: `${title} (${MF_ITEMS.filter((m) => m.category === id).length})`
+      }))
+    ];
+
+    const costFilters = [
+      { id: 'all', label: 'Любая цена' },
+      { id: '1', label: '1 очко' },
+      { id: '2', label: '2 очка' },
+      { id: '3', label: '3 очка' },
+      { id: '4', label: '4 очка' },
+      { id: '5+', label: '5+ очков' }
+    ];
+
+    mount.innerHTML = `
+      <section id="merits-flaws-atlas" class="space-y-6 my-8 scroll-mt-24">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979] !mt-0 !mb-0">Узоры судьбы и характера · Свод 121 черты</p>
+            <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Атлас Достоинств и Недостатков
+            </h2>
+          </div>
+          <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
+            <button type="button" id="mfview-atlas" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ✦ Атлас черт
+            </button>
+            <button type="button" id="mfview-scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ☰ Книжный свиток
+            </button>
+          </div>
+        </div>
+
+        <div id="mf-interactive-area" class="space-y-4">
+          <div id="mf-tracker-bar" class="no-print rounded-xl border border-[#d8b979]/28 bg-[#0b110f]/72 px-4 py-3 space-y-2"></div>
+
+          <div class="no-print space-y-2.5">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+              <div class="flex flex-wrap gap-1.5">
+                ${kindFilters
+                  .map(
+                    (f) => `
+                  <button type="button" data-mf-kind="${f.id}" class="mf-kind-btn px-3 py-1 rounded-full text-xs border transition">
+                    ${f.label}
+                  </button>`
+                  )
+                  .join('')}
+              </div>
+              <input type="search" id="mf-search-input" placeholder="Поиск по названию, цене или эффекту..."
+                class="w-full sm:w-64 rounded-full border border-[#d8b979]/30 bg-[#0b110f]/75 px-3.5 py-1.5 text-xs text-[#f0eadc] placeholder-[#7b7669] focus:outline-none focus:border-[#f0dba8]" />
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap gap-1.5">
+                ${catFilters
+                  .map(
+                    (c) => `
+                  <button type="button" data-mf-cat="${c.id}" class="mf-cat-btn px-2.5 py-1 rounded-full text-[11.5px] border transition">
+                    ${c.label}
+                  </button>`
+                  )
+                  .join('')}
+              </div>
+              <div class="flex flex-wrap gap-1">
+                ${costFilters
+                  .map(
+                    (cf) => `
+                  <button type="button" data-mf-cost="${cf.id}" class="mf-cost-btn px-2.5 py-1 rounded-full text-[11px] border transition">
+                    ${cf.label}
+                  </button>`
+                  )
+                  .join('')}
+              </div>
+            </div>
+          </div>
+
+          <div id="mf-count-line" class="no-print flex flex-wrap items-center justify-between gap-2 text-[11.5px] text-[#a69f90]"></div>
+
+          <div id="mf-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[390px] overflow-y-auto pr-1.5 rounded-xl border border-[#d8b979]/18 bg-[#0b110f]/35 p-2.5"></div>
+
+          <div id="mf-spotlight" class="nouveau-panel p-5 sm:p-7 scroll-mt-24" aria-live="polite"></div>
+        </div>
+
+        <div id="mf-scroll-area" class="hidden space-y-6 no-print"></div>
+        <div id="print-merits-flaws-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    document.getElementById('mfview-atlas').addEventListener('click', () => {
+      state.mfViewMode = 'atlas';
+      syncMfViewMode();
+    });
+    document.getElementById('mfview-scroll').addEventListener('click', () => {
+      state.mfViewMode = 'scroll';
+      syncMfViewMode();
+    });
+    mount.querySelectorAll('.mf-kind-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.mfKindFilter = btn.getAttribute('data-mf-kind');
+        renderMfGrid();
+      });
+    });
+    mount.querySelectorAll('.mf-cat-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.mfCatFilter = btn.getAttribute('data-mf-cat');
+        renderMfGrid();
+      });
+    });
+    mount.querySelectorAll('.mf-cost-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.mfCostFilter = btn.getAttribute('data-mf-cost');
+        renderMfGrid();
+      });
+    });
+    document.getElementById('mf-search-input').addEventListener('input', (e) => {
+      state.mfQuery = e.target.value.trim().toLowerCase();
+      renderMfGrid();
+    });
+
+    renderMfTracker();
+    renderMfGrid();
+    renderMfSpotlight(false);
+    renderMfScrollArea();
+    syncMfViewMode();
+  }
+
+  function syncMfViewMode() {
+    const atlas = document.getElementById('mf-interactive-area');
+    const scroll = document.getElementById('mf-scroll-area');
+    const bAtl = document.getElementById('mfview-atlas');
+    const bScr = document.getElementById('mfview-scroll');
+    if (!atlas || !scroll) return;
+    const isAtl = state.mfViewMode === 'atlas';
+    atlas.classList.toggle('hidden', !isAtl);
+    scroll.classList.toggle('hidden', isAtl);
+    bAtl.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+    bScr.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      !isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+  }
+
+  function toggleMfChoice(m, kind, cost) {
+    const uid = `${m.id}:${kind}:${cost}`;
+    const already = state.selectedMfChoices.some((c) => c.uid === uid);
+    if (already) {
+      state.selectedMfChoices = state.selectedMfChoices.filter((c) => c.uid !== uid);
+    } else {
+      state.selectedMfChoices = [
+        ...state.selectedMfChoices.filter((c) => c.id !== m.id),
+        { id: m.id, ru: m.ru, kind, cost, uid }
+      ];
+    }
+    renderMfTracker();
+    renderMfGrid();
+    renderMfSpotlight(false);
+  }
+
+  function renderMfTracker() {
+    const bar = document.getElementById('mf-tracker-bar');
+    if (!bar) return;
+
+    const rawFlaws = state.selectedMfChoices.filter((c) => c.kind === 'flaw').reduce((acc, c) => acc + c.cost, 0);
+    const cappedFlaws = Math.min(rawFlaws, 7);
+    const meritSpent = state.selectedMfChoices.filter((c) => c.kind === 'merit').reduce((acc, c) => acc + c.cost, 0);
+    const totalFreebies = 15 + cappedFlaws;
+    const remaining = totalFreebies - meritSpent;
+
+    const overCapNote =
+      rawFlaws > 7
+        ? `<div class="text-[11.5px] text-[#f0b4a8] leading-snug">Предел Недостатков превышен (${rawFlaws} из 7): сверх 7 очков новые Свободные очки не начисляются (потолок — 22 очка с учётом 15 базовых).</div>`
+        : '';
+    const deficitNote =
+      remaining < 0
+        ? `<div class="text-[11.5px] text-[#f0b4a8] leading-snug">Выбранные Достоинства требуют на ${Math.abs(remaining)} Свободных очк. больше, чем есть в запасе.</div>`
+        : '';
+
+    const chipsHTML = state.selectedMfChoices.length
+      ? `<div class="flex flex-wrap items-center gap-1.5 pt-1">
+           ${state.selectedMfChoices
+             .map(
+               (c) => `
+             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] border ${
+               c.kind === 'merit'
+                 ? 'border-[#d8b979]/45 bg-[#d8b979]/12 text-[#f0dba8]'
+                 : 'border-[#d98a7c]/45 bg-[#d98a7c]/12 text-[#f0b4a8]'
+             }">
+               <button type="button" data-mf-jump="${c.id}" class="hover:underline text-left">${c.ru} (${c.kind === 'merit' ? `−${c.cost}` : `+${c.cost}`})</button>
+               <button type="button" data-mf-remove="${c.uid}" class="opacity-75 hover:opacity-100 leading-none" aria-label="Убрать ${c.ru}">✕</button>
+             </span>`
+             )
+             .join('')}
+           <button type="button" id="mf-clear-choices" class="ml-auto text-[11px] text-[#a69f90] hover:text-[#f0dba8] underline decoration-dotted">Сбросить отбор</button>
+         </div>`
+      : `<div class="text-[11px] text-[#7b7669]">Отмечайте черты прямо в карточке внизу, чтобы примерить бюджет Свободных очков для будущего героя.</div>`;
+
+    bar.innerHTML = `
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="text-xs font-medium text-[#f0dba8]">Отбор черт для образа · Свободные очки</div>
+        <div class="flex flex-wrap items-center gap-1.5 text-[11.5px]">
+          <span class="px-2.5 py-0.5 rounded-full border border-[#d8b979]/25 bg-[#101916] text-[#a69f90]">База: <strong class="text-[#f0eadc]">15</strong></span>
+          <span class="px-2.5 py-0.5 rounded-full border ${rawFlaws > 7 ? 'border-[#d98a7c]/55 bg-[#d98a7c]/12 text-[#f0b4a8]' : 'border-[#d8b979]/25 bg-[#101916] text-[#a69f90]'}">
+            Недостатки: <strong class="${rawFlaws > 7 ? 'text-[#f0b4a8]' : 'text-[#f0dba8]'}">+${cappedFlaws}</strong> <span class="opacity-80">(${rawFlaws}/7)</span>
+          </span>
+          <span class="px-2.5 py-0.5 rounded-full border border-[#d8b979]/25 bg-[#101916] text-[#a69f90]">Достоинства: <strong class="text-[#f0eadc]">−${meritSpent}</strong></span>
+          <span class="px-2.5 py-0.5 rounded-full border ${remaining < 0 ? 'border-[#d98a7c]/60 bg-[#d98a7c]/15 text-[#f0b4a8]' : 'border-[#f0dba8]/45 bg-[#d8b979]/15 text-[#f0dba8]'}">
+            Остаток: <strong>${remaining}</strong> <span class="opacity-80">(из ${totalFreebies})</span>
+          </span>
+        </div>
+      </div>
+      ${chipsHTML}
+      ${overCapNote}
+      ${deficitNote}
+    `;
+
+    bar.querySelectorAll('[data-mf-jump]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.selectedMfId = btn.getAttribute('data-mf-jump');
+        renderMfGrid();
+        renderMfSpotlight(true);
+      });
+    });
+    bar.querySelectorAll('[data-mf-remove]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const uid = btn.getAttribute('data-mf-remove');
+        state.selectedMfChoices = state.selectedMfChoices.filter((c) => c.uid !== uid);
+        renderMfTracker();
+        renderMfGrid();
+        renderMfSpotlight(false);
+      });
+    });
+    const clearBtn = document.getElementById('mf-clear-choices');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        state.selectedMfChoices = [];
+        renderMfTracker();
+        renderMfGrid();
+        renderMfSpotlight(false);
+      });
+    }
+  }
+
+  function renderMfGrid() {
+    const grid = document.getElementById('mf-grid');
+    const countLine = document.getElementById('mf-count-line');
+    if (!grid) return;
+
+    document.querySelectorAll('.mf-kind-btn').forEach((btn) => {
+      const act = btn.getAttribute('data-mf-kind') === state.mfKindFilter;
+      btn.className = `mf-kind-btn px-3 py-1 rounded-full text-xs border transition ${
+        act
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+    document.querySelectorAll('.mf-cat-btn').forEach((btn) => {
+      const act = btn.getAttribute('data-mf-cat') === state.mfCatFilter;
+      btn.className = `mf-cat-btn px-2.5 py-1 rounded-full text-[11.5px] border transition ${
+        act
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/22 bg-[#0b110f]/50 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+    document.querySelectorAll('.mf-cost-btn').forEach((btn) => {
+      const act = btn.getAttribute('data-mf-cost') === state.mfCostFilter;
+      btn.className = `mf-cost-btn px-2.5 py-1 rounded-full text-[11px] border transition ${
+        act
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/20 bg-[#0b110f]/50 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+
+    const filtered = MF_ITEMS.filter((m) => {
+      if (state.mfKindFilter !== 'all') {
+        if (m.kind !== state.mfKindFilter && m.kind !== 'both') return false;
+      }
+      if (state.mfCatFilter !== 'all' && m.category !== state.mfCatFilter) return false;
+      if (state.mfCostFilter !== 'all') {
+        const effCosts = mfEffectiveCosts(m);
+        if (state.mfCostFilter === '5+') {
+          if (!effCosts.some((c) => c >= 5)) return false;
+        } else if (!effCosts.includes(Number(state.mfCostFilter))) {
+          return false;
+        }
+      }
+      if (state.mfQuery) {
+        const tiersStr = (m.tiers || []).map((t) => `${t.cost} ${t.text}`).join(' ');
+        const hay = `${m.ru} ${m.en} ${m.costLabel} ${(m.desc || []).join(' ')} ${m.mechanicNote || ''} ${tiersStr}`.toLowerCase();
+        if (!hay.includes(state.mfQuery)) return false;
+      }
+      return true;
+    });
+
+    if (countLine) {
+      const isFiltered =
+        state.mfKindFilter !== 'all' ||
+        state.mfCatFilter !== 'all' ||
+        state.mfCostFilter !== 'all' ||
+        Boolean(state.mfQuery);
+      countLine.innerHTML = `
+        <span>Показано черт: <strong class="text-[#f0eadc]">${filtered.length}</strong> из ${MF_ITEMS.length}</span>
+        ${isFiltered ? '<button type="button" id="mf-reset-filters" class="text-[#d8b979] hover:text-[#f0dba8] underline decoration-dotted">Сбросить фильтры</button>' : ''}
+      `;
+      const rst = document.getElementById('mf-reset-filters');
+      if (rst) {
+        rst.addEventListener('click', () => {
+          state.mfKindFilter = 'all';
+          state.mfCatFilter = 'all';
+          state.mfCostFilter = 'all';
+          state.mfQuery = '';
+          const inp = document.getElementById('mf-search-input');
+          if (inp) inp.value = '';
+          renderMfGrid();
+        });
+      }
+    }
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-[#a69f90]">Ни одна черта не подходит под выбранные условия.</div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered
+      .map((m) => {
+        const active = m.id === state.selectedMfId;
+        const km = mfKindMeta(m.kind);
+        const picked = state.selectedMfChoices.find((c) => c.id === m.id);
+        return `
+          <button type="button" data-mf-card="${m.id}"
+            class="text-left p-3 rounded-xl border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0dba8] flex flex-col justify-between gap-2 ${
+              active
+                ? 'border-[#f0dba8]/85 bg-[#d8b979]/18 shadow-[0_0_20px_rgba(216,185,121,0.16)]'
+                : 'border-[#d8b979]/20 bg-[#101916]/85 hover:border-[#d8b979]/55 hover:bg-[#15211d]'
+            }">
+            <div>
+              <div class="flex items-start justify-between gap-1.5">
+                <span class="font-nouveau text-lg sm:text-[19px] font-semibold text-[#f0eadc] leading-tight">${m.ru}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] border border-[#d8b979]/30 bg-[#0b110f]/75 text-[#f0dba8] shrink-0">${m.costLabel}</span>
+              </div>
+              <div class="text-[10px] uppercase tracking-[0.12em] text-[#a69f90] mt-0.5">${m.en}</div>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-1 pt-0.5">
+              <span class="px-2 py-0.5 rounded-full text-[10px] border ${km.pillClass}">${km.label}</span>
+              <span class="text-[10px] text-[#7b7669]">${picked ? `<strong class="text-[#f0dba8]">✓ ${picked.cost} очк.</strong> · ` : ''}${MF_CATEGORIES[m.category] || m.category}</span>
+            </div>
+          </button>
+        `;
+      })
+      .join('');
+
+    grid.querySelectorAll('[data-mf-card]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.selectedMfId = btn.getAttribute('data-mf-card');
+        renderMfGrid();
+        renderMfSpotlight(true);
+      });
+    });
+  }
+
+  function renderMfSpotlight(scrollToPanel = false) {
+    const spot = document.getElementById('mf-spotlight');
+    if (!spot) return;
+    const m = MF_ITEMS.find((x) => x.id === state.selectedMfId) || MF_ITEMS[0];
+    if (!m) return;
+
+    const exId = mfExcludeLexId(m);
+    const km = mfKindMeta(m.kind);
+    const catLabel = MF_CATEGORIES[m.category] || m.category;
+
+    const pickOptions =
+      m.kind === 'both'
+        ? [
+            { kind: 'flaw', cost: m.flawCost, label: `Недостаток (+${m.flawCost} очк.)` },
+            { kind: 'merit', cost: m.meritCost, label: `Достоинство (−${m.meritCost} очк.)` }
+          ]
+        : (m.costs || []).map((c) => ({
+            kind: m.kind,
+            cost: c,
+            label: (m.costs || []).length > 1 ? `${c} очк.` : `Отметить в образе (${m.kind === 'merit' ? `−${c}` : `+${c}`} очк.)`
+          }));
+
+    const pickerHTML = `
+      <div class="no-print flex flex-wrap items-center gap-1.5 pt-1">
+        ${pickOptions.length > 1 ? '<span class="text-[11.5px] text-[#a69f90] mr-1">Отметить в образе:</span>' : ''}
+        ${pickOptions
+          .map((opt) => {
+            const uid = `${m.id}:${opt.kind}:${opt.cost}`;
+            const chosen = state.selectedMfChoices.some((c) => c.uid === uid);
+            return `
+              <button type="button" data-pick-kind="${opt.kind}" data-pick-cost="${opt.cost}"
+                class="mf-pick-btn px-3 py-1 rounded-full text-xs border transition ${
+                  chosen
+                    ? 'border-[#f0dba8]/85 bg-[#d8b979]/25 text-[#f0dba8]'
+                    : 'border-[#d8b979]/35 bg-[#0b110f]/75 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/70'
+                }">
+                ${chosen ? '✓ ' : '+ '}${opt.label}
+              </button>`;
+          })
+          .join('')}
+      </div>
+    `;
+
+    const tiersHTML =
+      m.tiers && m.tiers.length
+        ? `
+      <div class="space-y-1.5 pt-1">
+        ${m.tiers
+          .map(
+            (t) => `
+          <div class="flex flex-col sm:flex-row sm:items-baseline gap-1.5 sm:gap-3 rounded-lg border border-[#d8b979]/18 bg-[#0b110f]/58 px-3.5 py-2.5 text-xs sm:text-[13.5px]">
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold border border-[#d8b979]/35 bg-[#d8b979]/12 text-[#f0dba8] shrink-0 self-start">${t.cost}</span>
+            <div class="text-[#f0eadc]/92 leading-relaxed">${linkifyHTML(formatInlineMd(t.text), exId)}</div>
+          </div>`
+          )
+          .join('')}
+      </div>`
+        : '';
+
+    const animalHTML = m.id === 'animalistic_favor' ? mfAnimalTableHTML(false) : '';
+
+    spot.innerHTML = `
+      <div class="spotlight-anim relative z-10 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-[#d8b979]/20 pb-3">
+          <div>
+            <h3 class="font-nouveau text-3xl font-semibold text-[#f0eadc] !mt-0 !mb-0 leading-none">${m.ru}</h3>
+            <div class="text-xs uppercase tracking-[0.16em] text-[#a69f90] mt-1">${m.en}</div>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="px-2.5 py-1 rounded-full text-xs border ${km.pillClass}">${km.label}</span>
+            <span class="px-2.5 py-1 rounded-full text-xs border border-[#d8b979]/28 bg-[#0b110f]/75 text-[#a69f90]">${catLabel}</span>
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium border border-[#f0dba8]/45 bg-[#d8b979]/15 text-[#f0dba8]">${m.costLabel}</span>
+          </div>
+        </div>
+
+        <div class="space-y-2.5 text-sm sm:text-[15px] text-[#f0eadc]/92 leading-relaxed">
+          ${(m.desc || []).map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p), exId)}</p>`).join('')}
+        </div>
+
+        ${
+          m.mechanicNote
+            ? `<div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/70 px-4 py-3 text-xs sm:text-[13.5px] text-[#f0eadc]/92 leading-relaxed">
+                 <span class="font-semibold text-[#f0dba8]">◈ Игровая механика:</span> ${linkifyHTML(formatInlineMd(m.mechanicNote), exId)}
+               </div>`
+            : ''
+        }
+
+        ${tiersHTML}
+        ${animalHTML}
+        ${pickerHTML}
+      </div>
+    `;
+
+    spot.querySelectorAll('.mf-pick-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pickKind = btn.getAttribute('data-pick-kind');
+        const pickCost = Number(btn.getAttribute('data-pick-cost'));
+        toggleMfChoice(m, pickKind, pickCost);
+      });
+    });
+
+    if (scrollToPanel) {
+      const rect = spot.getBoundingClientRect();
+      if (rect.top < 60 || rect.top > window.innerHeight * 0.72) {
+        spot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  function renderMfScrollArea() {
+    const area = document.getElementById('mf-scroll-area');
+    if (!area) return;
+
+    area.innerHTML = Object.entries(MF_CATEGORIES)
+      .map(([catId, catTitle]) => {
+        const items = MF_ITEMS.filter((m) => m.category === catId);
+        return `
+          <div class="space-y-4">
+            <div class="flex items-baseline justify-between border-b border-[#d8b979]/25 pb-2">
+              <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0dba8] !mt-0 !mb-0">${catTitle} черты</h3>
+              <span class="text-xs text-[#a69f90]">${items.length}</span>
+            </div>
+            <div class="space-y-4">
+              ${items
+                .map((m) => {
+                  const km = mfKindMeta(m.kind);
+                  const exId = mfExcludeLexId(m);
+                  const tiersHTML =
+                    m.tiers && m.tiers.length
+                      ? `<div class="space-y-1 text-xs sm:text-[13px] pt-1">
+                           ${m.tiers
+                             .map((t) => `<div><strong class="text-[#f0dba8]">${t.cost}:</strong> ${linkifyHTML(formatInlineMd(t.text), exId)}</div>`)
+                             .join('')}
+                         </div>`
+                      : '';
+                  const animalHTML = m.id === 'animalistic_favor' ? mfAnimalTableHTML(true) : '';
+                  return `
+                    <article class="nouveau-panel p-4 sm:p-5 space-y-2.5">
+                      <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-[#d8b979]/15 pb-2">
+                        <h4 class="font-nouveau text-2xl font-semibold text-[#f0eadc] !mt-0 !mb-0">${m.ru} <span class="text-xs font-sans font-normal text-[#a69f90]">(${m.en})</span></h4>
+                        <div class="flex items-center gap-1.5 text-[11px]">
+                          <span class="px-2 py-0.5 rounded-full border ${km.pillClass}">${km.label}</span>
+                          <span class="text-[#f0dba8] font-medium">${m.costLabel}</span>
+                        </div>
+                      </div>
+                      ${(m.desc || []).map((p) => `<p class="text-xs sm:text-[13.5px] leading-relaxed !my-0">${linkifyHTML(formatInlineMd(p), exId)}</p>`).join('')}
+                      ${m.mechanicNote ? `<p class="text-xs text-[#f0dba8]/90 !my-0"><strong class="text-[#f0dba8]">◈ Игровая механика:</strong> ${linkifyHTML(formatInlineMd(m.mechanicNote), exId)}</p>` : ''}
+                      ${tiersHTML}
+                      ${animalHTML}
+                    </article>`;
+                })
+                .join('')}
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  /* ------------------------------------------------------------------------
      4. WIDGETS: STEP 4 TEMPERS & STEP 3 CANTRIP EQUATION
      ------------------------------------------------------------------------ */
   const CANTRIP_EXAMPLES = {
@@ -3189,6 +3830,25 @@
       }
     });
 
+    // 2f. Merits & Flaws hits
+    MF_ITEMS.forEach((m) => {
+      const tiersStr = (m.tiers || []).map((t) => `${t.cost} ${t.text}`).join(' ');
+      const animalStr =
+        m.id === 'animalistic_favor'
+          ? ANIMAL_FEATURES.map((af) => `${af.ru} ${af.en} ${af.effect}`).join(' ')
+          : '';
+      const hay = `${m.ru} ${m.en} ${MF_CATEGORIES[m.category] || ''} ${m.costLabel} ${(m.desc || []).join(' ')} ${m.mechanicNote || ''} ${tiersStr} ${animalStr}`.toLowerCase();
+      if (hay.includes(q)) {
+        const km = mfKindMeta(m.kind);
+        hits.push({
+          badge: `${km.label} · ${m.costLabel}`,
+          title: `${m.ru} (${m.en})`,
+          snippet: ((m.desc && m.desc[0]) || '').slice(0, 150) + '…',
+          url: `${ROOT}06-merits-flaws/index.html?mf=${m.id}#merits-flaws-atlas`
+        });
+      }
+    });
+
     // 3. Chapter section hits
     (BUNDLE.search || []).forEach((s) => {
       if (s.title.toLowerCase().includes(q) || s.text.toLowerCase().includes(q)) {
@@ -3403,6 +4063,47 @@
       }).join('');
     }
 
+    const mfPrint = document.getElementById('print-merits-flaws-container');
+    if (mfPrint && MF_ITEMS.length) {
+      mfPrint.innerHTML = Object.entries(MF_CATEGORIES)
+        .map(([catId, catTitle]) => {
+          const items = MF_ITEMS.filter((m) => m.category === catId);
+          return `
+            <div class="space-y-2 mt-3">
+              <h3 class="font-nouveau text-xl font-bold border-b border-[#8c7b5a] pb-0.5">${catTitle} черты (${items.length})</h3>
+              ${items
+                .map((m) => {
+                  const km = mfKindMeta(m.kind);
+                  const tiersHTML =
+                    m.tiers && m.tiers.length
+                      ? `<div class="text-[11px] leading-snug space-y-0.5">${m.tiers
+                          .map((t) => `<div><strong>${t.cost}:</strong> ${formatInlineMd(t.text)}</div>`)
+                          .join('')}</div>`
+                      : '';
+                  const animalHTML =
+                    m.id === 'animalistic_favor' && ANIMAL_FEATURES.length
+                      ? `<div class="text-[11px] leading-snug pt-0.5"><strong>Звериные черты:</strong> ${ANIMAL_FEATURES.map(
+                          (af) => `<strong>${af.ru} (${af.en}, ${af.cost} очк.):</strong> ${formatInlineMd(af.effect)}`
+                        ).join(' · ')}</div>`
+                      : '';
+                  return `
+                  <article class="print-mf-card p-3 space-y-1">
+                    <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+                      <h4 class="font-nouveau text-lg font-bold">${m.ru} <span class="text-xs font-normal">(${m.en})</span></h4>
+                      <span class="text-xs font-semibold">${km.label} · ${m.costLabel}</span>
+                    </div>
+                    <p class="text-xs">${(m.desc || []).map((p) => formatInlineMd(p)).join(' ')}</p>
+                    ${m.mechanicNote ? `<p class="text-xs"><strong>Механика:</strong> ${formatInlineMd(m.mechanicNote)}</p>` : ''}
+                    ${tiersHTML}
+                    ${animalHTML}
+                  </article>`;
+                })
+                .join('')}
+            </div>`;
+        })
+        .join('');
+    }
+
     const lexPrint = document.getElementById('print-lexicon-container');
     if (lexPrint && LEXICON.length) {
       const sorted = [...LEXICON].sort((a, b) => a.ru.localeCompare(b.ru, 'ru'));
@@ -3433,6 +4134,7 @@
     initThresholdsWidget();
     initTraitsCompendium();
     initBackgroundsVault();
+    initMeritsFlawsAtlas();
     initTempersWidget();
     initCantripWidget();
     initLexiconDirectory();
