@@ -147,7 +147,21 @@
     'Сродства',
     'Сродству',
     'Сродством',
-    'Сродстве'
+    'Сродстве',
+    'Искусство',
+    'Искусством',
+    'Владение',
+    'Владением',
+    'Очарованный',
+    'Очарованная',
+    'Очарованного',
+    'Очарованному',
+    'Очарованным',
+    'Очарованном',
+    'Очарованных',
+    'Очарованными',
+    'Очарованную',
+    'Очарованной'
   ]);
   const EXACT_LOOKUP = new Map();
   const LOWER_LOOKUP = new Map();
@@ -3273,14 +3287,18 @@
                 state.cfWyrd ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
               }">Вирд-кантрип (1 Гламур)</button>
             </div>
-            <div class="text-xs text-[#a69f90]">
-              Запас = <strong class="text-[#f0eadc]">Искусство + наименьшее основное Владение</strong>
+            <div class="flex flex-wrap items-center gap-3 text-xs text-[#a69f90]">
+              <span>Запас = <strong class="text-[#f0eadc]">Искусство + наименьшее основное Владение</strong></span>
+              <button type="button" id="cf-reset" title="Сбросить Уловку, обходы и поправки"
+                class="px-2.5 py-1 rounded-full border border-[#d8b979]/30 bg-[#0b110f]/75 text-[11px] text-[#d8b979] hover:border-[#f0dba8] hover:text-[#f0dba8] transition">
+                ↺ Сбросить
+              </button>
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-            ${cfStepperHTML('art', 'Рейтинг Искусства', state.cfArt, 1, 5, 'ступень от 1 до 5')}
-            ${cfStepperHTML('realm', 'Наименьшее основное Владение', state.cfRealm, 0, 5, state.cfRealm === 0 ? 'обход: +0 кубиков' : 'Актёр / Фея / Природа / Предмет')}
+            ${cfStepperHTML('art', 'Рейтинг Искусства', state.cfArt, 1, 5, 'ваш полный рейтинг на бланке (1–5)')}
+            ${cfStepperHTML('realm', 'Наименьшее основное Владение', state.cfRealm, 0, 5, state.cfRealm === 0 ? 'обход: +0 кубиков' : 'ваш рейтинг: Актёр / Фея / Природа / Предмет')}
             ${cfStepperHTML('cheated', 'Обойдено Владений', state.cfCheated, 0, 6, '+1 Гламур за каждое')}
             ${cfStepperHTML('nightmare', 'Текущий Кошмар', state.cfNightmare, 0, 10, 'заменяет кубики запаса')}
           </div>
@@ -3410,6 +3428,17 @@
       if (gotoBtn) {
         gotoBtn.addEventListener('click', () => {
           state.cfTab = 'bunks';
+          renderCantripForge();
+        });
+      }
+      const resetBtn = document.getElementById('cf-reset');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          state.cfCheated = 0;
+          state.cfBunk = 0;
+          Object.keys(state.cfMods).forEach((k) => {
+            state.cfMods[k] = false;
+          });
           renderCantripForge();
         });
       }
