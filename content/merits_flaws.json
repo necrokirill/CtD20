@@ -32,7 +32,7 @@
     },
     {
       "id": "double_jointed",
-      "ru": "Гуттаперчевость",
+      "ru": "Гибкие суставы",
       "en": "Double-Jointed",
       "category": "physical",
       "kind": "merit",
@@ -137,7 +137,7 @@
     },
     {
       "id": "murderous_mien",
-      "ru": "Убийственный взор",
+      "ru": "Убийственный облик",
       "en": "Murderous Mien",
       "category": "physical",
       "kind": "merit",
@@ -238,7 +238,7 @@
     },
     {
       "id": "sex_appeal",
-      "ru": "Пьянящая чувственность",
+      "ru": "Сексуальная привлекательность",
       "en": "Sex Appeal",
       "category": "physical",
       "kind": "merit",
@@ -253,7 +253,7 @@
     },
     {
       "id": "huge_size",
-      "ru": "Исполинский рост",
+      "ru": "Огромный рост",
       "en": "Huge Size",
       "category": "physical",
       "kind": "merit",
@@ -411,7 +411,7 @@
     },
     {
       "id": "impaired_hearing",
-      "ru": "Тугоухость",
+      "ru": "Плохой слух",
       "en": "Impaired Hearing",
       "category": "physical",
       "kind": "flaw",
@@ -535,11 +535,11 @@
       "desc": [
         "Ноги искалечены или ослаблены недугом и с трудом держат тело на бегу и при прыжках."
       ],
-      "mechanicNote": "Сложность любых бросков, связанных с передвижением, увеличивается на 2. Нельзя брать вместе с Достоинством «Гуттаперчевость»."
+      "mechanicNote": "Сложность любых бросков, связанных с передвижением, увеличивается на 2. Нельзя брать вместе с Достоинством «Гибкие суставы»."
     },
     {
       "id": "parfum_de_goat",
-      "ru": "Козлиное амбре",
+      "ru": "Козлиный запах",
       "en": "Parfum de Goat",
       "category": "physical",
       "kind": "flaw",
@@ -1105,7 +1105,7 @@
     },
     {
       "id": "natural_leader",
-      "ru": "Прирождённый вожак",
+      "ru": "Прирождённый лидер",
       "en": "Natural Leader",
       "category": "social",
       "kind": "merit",
@@ -1135,7 +1135,7 @@
     },
     {
       "id": "your_best_advocate",
-      "ru": "Сам себе летописец",
+      "ru": "Сам себе рассказчик",
       "en": "Your Best Advocate",
       "category": "social",
       "kind": "merit",
@@ -1434,7 +1434,7 @@
     },
     {
       "id": "fallen_noble",
-      "ru": "Свергнутый вельможа",
+      "ru": "Павший дворянин",
       "en": "Fallen Noble",
       "category": "social",
       "kind": "flaw",
