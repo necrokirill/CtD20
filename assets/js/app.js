@@ -3241,7 +3241,7 @@
         if (cm.id === 'voluntary_nightmare') {
           if (volActive) {
             diffSum += cm.mod;
-            breakdown.push(`${cm.modLabel} (+3 куб. Кошмара)`);
+            breakdown.push(`${cm.modLabel} (+3 кубика Кошмара)`);
           }
           return;
         }
@@ -3251,10 +3251,10 @@
         }
       });
 
-      const shownDiff = Math.max(3, Math.min(10, diffSum));
+      const shownDiff = Math.max(2, Math.min(10, diffSum));
       const diffNote =
-        diffSum < 3
-          ? `расчёт ${diffSum}, обычно не ниже 3`
+        diffSum < 2
+          ? `расчёт ${diffSum}, минимум сложности в системе — 2`
           : diffSum > 10
           ? `расчёт ${diffSum}, потолок сложности 10`
           : 'итоговая сложность';
@@ -3280,8 +3280,8 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             ${cfStepperHTML('art', 'Рейтинг Искусства', state.cfArt, 1, 5, 'ступень от 1 до 5')}
-            ${cfStepperHTML('realm', 'Младшее основное Владение', state.cfRealm, 0, 5, state.cfRealm === 0 ? 'обход: +0 куб.' : 'Актёр / Фея / Природа / Предмет')}
-            ${cfStepperHTML('cheated', 'Обойдено Владений', state.cfCheated, 0, 4, '+1 Гламур за каждое')}
+            ${cfStepperHTML('realm', 'Младшее основное Владение', state.cfRealm, 0, 5, state.cfRealm === 0 ? 'обход: +0 кубиков' : 'Актёр / Фея / Природа / Предмет')}
+            ${cfStepperHTML('cheated', 'Обойдено Владений', state.cfCheated, 0, 6, '+1 Гламур за каждое')}
             ${cfStepperHTML('nightmare', 'Текущий Кошмар', state.cfNightmare, 0, 10, 'заменяет кубики запаса')}
           </div>
 
@@ -3417,7 +3417,9 @@
     } else if (state.cfTab === 'unleash') {
       const nmBefore = Math.min(state.cfNightmare, 9);
       const nmAfter = nmBefore + 1;
-      const unleashPool = state.cfGlamour + nmAfter;
+      const overflows = nmAfter === 10;
+      const rollNm = overflows ? 0 : nmAfter;
+      const unleashPool = state.cfGlamour + rollNm;
 
       body.innerHTML = `
         <div class="relative z-10 space-y-5">
@@ -3428,7 +3430,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             ${cfStepperHTML('glamour', 'Постоянный Гламур', state.cfGlamour, 1, 10, 'входит в запас и срок Вирда')}
             ${cfStepperHTML('art', 'Рейтинг Искусства', state.cfArt, 1, 5, 'порог контроля над магией')}
-            ${cfStepperHTML('nightmare_unleash', 'Кошмар до броска', nmBefore, 0, 9, `после +1 перед броском станет ${nmAfter}`)}
+            ${cfStepperHTML('nightmare_unleash', 'Кошмар до броска', nmBefore, 0, 9, overflows ? 'достигает 10 → сброс в 0 и Дисбаланс' : `после +1 перед броском станет ${nmAfter}`)}
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -3440,7 +3442,7 @@
             <div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/75 p-4 text-center space-y-1">
               <div class="text-[10.5px] uppercase tracking-widest text-[#a69f90]">Запас Высвобождения</div>
               <div class="font-nouveau text-2xl font-bold text-[#f0eadc]">${unleashPool} кубиков</div>
-              <div class="text-[11px] text-[#a69f90]">${state.cfGlamour} обычных + ${nmAfter} Кошмара</div>
+              <div class="text-[11px] text-[#a69f90]">${overflows ? `${state.cfGlamour} обычных + 0 Кошмара (после сброса)` : `${state.cfGlamour} обычных + ${nmAfter} Кошмара`}</div>
             </div>
             <div class="rounded-xl border border-[#f0dba8]/55 bg-[#d8b979]/12 p-4 text-center space-y-1">
               <div class="text-[10.5px] uppercase tracking-widest text-[#f0dba8]">Сложность</div>
@@ -3450,9 +3452,9 @@
           </div>
 
           ${
-            nmAfter === 10
+            overflows
               ? `<div class="rounded-lg border border-[#d98a7c]/55 bg-[#d98a7c]/12 px-3.5 py-2 text-xs text-[#f0b4a8]">
-                   Осторожно: обязательный +1 Кошмар доводит шкалу до 10 — срабатывает переполнение в Дисбаланс (+1 временный Гламур).
+                   Осторожно: обязательный +1 Кошмар до броска доводит шкалу до 10 — по правилам C20 шкала немедленно обнуляется в 0, отмечается 1 Дисбаланс и восстанавливается 1 временный пункт Гламура (если Рассказчик не разрешит сперва бросить все 10 кубиков Кошмара до сброса).
                  </div>`
               : ''
           }
@@ -3576,7 +3578,7 @@
         const dir = Number(btn.getAttribute('data-cf-dir'));
         if (key === 'art') state.cfArt = Math.max(1, Math.min(5, state.cfArt + dir));
         else if (key === 'realm') state.cfRealm = Math.max(0, Math.min(5, state.cfRealm + dir));
-        else if (key === 'cheated') state.cfCheated = Math.max(0, Math.min(4, state.cfCheated + dir));
+        else if (key === 'cheated') state.cfCheated = Math.max(0, Math.min(6, state.cfCheated + dir));
         else if (key === 'nightmare') state.cfNightmare = Math.max(0, Math.min(10, state.cfNightmare + dir));
         else if (key === 'nightmare_unleash') state.cfNightmare = Math.max(0, Math.min(9, Math.min(state.cfNightmare, 9) + dir));
         else if (key === 'glamour') state.cfGlamour = Math.max(1, Math.min(10, state.cfGlamour + dir));
