@@ -348,6 +348,7 @@
     chrysalisMfQuery: '',
     chrysalisFbOpen: { abil: false, bg: false, art: false, realm: false },
     chrysalisSheet: null,
+    chrysalisPrint: { pages: '2', palette: 'color', scale: 1, blank: false },
     tableMode: localStorage.getItem('ctd20_table_mode') === '1',
     forceSheet: false,
     seeming: 'wilder',
@@ -4872,125 +4873,616 @@
     return lines.join('\n');
   }
 
-  function renderDossierBodyHTML(sheet, comp, forPrint = false) {
-    const kithName = comp.kith ? `${escHtml(comp.kith.ru)} <span class="text-xs opacity-75">(${escHtml(comp.kith.en)})</span>` : 'Не выбран';
-    const houseName = comp.house ? escHtml(comp.house.ru) : 'Без титула';
+  function summarizeForSheet(rawText, maxLen = 130) {
+    const clean = String(rawText || '')
+      .replace(/\[([^\x5d]+)\]\([^\x29]+\)/g, '$1')
+      .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!clean) return '';
+    if (clean.length <= maxLen) return clean;
+    const sliced = clean.slice(0, maxLen).replace(/\s+\S*$/, '');
+    return `${sliced || clean.slice(0, maxLen)}…`;
+  }
+
+  const CHRYSALIS_PRINT_STORAGE_KEY = 'ctd20_chrysalis_print_v1';
+
+  function normalizeChrysalisPrint(raw) {
+    const allowedScales = [0.9, 0.95, 1, 1.05, 1.1];
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const parsedScale = Number(src.scale);
+    const scale = allowedScales.includes(parsedScale) ? parsedScale : 1;
+    return {
+      pages: src.pages === '1' ? '1' : '2',
+      palette: src.palette === 'bw' ? 'bw' : 'color',
+      scale,
+      blank: Boolean(src.blank)
+    };
+  }
+
+  function loadChrysalisPrint() {
+    try {
+      const saved = localStorage.getItem(CHRYSALIS_PRINT_STORAGE_KEY);
+      if (saved) return normalizeChrysalisPrint(JSON.parse(saved));
+    } catch (_err) {
+      /* ignore corrupted local storage */
+    }
+    return normalizeChrysalisPrint(null);
+  }
+
+  function saveChrysalisPrint() {
+    try {
+      localStorage.setItem(CHRYSALIS_PRINT_STORAGE_KEY, JSON.stringify(state.chrysalisPrint));
+    } catch (_err) {
+      /* ignore quota errors */
+    }
+  }
+
+  function renderSheetCornersSVG() {
+    const svg =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"><path d="M2 16V4a2 2 0 0 1 2-2h12"/><path d="M2 10c4 0 8-4 8-8"/><circle cx="5.5" cy="5.5" r="1.1" fill="currentColor" stroke="none"/></svg>';
+    return `
+      <span class="c20-corner tl" aria-hidden="true">${svg}</span>
+      <span class="c20-corner tr" aria-hidden="true">${svg}</span>
+      <span class="c20-corner bl" aria-hidden="true">${svg}</span>
+      <span class="c20-corner br" aria-hidden="true">${svg}</span>
+    `;
+  }
+
+  function renderSheetSectionHead(title) {
+    return `<div class="c20-sec-head"><span>◈ ${escHtml(title)} ◈</span></div>`;
+  }
+
+  function renderSheetDots(val, maxDots = 5, opts = {}) {
+    const bonusCount = opts.bonusCount || 0;
+    const lockedAfter = opts.lockedAfter || 0;
+    const banality = Boolean(opts.banality);
+    const blank = Boolean(opts.blank);
+    const baseFilled = blank ? 0 : Math.max(0, val - bonusCount);
+    const totalFilled = blank ? 0 : Math.max(0, val);
+    const dots = [];
+    for (let i = 1; i <= maxDots; i++) {
+      let cls = 'c20-dot';
+      if (!blank && lockedAfter > 0 && i > lockedAfter) {
+        cls += ' locked';
+      } else if (!blank && i <= totalFilled) {
+        if (i > baseFilled) cls += ' bonus';
+        else cls += banality ? ' banality filled' : ' filled';
+      }
+      dots.push(`<span class="${cls}"></span>`);
+    }
+    return `<span class="c20-dots">${dots.join('')}</span>`;
+  }
+
+  function renderSheetBoxes(count = 10) {
+    const boxes = [];
+    for (let i = 0; i < count; i++) boxes.push('<span class="c20-box"></span>');
+    return `<span class="c20-boxes">${boxes.join('')}</span>`;
+  }
+
+  function renderRuledBlock(text, minLines = 3) {
+    const clean = String(text || '').trim();
+    if (clean) {
+      return `<div class="c20-note-line">${escHtml(clean).replace(/\n+/g, '<br>')}</div>`;
+    }
+    const rows = [];
+    for (let i = 0; i < minLines; i++) rows.push('<div class="c20-ruled-line"></div>');
+    return `<div class="c20-ruled-lines">${rows.join('')}</div>`;
+  }
+
+  function formatCustomAbilitySheetLabel(ab, sheet, blank) {
+    const prefixes = {
+      hobby_talent: 'Увлечение',
+      professional_skill: 'Профессия',
+      expert_knowledge: 'Познание'
+    };
+    const pref = prefixes[ab.id] || ab.ru;
+    const customName = !blank && sheet.customAbilityNames ? (sheet.customAbilityNames[ab.id] || '').trim() : '';
+    return customName ? `${pref}: ${customName}` : `${pref}: __________`;
+  }
+
+  function renderSheetBlankTraitRow(maxDots = 5) {
+    return `
+      <div class="c20-trait-row">
+        <span class="c20-trait-blank"></span>
+        ${renderSheetDots(0, maxDots, { blank: true })}
+      </div>`;
+  }
+
+  function renderC20SheetHTML(sheet, comp, rawPrintOpts) {
+    const opts = normalizeChrysalisPrint(rawPrintOpts || state.chrysalisPrint);
+    const isBlank = opts.blank;
+    const isCompact = opts.pages === '1';
+
+    const valOrBlank = (v) => (isBlank ? '' : String(v || '').trim());
+    const passportField = (label, value) => `
+      <div class="c20-field-row">
+        <span class="c20-field-lbl">${escHtml(label)}:</span>
+        <span class="c20-field-val">${value ? escHtml(value) : '&nbsp;'}</span>
+      </div>`;
+
     const primaryLeg = sheet.court === 'Благой' ? comp.seelieLegacy : comp.unseelieLegacy;
     const secondaryLeg = sheet.court === 'Благой' ? comp.unseelieLegacy : comp.seelieLegacy;
-    const abilsTaken = ABILITIES.filter((ab) => comp.finalAbil[ab.id] > 0);
-    const bgsTaken = BACKGROUNDS.filter((b) => comp.finalBg[b.id] > 0);
-    const artsTaken = ARTS.filter((ar) => comp.finalArt[ar.id] > 0);
-    const realmsTaken = REALMS.filter((rl) => comp.finalRealm[rl.id] > 0);
-    const panelCls = forPrint ? 'print-dossier-card p-5 space-y-4 text-xs' : 'nouveau-panel p-5 sm:p-7 space-y-5';
-    const boxCls = forPrint ? 'border border-[#b5a990] rounded-lg p-3 space-y-1.5' : 'rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/60 p-3.5 space-y-2';
-    const headCls = forPrint ? 'text-[11px] font-bold uppercase tracking-wider text-[#5c4824] border-b border-[#d5cbb8] pb-1' : 'text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d8b979] border-b border-[#d8b979]/20 pb-1';
-    const extraLevelsText = comp.extraBruised > 0 ? `${'Синяки [0] · '.repeat(comp.extraBruised)}` : '';
-    const healthTrackText = `${extraLevelsText}Синяки [0] · Ушиблен [−1] · Ранен [−1] · Тяжело ранен [−2] · Изувечен [−2] · Искалечен [−5] · Недееспособен`;
+    const kithFull = isBlank ? '' : comp.kith ? `${comp.kith.ru} (Сродство: ${comp.kith.affinity})` : '';
+    const houseFull = isBlank ? '' : comp.house ? `${comp.house.ru} (${comp.house.court})` : '';
 
-    return `
-      <div class="${panelCls}">
-        <div class="flex flex-wrap items-baseline justify-between gap-3 border-b ${forPrint ? 'border-[#8c703b]' : 'border-[#d8b979]/25'} pb-3">
+    const passportHTML = `
+      <div class="c20-passport">
+        ${passportField('Имя', valOrBlank(sheet.name))}
+        ${passportField('Замысел', valOrBlank(sheet.concept))}
+        ${passportField('Мотли', valOrBlank(sheet.motley))}
+        ${passportField('Кит', kithFull)}
+        ${passportField('Двор', isBlank ? '' : sheet.court)}
+        ${passportField('Стадия души', isBlank ? '' : SEEMING_NAMES[sheet.seeming] || 'Дикарь')}
+        ${passportField('Ведущее Наследие', isBlank ? '' : primaryLeg ? primaryLeg.ru : '')}
+        ${passportField('Второе Наследие', isBlank ? '' : secondaryLeg ? secondaryLeg.ru : '')}
+        ${passportField('Благородный Дом', houseFull)}
+      </div>`;
+
+    const attrGridHTML = `
+      <div class="c20-grid-3">
+        ${['physical', 'social', 'mental']
+          .map(
+            (grp) => `
           <div>
-            <div class="text-[11px] uppercase tracking-[0.2em] ${forPrint ? 'text-[#5c4824]' : 'text-[#d8b979]'}">Лист подменыша · Changeling: The Dreaming 20th</div>
-            <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold ${forPrint ? 'text-[#1c1d1c]' : 'text-[#f0eadc]'} !mt-0.5 !mb-0">${escHtml(sheet.name || 'Безымянный слёток')}</h3>
-          </div>
-          <div class="text-xs ${forPrint ? 'text-[#444]' : 'text-[#a69f90]'} text-right">
-            <div>Свободные очки: <strong>${comp.freebieSpent}</strong> из <strong>${comp.freebiePool}</strong></div>
-            <div>Пройдено шагов: <strong>${(sheet.completedSteps || []).length}</strong> из 9</div>
-          </div>
+            <div class="c20-col-title">${ATTR_GROUP_NAMES[grp]}</div>
+            <div class="c20-trait-list">
+              ${ATTRIBUTES.filter((a) => a.group === grp)
+                .map((a) => {
+                  const val = isBlank ? 0 : comp.finalAttr[a.id];
+                  const bonus = isBlank ? 0 : comp.attrBonus[a.id] || 0;
+                  const maxDots = isBlank ? 5 : Math.max(5, val);
+                  const spec = !isBlank && sheet.specialties ? (sheet.specialties[`attr:${a.id}`] || '').trim() : '';
+                  const specHtml = spec ? ` <span class="c20-trait-spec">(${escHtml(spec)})</span>` : '';
+                  return `
+                    <div class="c20-trait-row">
+                      <span class="c20-trait-name">${escHtml(a.ru)}${specHtml}</span>
+                      <span class="c20-leader"></span>
+                      ${renderSheetDots(val, maxDots, { bonusCount: bonus, blank: isBlank })}
+                    </div>`;
+                })
+                .join('')}
+            </div>
+          </div>`
+          )
+          .join('')}
+      </div>`;
+
+    const renderAbilityGroupRows = (grp) => {
+      const grpAbils = ABILITIES.filter((ab) => ab.group === grp);
+      const visible = isCompact && !isBlank ? grpAbils.filter((ab) => comp.finalAbil[ab.id] > 0) : isCompact && isBlank ? [] : grpAbils;
+      const rows = visible.map((ab) => {
+        const val = isBlank ? 0 : comp.finalAbil[ab.id];
+        const baseLabel = ab.isCustomSlot ? formatCustomAbilitySheetLabel(ab, sheet, isBlank) : ab.ru;
+        const spec = !isBlank && sheet.specialties ? (sheet.specialties[`abil:${ab.id}`] || '').trim() : '';
+        const specHtml = spec ? ` <span class="c20-trait-spec">(${escHtml(spec)})</span>` : '';
+        return `
+          <div class="c20-trait-row">
+            <span class="c20-trait-name">${escHtml(baseLabel)}${specHtml}</span>
+            <span class="c20-leader"></span>
+            ${renderSheetDots(val, 5, { blank: isBlank })}
+          </div>`;
+      });
+      if (isCompact) {
+        const minRows = isBlank ? 4 : 3;
+        while (rows.length < minRows) rows.push(renderSheetBlankTraitRow(5));
+      }
+      return rows.join('');
+    };
+
+    const abilGridHTML = `
+      <div class="c20-grid-3">
+        ${['talents', 'skills', 'knowledges']
+          .map(
+            (grp) => `
+          <div>
+            <div class="c20-col-title">${ABIL_GROUP_NAMES[grp]}</div>
+            <div class="c20-trait-list">${renderAbilityGroupRows(grp)}</div>
+          </div>`
+          )
+          .join('')}
+      </div>`;
+
+    const advTargetRows = isCompact ? 5 : 6;
+    const renderAdvList = (items, finalMap) => {
+      const chosen = isBlank ? [] : items.filter((it) => (finalMap[it.id] || 0) > 0);
+      const rows = chosen.map(
+        (it) => `
+        <div class="c20-trait-row">
+          <span class="c20-trait-name">${escHtml(it.ru)}</span>
+          <span class="c20-leader"></span>
+          ${renderSheetDots(finalMap[it.id], 5, { blank: false })}
+        </div>`
+      );
+      while (rows.length < advTargetRows) rows.push(renderSheetBlankTraitRow(5));
+      return rows.join('');
+    };
+
+    const realmsListHTML = REALMS.map((rl) => {
+      const isAffinity = !isBlank && comp.affinityRealmId === rl.id;
+      const val = isBlank ? 0 : comp.finalRealm[rl.id];
+      return `
+        <div class="c20-trait-row">
+          <span class="c20-trait-name">${escHtml(rl.ru)}${isAffinity ? ' ★' : ''}</span>
+          <span class="c20-leader"></span>
+          ${renderSheetDots(val, 5, { blank: isBlank })}
+        </div>`;
+    }).join('');
+
+    const advGridHTML = `
+      <div class="c20-grid-3">
+        <div>
+          <div class="c20-col-title">Дополнения</div>
+          <div class="c20-trait-list">${renderAdvList(BACKGROUNDS, comp.finalBg)}</div>
         </div>
-
-        ${comp.warnings.length && !forPrint ? `
-          <div class="rounded-xl border border-[#e06d44]/45 bg-[#2a1512]/70 p-3.5 space-y-1 text-xs text-[#ffd6c9]">
-            <div class="font-semibold">◈ Напоминания по правилам C20</div>
-            ${comp.warnings.map((w) => `<div>• ${escHtml(w)}</div>`).join('')}
-          </div>` : ''}
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs leading-relaxed">
-          <div class="${boxCls}">
-            <div class="${headCls}">Происхождение и душа</div>
-            <div><strong>Замысел:</strong> ${escHtml(sheet.concept || '—')}</div>
-            <div><strong>Мотли:</strong> ${escHtml(sheet.motley || '—')}</div>
-            <div><strong>Кит:</strong> ${kithName}${comp.kith ? ` · <em>Сродство: ${escHtml(comp.kith.affinity)}</em>` : ''}</div>
-            <div><strong>Двор и Стадия:</strong> ${escHtml(sheet.court)} · ${escHtml(SEEMING_NAMES[sheet.seeming] || 'Дикарь')}</div>
-            <div><strong>Благородный Дом:</strong> ${houseName}</div>
-            <div><strong>Ведущее Наследие:</strong> ${primaryLeg ? escHtml(primaryLeg.ru) : '—'}</div>
-            <div><strong>Второе Наследие:</strong> ${secondaryLeg ? escHtml(secondaryLeg.ru) : '—'}</div>
-          </div>
-
-          <div class="${boxCls}">
-            <div class="${headCls}">Темпераменты, Порог и Здоровье</div>
-            <div><strong>Сила Воли:</strong> ${comp.willpower} ${renderDotStrip(comp.willpower, comp.maxWillpower)} <span class="opacity-70">(предел ${comp.maxWillpower})</span></div>
-            <div><strong>Гламур:</strong> ${comp.glamour} ${renderDotStrip(comp.glamour, 10)}</div>
-            <div><strong>Банальность:</strong> ${comp.banality} ${renderDotStrip(comp.banality, 10)}</div>
-            <div><strong>Кошмар:</strong> 0 из 10</div>
-            <div><strong>Порог Гламура:</strong> ${comp.threshold ? `${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)})` : 'определится в игре'}</div>
-            <div><strong>Антитеза:</strong> ${escHtml(sheet.antithesis || 'не выбрана')}</div>
-            <div><strong>Шкалы Здоровья (${comp.healthLevels}):</strong> ${healthTrackText}</div>
-          </div>
+        <div>
+          <div class="c20-col-title">Искусства</div>
+          <div class="c20-trait-list">${renderAdvList(ARTS, comp.finalArt)}</div>
         </div>
-
-        <div class="${boxCls}">
-          <div class="${headCls}">Атрибуты</div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            ${['physical', 'social', 'mental'].map((g) => `
-              <div class="space-y-1">
-                <div class="font-semibold opacity-80">${ATTR_GROUP_NAMES[g]}</div>
-                ${ATTRIBUTES.filter((a) => a.group === g).map((a) => `
-                  <div class="flex items-center justify-between gap-2">
-                    <span>${a.ru}${comp.bonusSources[a.id] ? ` <span class="opacity-75">(${comp.bonusSources[a.id]})</span>` : ''}</span>
-                    <span class="font-semibold">${comp.finalAttr[a.id]}</span>
-                  </div>`).join('')}
-              </div>`).join('')}
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          <div class="${boxCls}">
-            <div class="${headCls}">Способности</div>
-            ${abilsTaken.length
-              ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">${abilsTaken.map((ab) => {
-                  const cn = sheet.customAbilityNames && sheet.customAbilityNames[ab.id];
-                  return `<div class="flex items-center justify-between gap-2"><span>${ab.ru}${cn ? ` (${escHtml(cn)})` : ''}</span><strong>${comp.finalAbil[ab.id]}</strong></div>`;
-                }).join('')}</div>`
-              : '<div class="opacity-70">Способности ещё не распределены.</div>'}
-          </div>
-
-          <div class="${boxCls}">
-            <div class="${headCls}">Дополнения, Искусства и Владения</div>
-            ${bgsTaken.length ? `<div><strong>Дополнения:</strong> ${bgsTaken.map((b) => `${b.ru} ${comp.finalBg[b.id]}`).join(' · ')}</div>` : '<div class="opacity-70">Дополнения не выбраны.</div>'}
-            ${artsTaken.length ? `<div><strong>Искусства:</strong> ${artsTaken.map((ar) => `${ar.ru} ${comp.finalArt[ar.id]}`).join(' · ')}</div>` : '<div class="opacity-70">Искусства не выбраны.</div>'}
-            ${realmsTaken.length ? `<div><strong>Владения:</strong> ${realmsTaken.map((rl) => `${rl.ru} ${comp.finalRealm[rl.id]}${comp.affinityRealmId === rl.id ? ' ★' : ''}`).join(' · ')}</div>` : '<div class="opacity-70">Владения не выбраны.</div>'}
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          <div class="${boxCls}">
-            <div class="${headCls}">Права, Дары, Достоинства и Недостатки</div>
-            ${comp.kith ? `<div><strong>Врождённые права:</strong> ${(comp.kith.birthrights || []).map((b) => escHtml(b.name)).join(' · ')}</div>` : ''}
-            ${comp.kith && comp.kith.frailty ? `<div><strong>Слабость Кита:</strong> ${escHtml(comp.kith.frailty.name)}</div>` : ''}
-            ${comp.house ? `<div><strong>Дар и Изъян Дома:</strong> ${escHtml(comp.house.boon.name)} · ${escHtml(comp.house.flaw.name)}</div>` : ''}
-            ${(sheet.freebie.merits || []).length ? `<div><strong>Достоинства:</strong> ${(sheet.freebie.merits || []).map((m) => `${escHtml(m.ru)} (${m.cost}${m.note ? `: ${escHtml(m.note)}` : ''})`).join('; ')}</div>` : ''}
-            ${(sheet.freebie.flaws || []).length ? `<div><strong>Недостатки:</strong> ${(sheet.freebie.flaws || []).map((f) => `${escHtml(f.ru)} (${f.cost}${f.note ? `: ${escHtml(f.note)}` : ''})`).join('; ')}</div>` : ''}
-          </div>
-
-          <div class="${boxCls}">
-            <div class="${headCls}">Специализации</div>
-            ${comp.requiredSpecialties.length
-              ? comp.requiredSpecialties.map((sp) => `<div><strong>${escHtml(sp.label)} (${sp.rating}):</strong> ${escHtml((sheet.specialties || {})[sp.key] || 'не указана')}</div>`).join('')
-              : '<div class="opacity-70">Пока нет черт 4+ или обязательных специализаций.</div>'}
-          </div>
-        </div>
-
-        <div class="${boxCls} text-xs leading-relaxed">
-          <div class="${headCls}">Искра жизни и облик</div>
-          <div><strong>Смертный облик:</strong> ${escHtml(sheet.mortalGuise || '—')}</div>
-          <div><strong>Облик феи и Вуаль:</strong> ${escHtml(sheet.faeMien || '—')}</div>
-          <div><strong>Цели:</strong> ${escHtml(sheet.goals || '—').replace(/\n/g, ' · ')}</div>
-          <div><strong>Причуды:</strong> ${escHtml(sheet.quirks || '—')}</div>
-          <div><strong>Хризалида и Мотли:</strong> ${escHtml(sheet.backstory || '—')}</div>
+        <div>
+          <div class="c20-col-title">Владения${!isBlank && comp.kith ? ' (★ Сродство)' : ''}</div>
+          <div class="c20-trait-list">${realmsListHTML}</div>
         </div>
       </div>`;
+
+    const renderRightsColHTML = () => {
+      if (isBlank) {
+        return `
+          <div class="c20-card">
+            <div class="c20-card-title">Права, Слабость и Дом</div>
+            <div class="c20-note-line"><strong>Врождённые права:</strong></div>
+            ${renderRuledBlock('', 3)}
+            <div class="c20-note-line"><strong>Слабость Кита:</strong></div>
+            ${renderRuledBlock('', 2)}
+            <div class="c20-note-line"><strong>Дар и Изъян Дома:</strong></div>
+            ${renderRuledBlock('', 2)}
+            <div class="c20-note-line" style="margin-top:0.15em;"><strong>Порог Гламура:</strong> ______________________</div>
+            <div class="c20-note-line"><strong>Антитеза:</strong> ___________________________</div>
+            ${isCompact ? '<div class="c20-note-line"><strong>Достоинства / Недостатки:</strong></div>' + renderRuledBlock('', 2) : ''}
+          </div>`;
+      }
+      const blocks = [];
+      if (comp.kith) {
+        (comp.kith.birthrights || []).forEach((br) => {
+          const sum = summarizeForSheet((br.paragraphs || []).join(' '), isCompact ? 85 : 115);
+          blocks.push(`<div class="c20-note-line"><strong>Право · ${escHtml(br.name)}:</strong> ${escHtml(sum)}</div>`);
+        });
+        if (comp.kith.frailty) {
+          const sumF = summarizeForSheet((comp.kith.frailty.paragraphs || []).join(' '), isCompact ? 85 : 110);
+          blocks.push(`<div class="c20-note-line"><strong>Слабость · ${escHtml(comp.kith.frailty.name)}:</strong> ${escHtml(sumF)}</div>`);
+        }
+      } else {
+        blocks.push('<div class="c20-note-line"><strong>Права и Слабость:</strong> Кит не выбран</div>');
+      }
+      if (comp.house) {
+        const boonSum = summarizeForSheet((comp.house.boon.paragraphs || [comp.house.boon.text || '']).join(' '), isCompact ? 75 : 95);
+        const flawSum = summarizeForSheet((comp.house.flaw.paragraphs || [comp.house.flaw.text || '']).join(' '), isCompact ? 75 : 95);
+        blocks.push(`<div class="c20-note-line"><strong>Дар Дома (${escHtml(comp.house.boon.name)}):</strong> ${escHtml(boonSum)}</div>`);
+        blocks.push(`<div class="c20-note-line"><strong>Изъян (${escHtml(comp.house.flaw.name)}):</strong> ${escHtml(flawSum)}</div>`);
+      }
+      blocks.push(
+        `<div class="c20-note-line" style="padding-top:0.15em;border-top:0.5pt solid var(--sh-rule-soft);"><strong>Порог Гламура:</strong> ${
+          comp.threshold ? `${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)})` : 'определится в игре'
+        }</div>`
+      );
+      blocks.push(`<div class="c20-note-line"><strong>Антитеза:</strong> ${escHtml(sheet.antithesis || 'не выбрана')}</div>`);
+      if (isCompact) {
+        const mfAll = [
+          ...(sheet.freebie.merits || []).map((m) => `+${m.ru} (−${m.cost})`),
+          ...(sheet.freebie.flaws || []).map((f) => `−${f.ru} (+${f.cost})`)
+        ];
+        if (mfAll.length) {
+          blocks.push(`<div class="c20-note-line"><strong>Достоинства / Недостатки:</strong> ${escHtml(mfAll.join('; '))}</div>`);
+        }
+        const specs = comp.requiredSpecialties
+          .map((sp) => {
+            const val = (sheet.specialties || {})[sp.key];
+            return val ? `${sp.label}: ${val}` : sp.label;
+          })
+          .filter(Boolean);
+        if (specs.length) {
+          blocks.push(`<div class="c20-note-line"><strong>Специализации:</strong> ${escHtml(specs.join('; '))}</div>`);
+        }
+      }
+      return `
+        <div class="c20-card">
+          <div class="c20-card-title">Права, Слабость и Дом</div>
+          ${blocks.join('')}
+        </div>`;
+    };
+
+    const tempersColHTML = `
+      <div class="c20-card">
+        <div class="c20-card-title" style="text-align:center;">Темпераменты</div>
+        <div class="c20-temper-stack">
+          <div class="c20-temper-block">
+            <div class="c20-temper-title">Гламур</div>
+            ${renderSheetDots(isBlank ? 0 : comp.glamour, 10, { blank: isBlank })}
+            ${renderSheetBoxes(10)}
+          </div>
+          <div class="c20-temper-block">
+            <div class="c20-temper-title">Сила Воли</div>
+            ${renderSheetDots(isBlank ? 0 : comp.willpower, 10, {
+              lockedAfter: !isBlank && comp.maxWillpower < 10 ? comp.maxWillpower : 0,
+              blank: isBlank
+            })}
+            ${renderSheetBoxes(10)}
+            ${!isBlank && comp.maxWillpower < 10 ? `<div class="c20-temper-sub">предел ${comp.maxWillpower} (Дом Балор)</div>` : ''}
+          </div>
+          <div class="c20-temper-block">
+            <div class="c20-temper-title">Банальность</div>
+            ${renderSheetDots(isBlank ? 0 : comp.banality, 10, { banality: true, blank: isBlank })}
+            ${renderSheetBoxes(10)}
+          </div>
+          <div class="c20-temper-block">
+            <div class="c20-temper-title">Кошмар</div>
+            ${renderSheetBoxes(10)}
+            <div class="c20-temper-sub">постоянно не расходуется · Бедлам при 10</div>
+          </div>
+        </div>
+      </div>`;
+
+    const extraBruised = isBlank ? 0 : comp.extraBruised;
+    const healthLevelsList = [];
+    for (let b = 0; b < extraBruised; b++) healthLevelsList.push(['Синяки (Клятва)', '0']);
+    healthLevelsList.push(
+      ['Синяки', '0'],
+      ['Ушиблен', '−1'],
+      ['Ранен', '−1'],
+      ['Тяжело ранен', '−2'],
+      ['Изувечен', '−2'],
+      ['Искалечен', '−5'],
+      ['Недееспособен', '—']
+    );
+
+    const healthColHTML = `
+      <div class="c20-card">
+        <div class="c20-card-title" style="text-align:center;">Здоровье и Опыт</div>
+        <table class="c20-health-table">
+          <thead>
+            <tr>
+              <th>Уровень</th>
+              <th class="cen">Штраф</th>
+              <th class="cen">Реал.</th>
+              <th class="cen">Хим.</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${healthLevelsList
+              .map(
+                ([lvl, pen]) => `
+              <tr>
+                <td>${escHtml(lvl)}</td>
+                <td class="pen">${escHtml(pen)}</td>
+                <td class="cen"><span class="c20-box"></span></td>
+                <td class="cen"><span class="c20-box"></span></td>
+              </tr>`
+              )
+              .join('')}
+          </tbody>
+        </table>
+        <div class="c20-temper-sub" style="text-align:center;margin-top:0.15em;">/ ударный · ✕ летальный · ✳ аггравированный</div>
+        <div class="c20-note-line" style="padding-top:0.25em;margin-top:0.2em;border-top:0.5pt solid var(--sh-rule-soft);display:flex;justify-content:space-between;gap:0.4em;">
+          <span><strong>Опыт:</strong> ________</span>
+          <span><strong>Потрачено:</strong> ________</span>
+        </div>
+      </div>`;
+
+    const bottomBandHTML = `
+      <div class="c20-bottom-band">
+        ${renderRightsColHTML()}
+        ${tempersColHTML}
+        ${healthColHTML}
+      </div>`;
+
+    const metaLabel = isBlank
+      ? 'Чистый игровой бланк (A4)'
+      : `Свободные очки: ${comp.freebieSpent} / ${comp.freebiePool} · Шагов: ${(sheet.completedSteps || []).length} / 9`;
+
+    const page1HTML = `
+      <div class="c20-page-badge no-print">${isCompact ? 'Компактный бланк · 1 лист A4' : 'Лист I · Игровой бланк (A4)'}</div>
+      <section class="c20-sheet-page ${isCompact ? 'c20-page-compact' : 'c20-page-1'}">
+        <div class="c20-sheet-frame">
+          ${renderSheetCornersSVG()}
+          <header class="c20-banner">
+            <div>
+              <div class="c20-banner-sub">Changeling: The Dreaming · 20th Anniversary Edition</div>
+              <div class="c20-banner-title">Лист Подменыша</div>
+            </div>
+            <div class="c20-banner-meta">
+              <div><strong>${isBlank ? 'Безымянный слёток / Новый персонаж' : escHtml(sheet.name || 'Безымянный слёток')}</strong></div>
+              <div>${escHtml(metaLabel)}</div>
+            </div>
+          </header>
+
+          ${passportHTML}
+          ${renderSheetSectionHead('Атрибуты')}
+          ${attrGridHTML}
+          ${renderSheetSectionHead('Способности')}
+          ${abilGridHTML}
+          ${renderSheetSectionHead('Преимущества')}
+          ${advGridHTML}
+          ${bottomBandHTML}
+          ${
+            isCompact
+              ? `
+            ${renderSheetSectionHead('Искра жизни и облик')}
+            <div class="c20-grid-2">
+              <div class="c20-card">
+                <div class="c20-note-line"><strong>Смертный облик:</strong></div>
+                ${renderRuledBlock(isBlank ? '' : sheet.mortalGuise, 2)}
+                <div class="c20-note-line" style="margin-top:0.15em;"><strong>Облик феи и Вуаль:</strong></div>
+                ${renderRuledBlock(isBlank ? '' : sheet.faeMien, 2)}
+              </div>
+              <div class="c20-card">
+                <div class="c20-note-line"><strong>Цели и причуды:</strong></div>
+                ${renderRuledBlock(isBlank ? '' : [sheet.goals, sheet.quirks].filter(Boolean).join(' · '), 2)}
+                <div class="c20-note-line" style="margin-top:0.15em;"><strong>Хризалида, Мотли и Клятвы:</strong></div>
+                ${renderRuledBlock(isBlank ? '' : sheet.backstory, 2)}
+              </div>
+            </div>`
+              : ''
+          }
+          <footer class="c20-sheet-footer">
+            <span>Подменыши: Грёза · Книга Игрока</span>
+            <span>${isCompact ? 'Компактный лист A4' : 'Лист I · Игровые параметры'}</span>
+          </footer>
+        </div>
+      </section>`;
+
+    let page2HTML = '';
+    if (!isCompact) {
+      const merits = isBlank ? [] : sheet.freebie.merits || [];
+      const flaws = isBlank ? [] : sheet.freebie.flaws || [];
+      const mfLines = [
+        ...merits.map((m) => `✦ <strong>Достоинство · ${escHtml(m.ru)}</strong> (−${m.cost})${m.note ? ` — ${escHtml(m.note)}` : ''}`),
+        ...flaws.map((f) => `◆ <strong>Недостаток · ${escHtml(f.ru)}</strong> (+${f.cost})${f.note ? ` — ${escHtml(f.note)}` : ''}`)
+      ];
+      const mfPadCount = Math.max(0, 6 - mfLines.length);
+
+      const specsList = isBlank
+        ? []
+        : comp.requiredSpecialties.map((sp) => {
+            const txt = (sheet.specialties || {})[sp.key] || 'не указана';
+            return `<strong>${escHtml(sp.label)} (${sp.rating}):</strong> ${escHtml(txt)}`;
+          });
+      const specsPadCount = Math.max(0, 3 - specsList.length);
+
+      const emptyRows = (cols, count) =>
+        Array.from({ length: count }, () => `<tr>${Array.from({ length: cols }, () => '<td>&nbsp;</td>').join('')}</tr>`).join('');
+
+      page2HTML = `
+        <div class="c20-page-badge no-print">Лист II · Хроника, облик и снаряжение (A4)</div>
+        <section class="c20-sheet-page c20-page-2 c20-page-break">
+          <div class="c20-sheet-frame">
+            ${renderSheetCornersSVG()}
+            <header class="c20-banner">
+              <div>
+                <div class="c20-banner-sub">Подменыши: Грёза · Хроника, магия и снаряжение</div>
+                <div class="c20-banner-title">${isBlank ? 'Лист Хроники' : escHtml(sheet.name || 'Безымянный слёток')}</div>
+              </div>
+              <div class="c20-banner-meta">
+                <div><strong>${isBlank ? 'Кит / Двор / Дом' : escHtml([comp.kith ? comp.kith.ru : '', sheet.court, comp.house ? comp.house.ru : ''].filter(Boolean).join(' · '))}</strong></div>
+                <div>Лист II · Продолжение досье</div>
+              </div>
+            </header>
+
+            <div class="c20-grid-2">
+              <div class="c20-card">
+                <div class="c20-card-title">Достоинства и Недостатки</div>
+                ${mfLines.map((ln) => `<div class="c20-note-line">${ln}</div>`).join('')}
+                ${mfPadCount > 0 ? `<div class="c20-ruled-lines">${Array.from({ length: mfPadCount }, () => '<div class="c20-ruled-line"></div>').join('')}</div>` : ''}
+              </div>
+              <div class="c20-card">
+                <div class="c20-card-title">Специализации и Порог Гламура</div>
+                ${specsList.map((ln) => `<div class="c20-note-line">${ln}</div>`).join('')}
+                ${specsPadCount > 0 ? `<div class="c20-ruled-lines">${Array.from({ length: specsPadCount }, () => '<div class="c20-ruled-line"></div>').join('')}</div>` : ''}
+                <div class="c20-note-line" style="margin-top:0.25em;padding-top:0.2em;border-top:0.5pt solid var(--sh-rule-soft);">
+                  <strong>Порог Гламура:</strong> ${
+                    isBlank
+                      ? '____________________________________'
+                      : comp.threshold
+                        ? `${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)}) — ${escHtml(summarizeForSheet(comp.threshold.desc, 190))}`
+                        : 'определится в первых сценах игры'
+                  }
+                </div>
+                <div class="c20-note-line"><strong>Антитеза:</strong> ${isBlank ? '________________________________________' : escHtml(sheet.antithesis || 'не указана')}</div>
+              </div>
+            </div>
+
+            ${renderSheetSectionHead('Искра жизни и облик')}
+            <div class="c20-grid-2">
+              <div class="c20-card">
+                <div class="c20-card-title">Смертный облик</div>
+                ${renderRuledBlock(isBlank ? '' : sheet.mortalGuise, 3)}
+              </div>
+              <div class="c20-card">
+                <div class="c20-card-title">Облик феи и Вуаль</div>
+                ${renderRuledBlock(isBlank ? '' : sheet.faeMien, 3)}
+              </div>
+              <div class="c20-card">
+                <div class="c20-card-title">Три цели</div>
+                ${renderRuledBlock(isBlank ? '' : sheet.goals, 3)}
+              </div>
+              <div class="c20-card">
+                <div class="c20-card-title">Причуды и привычки</div>
+                ${renderRuledBlock(isBlank ? '' : sheet.quirks, 3)}
+              </div>
+            </div>
+            <div class="c20-card">
+              <div class="c20-card-title">Хризалида, смертная жизнь и связь с Мотли</div>
+              ${renderRuledBlock(isBlank ? '' : sheet.backstory, 3)}
+            </div>
+
+            ${renderSheetSectionHead('Кантрипы, Уловки и Сокровища')}
+            <table class="c20-pencil-table">
+              <thead>
+                <tr>
+                  <th style="width:28%;">Кантрип и Искусство</th>
+                  <th style="width:16%;">Владение</th>
+                  <th style="width:34%;">Уловка</th>
+                  <th style="width:22%;">Запас и Сложность</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${emptyRows(4, 5)}
+              </tbody>
+            </table>
+
+            <div class="c20-grid-2">
+              <table class="c20-pencil-table">
+                <thead>
+                  <tr>
+                    <th style="width:45%;">Сокровище, Химера или Дар</th>
+                    <th style="width:55%;">Уровень, Гламур и свойства</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${emptyRows(2, 5)}
+                </tbody>
+              </table>
+
+              <div style="display:flex;flex-direction:column;gap:0.45em;">
+                <table class="c20-pencil-table">
+                  <thead>
+                    <tr>
+                      <th style="width:46%;">Оружие / Броня</th>
+                      <th style="width:22%;">Сложность</th>
+                      <th style="width:32%;">Урон / Защита</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${emptyRows(3, 3)}
+                  </tbody>
+                </table>
+                <div class="c20-card">
+                  <div class="c20-card-title">Клятвы, Дворы и союзники</div>
+                  ${renderRuledBlock('', 3)}
+                </div>
+              </div>
+            </div>
+
+            <footer class="c20-sheet-footer">
+              <span>Опыт: Текущий ________ · Потрачено ________ · Всего ________</span>
+              <span>Changeling: The Dreaming 20th · Лист II</span>
+            </footer>
+          </div>
+        </section>`;
+    }
+
+    return `
+      <div class="c20-sheet-root" data-pages="${opts.pages}" data-palette="${opts.palette}" style="--sheet-scale:${opts.scale};">
+        <div class="c20-sheet-stack">
+          ${page1HTML}
+          ${page2HTML}
+        </div>
+      </div>`;
+  }
+
+  function renderDossierBodyHTML(sheet, comp, _forPrint = false) {
+    return renderC20SheetHTML(sheet, comp, state.chrysalisPrint);
   }
 
   function initChrysalisPath() {
@@ -4998,6 +5490,7 @@
     if (!mount || !CREATION_STEPS.length) return;
 
     state.chrysalisSheet = loadChrysalisSheet();
+    state.chrysalisPrint = loadChrysalisPrint();
 
     mount.innerHTML = `
       <section id="chrysalis-path" class="space-y-5 my-6 scroll-mt-24">
@@ -5984,16 +6477,118 @@
     if (!area) return;
     const sheet = state.chrysalisSheet;
     const comp = computeCharacterSheet(sheet);
+    const pOpts = normalizeChrysalisPrint(state.chrysalisPrint);
+    const scaleChoices = [0.9, 0.95, 1, 1.05, 1.1];
+    const pillCls = (active) =>
+      active
+        ? 'border-[#f0dba8]/80 bg-[#d8b979]/24 text-[#f0dba8] font-medium'
+        : 'border-[#d8b979]/25 bg-[#0b110f]/75 text-[#a69f90] hover:text-[#f0eadc]';
+
     area.innerHTML = `
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <div class="flex flex-wrap gap-2">
-          <button type="button" id="btn-copy-dossier" class="px-4 py-2 rounded-full text-xs font-medium border border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8] hover:bg-[#d8b979]/30 transition">Скопировать лист текстом</button>
-          <button type="button" id="btn-print-dossier" class="px-4 py-2 rounded-full text-xs font-medium border border-[#d8b979]/50 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">Печать Листа (PDF)</button>
+      <div class="nouveau-panel p-4 sm:p-5 space-y-3.5 no-print">
+        <div class="relative z-10 flex flex-wrap items-center justify-between gap-2.5">
+          <div class="flex flex-wrap gap-2">
+            <button type="button" id="btn-print-dossier" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium border border-[#f0dba8]/80 bg-[#d8b979]/22 text-[#f0dba8] hover:bg-[#d8b979]/32 transition">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+              <span>Печать / Сохранить PDF (A4)</span>
+            </button>
+            <button type="button" id="btn-copy-dossier" class="px-4 py-2 rounded-full text-xs font-medium border border-[#d8b979]/40 bg-[#15211d]/85 text-[#f0eadc] hover:border-[#f0dba8] transition">Скопировать лист текстом</button>
+          </div>
+          <button type="button" id="btn-back-steps" class="px-3.5 py-2 rounded-full text-xs border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc] transition">← Вернуться к шагам</button>
         </div>
-        <button type="button" id="btn-back-steps" class="px-3.5 py-2 rounded-full text-xs border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc] transition">← Вернуться к шагам</button>
+
+        <div class="relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2.5 pt-3 border-t border-[#d8b979]/20 text-xs">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[11px] text-[#a69f90]">Формат:</span>
+            <button type="button" data-print-pages="2" class="px-2.5 py-1 rounded-full border transition ${pillCls(pOpts.pages === '2')}">2 стр. A4 · Полный</button>
+            <button type="button" data-print-pages="1" class="px-2.5 py-1 rounded-full border transition ${pillCls(pOpts.pages === '1')}">1 стр. A4 · Компактный</button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[11px] text-[#a69f90]">Палитра:</span>
+            <button type="button" data-print-palette="color" class="px-2.5 py-1 rounded-full border transition ${pillCls(pOpts.palette === 'color')}">Цветной Ар-Нуво</button>
+            <button type="button" data-print-palette="bw" class="px-2.5 py-1 rounded-full border transition ${pillCls(pOpts.palette === 'bw')}">Ч/Б контраст</button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1">
+            <span class="text-[11px] text-[#a69f90] mr-0.5">Масштаб:</span>
+            ${scaleChoices
+              .map(
+                (sc) =>
+                  `<button type="button" data-print-scale="${sc}" class="px-2 py-1 rounded-full border text-[11px] transition ${pillCls(pOpts.scale === sc)}">${Math.round(sc * 100)}%</button>`
+              )
+              .join('')}
+          </div>
+
+          <button type="button" data-print-blank="toggle" class="px-3 py-1 rounded-full border transition ${pillCls(pOpts.blank)}">
+            ${pOpts.blank ? '✓ Пустой бланк' : 'Пустой бланк'}
+          </button>
+        </div>
+
+        <div class="relative z-10 text-[11px] text-[#a69f90] leading-relaxed">
+          Для лучшего результата выберите в окне печати формат <strong class="text-[#f0eadc]">A4</strong> и снимите галочку колонтитулов браузера. Цветной Ар-Нуво рассчитан на чистую ч/б печать, а режим <strong class="text-[#f0eadc]">«Ч/Б контраст»</strong> даёт максимальную резкость без полутонов.
+        </div>
+        <div class="relative z-10 md:hidden text-[11px] text-[#d8b979]">
+          Лист показан в настоящих пропорциях A4 — прокрутите предпросмотр по горизонтали, чтобы рассмотреть все три колонки.
+        </div>
       </div>
-      ${renderDossierBodyHTML(sheet, comp, false)}
+
+      ${
+        comp.warnings.length && !pOpts.blank
+          ? `
+        <div class="rounded-xl border border-[#e06d44]/45 bg-[#2a1512]/70 p-3.5 space-y-1 text-xs text-[#ffd6c9] no-print">
+          <div class="font-semibold">◈ Напоминания по правилам C20</div>
+          ${comp.warnings.map((w) => `<div>• ${escHtml(w)}</div>`).join('')}
+        </div>`
+          : ''
+      }
+
+      <div class="c20-preview-stage">
+        ${renderC20SheetHTML(sheet, comp, pOpts)}
+      </div>
     `;
+
+    area.querySelectorAll('[data-print-pages]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        state.chrysalisPrint = normalizeChrysalisPrint(
+          Object.assign({}, state.chrysalisPrint, { pages: btn.getAttribute('data-print-pages') })
+        );
+        saveChrysalisPrint();
+        renderChrysalisDossierArea();
+      })
+    );
+
+    area.querySelectorAll('[data-print-palette]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        state.chrysalisPrint = normalizeChrysalisPrint(
+          Object.assign({}, state.chrysalisPrint, { palette: btn.getAttribute('data-print-palette') })
+        );
+        saveChrysalisPrint();
+        renderChrysalisDossierArea();
+      })
+    );
+
+    area.querySelectorAll('[data-print-scale]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        state.chrysalisPrint = normalizeChrysalisPrint(
+          Object.assign({}, state.chrysalisPrint, { scale: parseFloat(btn.getAttribute('data-print-scale')) || 1 })
+        );
+        saveChrysalisPrint();
+        renderChrysalisDossierArea();
+      })
+    );
+
+    const blankBtn = area.querySelector('[data-print-blank]');
+    if (blankBtn) {
+      blankBtn.addEventListener('click', () => {
+        state.chrysalisPrint = normalizeChrysalisPrint(
+          Object.assign({}, state.chrysalisPrint, { blank: !state.chrysalisPrint.blank })
+        );
+        saveChrysalisPrint();
+        renderChrysalisDossierArea();
+      });
+    }
+
     const copyBtn = document.getElementById('btn-copy-dossier');
     if (copyBtn) {
       copyBtn.addEventListener('click', () => {
@@ -6008,20 +6603,34 @@
         }
       });
     }
+
     const printBtn = document.getElementById('btn-print-dossier');
     if (printBtn) {
       printBtn.addEventListener('click', () => {
         const box = document.getElementById('print-dossier-container');
-        if (box) box.innerHTML = renderDossierBodyHTML(sheet, comp, true);
+        if (box) box.innerHTML = renderC20SheetHTML(sheet, comp, state.chrysalisPrint);
+        const oldStyle = document.getElementById('c20-dynamic-page-style');
+        if (oldStyle) oldStyle.remove();
+        const pageStyle = document.createElement('style');
+        pageStyle.id = 'c20-dynamic-page-style';
+        pageStyle.textContent = '@page { size: A4 portrait; margin: 8mm; }';
+        document.head.appendChild(pageStyle);
         document.body.classList.add('print-dossier-only');
+
+        let cleaned = false;
         const cleanup = () => {
+          if (cleaned) return;
+          cleaned = true;
           document.body.classList.remove('print-dossier-only');
+          const st = document.getElementById('c20-dynamic-page-style');
+          if (st) st.remove();
         };
         window.addEventListener('afterprint', cleanup, { once: true });
         window.print();
-        setTimeout(cleanup, 1200);
+        window.addEventListener('focus', () => setTimeout(cleanup, 150), { once: true });
       });
     }
+
     const backBtn = document.getElementById('btn-back-steps');
     if (backBtn) {
       backBtn.addEventListener('click', () => {
