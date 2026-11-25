@@ -1433,6 +1433,13 @@ body.mode-table .table-mode-only {
   height: 1.62em;
 }
 
+.c20-pencil-table tr.c20-cantrip-row td {
+  height: auto;
+  vertical-align: top;
+  line-height: 1.24;
+  padding: 0.24em 0.4em;
+}
+
 .c20-sheet-footer {
   margin-top: auto;
   padding-top: 0.35em;

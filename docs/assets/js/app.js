@@ -4846,7 +4846,11 @@
       '',
       'ДОПОЛНЕНИЯ, ИСКУССТВА И ВЛАДЕНИЯ:',
       ...BACKGROUNDS.filter((b) => comp.finalBg[b.id] > 0).map((b) => `- Дополнение · ${b.ru}: ${comp.finalBg[b.id]}`),
-      ...ARTS.filter((ar) => comp.finalArt[ar.id] > 0).map((ar) => `- Искусство · ${ar.ru}: ${comp.finalArt[ar.id]}`),
+      ...ARTS.filter((ar) => comp.finalArt[ar.id] > 0).map((ar) => {
+        const rating = comp.finalArt[ar.id];
+        const unlocked = (ar.cantrips || []).filter((c) => c.dots <= rating).map((c) => c.ru);
+        return `- Искусство · ${ar.ru}: ${rating}${unlocked.length ? ` (${unlocked.join(', ')})` : ''}`;
+      }),
       ...REALMS.filter((rl) => comp.finalRealm[rl.id] > 0).map((rl) => `- Владение · ${rl.ru}: ${comp.finalRealm[rl.id]}${comp.affinityRealmId === rl.id ? ' [Сродство]' : ''}`),
       '',
       `ТЕМПЕРАМЕНТЫ: Сила Воли ${comp.willpower} (макс. ${comp.maxWillpower}) · Гламур ${comp.glamour} · Банальность ${comp.banality} · Кошмар 0`,
@@ -5474,20 +5478,55 @@
               ${renderRuledBlock(isBlank ? '' : sheet.backstory, 2)}
             </div>
 
-            ${renderSheetSectionHead('Кантрипы, Уловки и Сокровища')}
-            <table class="c20-pencil-table">
-              <thead>
-                <tr>
-                  <th style="width:28%;">Кантрип и Искусство</th>
-                  <th style="width:16%;">Владение</th>
-                  <th style="width:34%;">Уловка</th>
-                  <th style="width:22%;">Запас и Сложность</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${emptyRows(4, 4)}
-              </tbody>
-            </table>
+            ${renderSheetSectionHead('Кантрипы, Сокровища и Снаряжение')}
+            ${(() => {
+              const unlockedCantrips = [];
+              if (!isBlank) {
+                ARTS.forEach((ar) => {
+                  const rating = comp.finalArt[ar.id] || 0;
+                  if (rating > 0) {
+                    (ar.cantrips || []).forEach((c) => {
+                      if (c.dots <= rating) {
+                        unlockedCantrips.push({
+                          artRu: ar.ru,
+                          artRating: rating,
+                          dots: c.dots,
+                          ru: c.ru,
+                          typeRu: c.typeRu || '',
+                          summary: c.sheetSummary || cleanMdPlain((c.system || [])[0] || '')
+                        });
+                      }
+                    });
+                  }
+                });
+              }
+              const padRows = Math.max(0, 4 - unlockedCantrips.length);
+              const filledRowsHTML = unlockedCantrips
+                .map(
+                  (ct) => `
+                  <tr class="c20-cantrip-row">
+                    <td><strong>${escHtml(ct.ru)}</strong><div class="c20-temper-sub">${escHtml(ct.artRu)} ${'•'.repeat(ct.dots)}</div></td>
+                    <td>${escHtml(ct.typeRu.replace(' или ', ' / '))}</td>
+                    <td>${escHtml(ct.summary)}</td>
+                    <td>${ct.artRating} + Владение</td>
+                  </tr>`
+                )
+                .join('');
+              return `
+                <table class="c20-pencil-table">
+                  <thead>
+                    <tr>
+                      <th style="width:25%;">Кантрип и Искусство</th>
+                      <th style="width:15%;">Тип</th>
+                      <th style="width:46%;">Суть и эффект</th>
+                      <th style="width:14%;">Запас</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filledRowsHTML}${emptyRows(4, padRows)}
+                  </tbody>
+                </table>`;
+            })()}
 
             <div class="c20-grid-2">
               <table class="c20-pencil-table">
@@ -5628,7 +5667,11 @@
           <div class="${boxCls}">
             <div class="${headCls}">Дополнения, Искусства и Владения</div>
             ${bgsTaken.length ? `<div><strong>Дополнения:</strong> ${bgsTaken.map((b) => `${b.ru} ${comp.finalBg[b.id]}`).join(' · ')}</div>` : '<div class="opacity-70">Дополнения не выбраны.</div>'}
-            ${artsTaken.length ? `<div><strong>Искусства:</strong> ${artsTaken.map((ar) => `${ar.ru} ${comp.finalArt[ar.id]}`).join(' · ')}</div>` : '<div class="opacity-70">Искусства не выбраны.</div>'}
+            ${artsTaken.length ? `<div><strong>Искусства:</strong> ${artsTaken.map((ar) => {
+              const rating = comp.finalArt[ar.id];
+              const unlocked = (ar.cantrips || []).filter((c) => c.dots <= rating).map((c) => escHtml(c.ru));
+              return `${escHtml(ar.ru)} ${rating}${unlocked.length ? ` <span class="opacity-80">(${unlocked.join(', ')})</span>` : ''}`;
+            }).join(' · ')}</div>` : '<div class="opacity-70">Искусства не выбраны.</div>'}
             ${realmsTaken.length ? `<div><strong>Владения:</strong> ${realmsTaken.map((rl) => `${rl.ru} ${comp.finalRealm[rl.id]}${comp.affinityRealmId === rl.id ? ' ★' : ''}`).join(' · ')}</div>` : '<div class="opacity-70">Владения не выбраны.</div>'}
           </div>
         </div>
