@@ -5001,8 +5001,8 @@
 
     mount.innerHTML = `
       <section id="chrysalis-path" class="space-y-5 my-6 scroll-mt-24">
+        <div id="chrysalis-toolbar" class="no-print flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#d8b979]/20 pb-3"></div>
         <div id="chrysalis-interactive-area" class="space-y-4">
-          <div id="chrysalis-toolbar" class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#d8b979]/20 pb-3"></div>
           <div id="chrysalis-summary-bar" class="nouveau-panel p-3.5 sm:p-4"></div>
           <div id="chrysalis-stepper" class="flex flex-wrap gap-1.5"></div>
           <div id="chrysalis-step-body"></div>
