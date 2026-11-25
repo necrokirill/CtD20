@@ -3839,7 +3839,7 @@
   }
 
   function cantripSpecialText(c) {
-    return (c.specialBlocks || [])
+    const sbText = (c.specialBlocks || [])
       .map((sb) => {
         const itemsStr = (sb.items || [])
           .map((it) => `${it.title || ''} ${it.en || ''} ${it.badge || ''} ${it.text || ''}`)
@@ -3847,6 +3847,18 @@
         return `${sb.title || ''} ${sb.text || ''} ${itemsStr}`;
       })
       .join(' ');
+    const multiTblText = (c.successTables || [])
+      .map(
+        (tb) =>
+          `${tb.title || ''} ${tb.col1 || ''} ${tb.col2 || ''} ${(tb.rows || [])
+            .map((r) => `${r.successes || ''} ${r.effect || ''}`)
+            .join(' ')}`
+      )
+      .join(' ');
+    const singleTblText = (c.successTable || [])
+      .map((r) => `${r.successes || ''} ${r.effect || ''}`)
+      .join(' ');
+    return `${sbText} ${multiTblText} ${singleTblText}`;
   }
 
   function artTypeMeta(c) {
@@ -3871,25 +3883,36 @@
     };
   }
 
+  function renderCantripTableHTML(rows, title = '', col1 = 'Успехи', col2 = 'Эффект') {
+    if (!rows || !rows.length) return '';
+    return `
+      <div class="nouveau-table-wrap !my-2.5">
+        ${title ? `<div class="px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] font-semibold text-[#f0dba8] bg-[#16231e]/90 border-b border-[#d8b979]/25">◈ ${formatInlineMd(title)}</div>` : ''}
+        <table class="nouveau-table text-xs sm:text-[13px]">
+          <thead><tr><th>${formatInlineMd(col1 || 'Успехи')}</th><th>${formatInlineMd(col2 || 'Эффект')}</th></tr></thead>
+          <tbody>
+            ${rows
+              .map(
+                (row) =>
+                  `<tr><td class="font-semibold text-[#f0dba8] whitespace-nowrap">${row.successes}</td><td>${linkifyHTML(formatInlineMd(row.effect))}</td></tr>`
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
   function renderCantripCardHTML(c) {
     const meta = artTypeMeta(c);
     const sysItems = c.system || [];
     const tableHTML =
-      c.successTable && c.successTable.length
-        ? `<div class="nouveau-table-wrap !my-2.5">
-             <table class="nouveau-table text-xs sm:text-[13px]">
-               <thead><tr><th>Успехи</th><th>Эффект</th></tr></thead>
-               <tbody>
-                 ${c.successTable
-                   .map(
-                     (row) =>
-                       `<tr><td class="font-semibold text-[#f0dba8] whitespace-nowrap">${row.successes}</td><td>${linkifyHTML(formatInlineMd(row.effect))}</td></tr>`
-                   )
-                   .join('')}
-               </tbody>
-             </table>
+      c.successTables && c.successTables.length
+        ? `<div class="space-y-2.5">
+             ${c.successTables
+               .map((tb) => renderCantripTableHTML(tb.rows, tb.title, tb.col1, tb.col2))
+               .join('')}
            </div>`
-        : '';
+        : renderCantripTableHTML(c.successTable);
     const specialHTML =
       c.specialBlocks && c.specialBlocks.length
         ? c.specialBlocks
@@ -5476,9 +5499,16 @@
               .map((c) => {
                 const sys = (c.system || []).map((s) => formatInlineMd(s)).join(' ');
                 const tbl =
-                  c.successTable && c.successTable.length
-                    ? ` <em>Шкала успехов:</em> ${c.successTable.map((r) => `${r.successes} — ${r.effect}`).join('; ')}.`
-                    : '';
+                  c.successTables && c.successTables.length
+                    ? ` ${c.successTables
+                        .map(
+                          (tb) =>
+                            `<em>${formatInlineMd(tb.title || 'Шкала успехов')}:</em> ${(tb.rows || []).map((r) => `${r.successes} — ${formatInlineMd(r.effect)}`).join('; ')}.`
+                        )
+                        .join(' ')}`
+                    : c.successTable && c.successTable.length
+                      ? ` <em>Шкала успехов:</em> ${c.successTable.map((r) => `${r.successes} — ${formatInlineMd(r.effect)}`).join('; ')}.`
+                      : '';
                 const sbs =
                   c.specialBlocks && c.specialBlocks.length
                     ? ` ${c.specialBlocks
