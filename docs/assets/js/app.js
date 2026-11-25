@@ -173,7 +173,12 @@
     'Дарований',
     'Дарованиям',
     'Дарованиями',
-    'Дарованиях'
+    'Дарованиях',
+    'Дан',
+    'Дана',
+    'Дану',
+    'Даном',
+    'Дане'
   ]);
   const EXACT_LOOKUP = new Map();
   const LOWER_LOOKUP = new Map();
@@ -4206,7 +4211,7 @@
         const cantripStr = (a.cantrips || [])
           .map((c) => `${c.ru} ${c.en} ${(c.system || []).join(' ')} ${cantripSpecialText(c)}`)
           .join(' ');
-        const hay = `${a.ru} ${a.en} ${a.summary} ${a.groupRu} ${cantripStr}`.toLowerCase();
+        const hay = `${a.ru} ${a.en} ${a.summary} ${a.groupRu} ${artSpecialRuleSearchText(a)} ${cantripStr}`.toLowerCase();
         if (!hay.includes(state.artQuery)) return false;
       }
       return true;
@@ -4256,6 +4261,29 @@
     });
   }
 
+  function artSpecialRuleSearchText(a) {
+    if (!a || !a.specialRule) return '';
+    return `${a.specialRule.title || ''} ${a.specialRule.text || ''} ${(a.specialRule.items || []).join(' ')}`;
+  }
+
+  function renderArtSpecialRuleHTML(a) {
+    const sr = a && a.specialRule;
+    if (!sr) return '';
+    const items = Array.isArray(sr.items) ? sr.items : [];
+    return `
+      <div class="rounded-xl border border-[#f0dba8]/45 bg-[#19160d]/80 px-4 py-3 space-y-1.5 text-xs sm:text-[13.5px] leading-relaxed">
+        <div class="font-semibold text-[#f0dba8]">◈ ${formatInlineMd(sr.title || 'Особое правило Искусства')}</div>
+        ${sr.text ? `<p class="text-[#f0eadc]/92 !my-0">${linkifyHTML(formatInlineMd(sr.text))}</p>` : ''}
+        ${
+          items.length
+            ? `<ul class="!pl-3 !my-0 space-y-1 text-[#f0eadc]/92">
+                 ${items.map((it) => `<li>${linkifyHTML(formatInlineMd(it))}</li>`).join('')}
+               </ul>`
+            : ''
+        }
+      </div>`;
+  }
+
   function renderArtSpotlight(scrollToPanel = false, highlightDot = null) {
     const spot = document.getElementById('art-spotlight');
     if (!spot) return;
@@ -4298,6 +4326,8 @@
         <div class="lore-only space-y-2.5 text-sm sm:text-[15px] text-[#f0eadc]/92 leading-relaxed">
           ${(a.lore || []).map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
         </div>
+
+        ${renderArtSpecialRuleHTML(a)}
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <div class="rounded-xl border border-[#c4a8ff]/30 bg-[#0b110f]/70 px-4 py-3 space-y-1 text-xs sm:text-[13.5px] leading-relaxed">
@@ -4396,6 +4426,7 @@
         <div class="lore-only space-y-2 text-sm text-[#f0eadc]/90 leading-relaxed">
           ${(a.lore || []).map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
         </div>
+        ${renderArtSpecialRuleHTML(a)}
         <div class="space-y-1.5 text-xs sm:text-[13.5px] leading-relaxed">
           <p class="!my-0"><strong class="text-[#dfd0ff]">⚡ Высвобождение:</strong> ${linkifyHTML(formatInlineMd(a.unleashing))}</p>
           <p class="!my-0"><strong class="text-[#f0dba8]">🎭 Характерные Уловки:</strong> ${linkifyHTML(formatInlineMd(a.bunks))}</p>
@@ -5159,7 +5190,7 @@
 
     // 2h. Arts & Cantrips hits
     ARTS.forEach((a) => {
-      const artHay = `${a.ru} ${a.en} ${a.groupRu} ${a.summary} ${(a.lore || []).join(' ')} ${a.unleashing || ''} ${a.bunks || ''}`.toLowerCase();
+      const artHay = `${a.ru} ${a.en} ${a.groupRu} ${a.summary} ${artSpecialRuleSearchText(a)} ${(a.lore || []).join(' ')} ${a.unleashing || ''} ${a.bunks || ''}`.toLowerCase();
       if (artHay.includes(q)) {
         hits.push({
           badge: `Искусство · ${a.groupRu}`,
@@ -5492,6 +5523,7 @@
             <h4 class="font-nouveau text-lg font-bold">${a.ru} <span class="text-xs font-normal">(${a.en})</span></h4>
             <span class="text-xs font-semibold">${a.groupRu}</span>
           </div>
+          ${a.specialRule ? `<p class="text-xs"><strong>${formatInlineMd(a.specialRule.title || 'Особые правила')}:</strong> ${a.specialRule.text ? formatInlineMd(a.specialRule.text) + ' ' : ''}${(a.specialRule.items || []).map((it) => formatInlineMd(it)).join(' ')}</p>` : ''}
           <p class="text-xs"><strong>Высвобождение:</strong> ${formatInlineMd(a.unleashing)}</p>
           <p class="text-xs"><strong>Уловки:</strong> ${formatInlineMd(a.bunks)}</p>
           <div class="text-[11px] leading-snug space-y-1 pt-0.5">
