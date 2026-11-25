@@ -348,6 +348,7 @@
     chrysalisMfQuery: '',
     chrysalisFbOpen: { abil: false, bg: false, art: false, realm: false },
     chrysalisSheet: null,
+    chrysalisDossierView: 'summary', // 'summary' | 'preview'
     chrysalisPrint: { pages: '2', palette: 'color', scale: 1, blank: false },
     tableMode: localStorage.getItem('ctd20_table_mode') === '1',
     forceSheet: false,
@@ -5283,7 +5284,8 @@
 
     const page1HTML = `
       <div class="c20-page-badge no-print">${isCompact ? 'Компактный бланк · 1 лист A4' : 'Лист I · Игровой бланк (A4)'}</div>
-      <section class="c20-sheet-page ${isCompact ? 'c20-page-compact' : 'c20-page-1'}">
+      <div class="c20-page-fit-box">
+        <section class="c20-sheet-page ${isCompact ? 'c20-page-compact' : 'c20-page-1'}">
         <div class="c20-sheet-frame">
           ${renderSheetCornersSVG()}
           <header class="c20-banner">
@@ -5330,7 +5332,8 @@
             <span>${isCompact ? 'Компактный лист A4' : 'Лист I · Игровые параметры'}</span>
           </footer>
         </div>
-      </section>`;
+        </section>
+      </div>`;
 
     let page2HTML = '';
     if (!isCompact) {
@@ -5355,7 +5358,8 @@
 
       page2HTML = `
         <div class="c20-page-badge no-print">Лист II · Хроника, облик и снаряжение (A4)</div>
-        <section class="c20-sheet-page c20-page-2 c20-page-break">
+        <div class="c20-page-fit-box c20-page-break">
+          <section class="c20-sheet-page c20-page-2">
           <div class="c20-sheet-frame">
             ${renderSheetCornersSVG()}
             <header class="c20-banner">
@@ -5469,7 +5473,8 @@
               <span>Changeling: The Dreaming 20th · Лист II</span>
             </footer>
           </div>
-        </section>`;
+          </section>
+        </div>`;
     }
 
     return `
@@ -5479,6 +5484,145 @@
           ${page2HTML}
         </div>
       </div>`;
+  }
+
+  function renderDossierSummaryHTML(sheet, comp) {
+    const kithName = comp.kith ? `${escHtml(comp.kith.ru)} <span class="text-xs opacity-75">(${escHtml(comp.kith.en)})</span>` : 'Не выбран';
+    const houseName = comp.house ? escHtml(comp.house.ru) : 'Без титула';
+    const primaryLeg = sheet.court === 'Благой' ? comp.seelieLegacy : comp.unseelieLegacy;
+    const secondaryLeg = sheet.court === 'Благой' ? comp.unseelieLegacy : comp.seelieLegacy;
+    const abilsTaken = ABILITIES.filter((ab) => comp.finalAbil[ab.id] > 0);
+    const bgsTaken = BACKGROUNDS.filter((b) => comp.finalBg[b.id] > 0);
+    const artsTaken = ARTS.filter((ar) => comp.finalArt[ar.id] > 0);
+    const realmsTaken = REALMS.filter((rl) => comp.finalRealm[rl.id] > 0);
+    const boxCls = 'rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/60 p-3.5 space-y-2';
+    const headCls = 'text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d8b979] border-b border-[#d8b979]/20 pb-1';
+    const extraLevelsText = comp.extraBruised > 0 ? `${'Синяки [0] · '.repeat(comp.extraBruised)}` : '';
+    const healthTrackText = `${extraLevelsText}Синяки [0] · Ушиблен [−1] · Ранен [−1] · Тяжело ранен [−2] · Изувечен [−2] · Искалечен [−5] · Недееспособен`;
+
+    return `
+      <div class="nouveau-panel p-5 sm:p-7 space-y-5">
+        <div class="relative z-10 flex flex-wrap items-baseline justify-between gap-3 border-b border-[#d8b979]/25 pb-3">
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.2em] text-[#d8b979]">Сводка персонажа · Changeling: The Dreaming 20th</div>
+            <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc] !mt-0.5 !mb-0">${escHtml(sheet.name || 'Безымянный слёток')}</h3>
+          </div>
+          <div class="text-xs text-[#a69f90] text-right">
+            <div>Свободные очки: <strong class="text-[#f0dba8]">${comp.freebieSpent}</strong> из <strong class="text-[#f0dba8]">${comp.freebiePool}</strong></div>
+            <div>Пройдено шагов: <strong class="text-[#f0dba8]">${(sheet.completedSteps || []).length}</strong> из 9</div>
+          </div>
+        </div>
+
+        <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs leading-relaxed">
+          <div class="${boxCls}">
+            <div class="${headCls}">Происхождение и душа</div>
+            <div><strong>Замысел:</strong> ${escHtml(sheet.concept || '—')}</div>
+            <div><strong>Мотли:</strong> ${escHtml(sheet.motley || '—')}</div>
+            <div><strong>Кит:</strong> ${kithName}${comp.kith ? ` · <em>Сродство: ${escHtml(comp.kith.affinity)}</em>` : ''}</div>
+            <div><strong>Двор и Стадия:</strong> ${escHtml(sheet.court)} · ${escHtml(SEEMING_NAMES[sheet.seeming] || 'Дикарь')}</div>
+            <div><strong>Благородный Дом:</strong> ${houseName}</div>
+            <div><strong>Ведущее Наследие:</strong> ${primaryLeg ? escHtml(primaryLeg.ru) : '—'}</div>
+            <div><strong>Второе Наследие:</strong> ${secondaryLeg ? escHtml(secondaryLeg.ru) : '—'}</div>
+          </div>
+
+          <div class="${boxCls}">
+            <div class="${headCls}">Темпераменты, Порог и Здоровье</div>
+            <div><strong>Сила Воли:</strong> ${comp.willpower} ${renderDotStrip(comp.willpower, comp.maxWillpower)} <span class="opacity-70">(предел ${comp.maxWillpower})</span></div>
+            <div><strong>Гламур:</strong> ${comp.glamour} ${renderDotStrip(comp.glamour, 10)}</div>
+            <div><strong>Банальность:</strong> ${comp.banality} ${renderDotStrip(comp.banality, 10)}</div>
+            <div><strong>Кошмар:</strong> 0 из 10</div>
+            <div><strong>Порог Гламура:</strong> ${comp.threshold ? `${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)})` : 'определится в игре'}</div>
+            <div><strong>Антитеза:</strong> ${escHtml(sheet.antithesis || 'не выбрана')}</div>
+            <div><strong>Шкалы Здоровья (${comp.healthLevels}):</strong> ${healthTrackText}</div>
+          </div>
+        </div>
+
+        <div class="relative z-10 ${boxCls}">
+          <div class="${headCls}">Атрибуты</div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            ${['physical', 'social', 'mental'].map((g) => `
+              <div class="space-y-1">
+                <div class="font-semibold opacity-80">${ATTR_GROUP_NAMES[g]}</div>
+                ${ATTRIBUTES.filter((a) => a.group === g).map((a) => `
+                  <div class="flex items-center justify-between gap-2">
+                    <span>${a.ru}${comp.bonusSources[a.id] ? ` <span class="opacity-75">(${comp.bonusSources[a.id]})</span>` : ''}</span>
+                    <span class="font-semibold text-[#f0dba8]">${comp.finalAttr[a.id]}</span>
+                  </div>`).join('')}
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div class="${boxCls}">
+            <div class="${headCls}">Способности</div>
+            ${abilsTaken.length
+              ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">${abilsTaken.map((ab) => {
+                  const cn = sheet.customAbilityNames && sheet.customAbilityNames[ab.id];
+                  return `<div class="flex items-center justify-between gap-2"><span>${ab.ru}${cn ? ` (${escHtml(cn)})` : ''}</span><strong class="text-[#f0dba8]">${comp.finalAbil[ab.id]}</strong></div>`;
+                }).join('')}</div>`
+              : '<div class="opacity-70">Способности ещё не распределены.</div>'}
+          </div>
+
+          <div class="${boxCls}">
+            <div class="${headCls}">Дополнения, Искусства и Владения</div>
+            ${bgsTaken.length ? `<div><strong>Дополнения:</strong> ${bgsTaken.map((b) => `${b.ru} ${comp.finalBg[b.id]}`).join(' · ')}</div>` : '<div class="opacity-70">Дополнения не выбраны.</div>'}
+            ${artsTaken.length ? `<div><strong>Искусства:</strong> ${artsTaken.map((ar) => `${ar.ru} ${comp.finalArt[ar.id]}`).join(' · ')}</div>` : '<div class="opacity-70">Искусства не выбраны.</div>'}
+            ${realmsTaken.length ? `<div><strong>Владения:</strong> ${realmsTaken.map((rl) => `${rl.ru} ${comp.finalRealm[rl.id]}${comp.affinityRealmId === rl.id ? ' ★' : ''}`).join(' · ')}</div>` : '<div class="opacity-70">Владения не выбраны.</div>'}
+          </div>
+        </div>
+
+        <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div class="${boxCls}">
+            <div class="${headCls}">Права, Дары, Достоинства и Недостатки</div>
+            ${comp.kith ? `<div><strong>Врождённые права:</strong> ${(comp.kith.birthrights || []).map((b) => escHtml(b.name)).join(' · ')}</div>` : ''}
+            ${comp.kith && comp.kith.frailty ? `<div><strong>Слабость Кита:</strong> ${escHtml(comp.kith.frailty.name)}</div>` : ''}
+            ${comp.house ? `<div><strong>Дар и Изъян Дома:</strong> ${escHtml(comp.house.boon.name)} · ${escHtml(comp.house.flaw.name)}</div>` : ''}
+            ${(sheet.freebie.merits || []).length ? `<div><strong>Достоинства:</strong> ${(sheet.freebie.merits || []).map((m) => `${escHtml(m.ru)} (${m.cost}${m.note ? `: ${escHtml(m.note)}` : ''})`).join('; ')}</div>` : ''}
+            ${(sheet.freebie.flaws || []).length ? `<div><strong>Недостатки:</strong> ${(sheet.freebie.flaws || []).map((f) => `${escHtml(f.ru)} (${f.cost}${f.note ? `: ${escHtml(f.note)}` : ''})`).join('; ')}</div>` : ''}
+          </div>
+
+          <div class="${boxCls}">
+            <div class="${headCls}">Специализации</div>
+            ${comp.requiredSpecialties.length
+              ? comp.requiredSpecialties.map((sp) => `<div><strong>${escHtml(sp.label)} (${sp.rating}):</strong> ${escHtml((sheet.specialties || {})[sp.key] || 'не указана')}</div>`).join('')
+              : '<div class="opacity-70">Пока нет черт 4+ или обязательных специализаций.</div>'}
+          </div>
+        </div>
+
+        <div class="relative z-10 ${boxCls} text-xs leading-relaxed">
+          <div class="${headCls}">Искра жизни и облик</div>
+          <div><strong>Смертный облик:</strong> ${escHtml(sheet.mortalGuise || '—')}</div>
+          <div><strong>Облик феи и Вуаль:</strong> ${escHtml(sheet.faeMien || '—')}</div>
+          <div><strong>Цели:</strong> ${escHtml(sheet.goals || '—').replace(/\n/g, ' · ')}</div>
+          <div><strong>Причуды:</strong> ${escHtml(sheet.quirks || '—')}</div>
+          <div><strong>Хризалида и Мотли:</strong> ${escHtml(sheet.backstory || '—')}</div>
+        </div>
+      </div>`;
+  }
+
+  function fitA4PreviewPages() {
+    const stage = document.querySelector('#chrysalis-dossier-area .c20-preview-stage');
+    if (!stage) return;
+    const availW = Math.max(200, stage.clientWidth - 34);
+    stage.querySelectorAll('.c20-page-fit-box').forEach((box) => {
+      const page = box.querySelector('.c20-sheet-page');
+      if (!page) return;
+      page.style.transform = '';
+      page.style.transformOrigin = '';
+      box.style.width = '';
+      box.style.height = '';
+      const naturalW = page.offsetWidth;
+      const naturalH = page.offsetHeight;
+      if (naturalW > 0) {
+        const ratio = Math.min(1, Math.max(0.28, availW / naturalW));
+        if (ratio < 1) {
+          page.style.transform = `scale(${ratio})`;
+          page.style.transformOrigin = 'top left';
+          box.style.width = `${Math.floor(naturalW * ratio)}px`;
+          box.style.height = `${Math.ceil(naturalH * ratio)}px`;
+        }
+      }
+    });
   }
 
   function renderDossierBodyHTML(sheet, comp, _forPrint = false) {
@@ -5491,6 +5635,14 @@
 
     state.chrysalisSheet = loadChrysalisSheet();
     state.chrysalisPrint = loadChrysalisPrint();
+    if (!state.chrysalisResizeBound) {
+      state.chrysalisResizeBound = true;
+      window.addEventListener('resize', () => {
+        if (state.chrysalisViewMode === 'dossier' && state.chrysalisDossierView === 'preview') {
+          fitA4PreviewPages();
+        }
+      });
+    }
 
     mount.innerHTML = `
       <section id="chrysalis-path" class="space-y-5 my-6 scroll-mt-24">
@@ -6478,6 +6630,7 @@
     const sheet = state.chrysalisSheet;
     const comp = computeCharacterSheet(sheet);
     const pOpts = normalizeChrysalisPrint(state.chrysalisPrint);
+    const dView = state.chrysalisDossierView === 'preview' ? 'preview' : 'summary';
     const scaleChoices = [0.9, 0.95, 1, 1.05, 1.1];
     const pillCls = (active) =>
       active
@@ -6497,21 +6650,33 @@
           <button type="button" id="btn-back-steps" class="px-3.5 py-2 rounded-full text-xs border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc] transition">← Вернуться к шагам</button>
         </div>
 
-        <div class="relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2.5 pt-3 border-t border-[#d8b979]/20 text-xs">
+        <div class="relative z-10 flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-[#d8b979]/20 text-xs">
           <div class="flex flex-wrap items-center gap-1.5">
-            <span class="text-[11px] text-[#a69f90]">Формат:</span>
+            <span class="text-[11px] text-[#a69f90]">На экране:</span>
+            <button type="button" data-dossier-view="summary" class="px-3 py-1 rounded-full border transition ${pillCls(dView === 'summary')}">◈ Сводка на экране</button>
+            <button type="button" data-dossier-view="preview" class="px-3 py-1 rounded-full border transition ${pillCls(dView === 'preview')}">Предпросмотр листа A4</button>
+          </div>
+
+          <button type="button" data-print-blank="toggle" class="px-3 py-1 rounded-full border transition ${pillCls(pOpts.blank)}">
+            ${pOpts.blank ? '✓ Пустой бланк для PDF' : 'Пустой бланк для PDF'}
+          </button>
+        </div>
+
+        <div class="relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2 pt-2.5 border-t border-[#d8b979]/15 text-xs">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[11px] text-[#a69f90]">Формат PDF:</span>
             <button type="button" data-print-pages="2" class="px-2.5 py-1 rounded-full border transition ${pillCls(pOpts.pages === '2')}">2 стр. A4 · Полный</button>
             <button type="button" data-print-pages="1" class="px-2.5 py-1 rounded-full border transition ${pillCls(pOpts.pages === '1')}">1 стр. A4 · Компактный</button>
           </div>
 
           <div class="flex flex-wrap items-center gap-1.5">
-            <span class="text-[11px] text-[#a69f90]">Палитра:</span>
+            <span class="text-[11px] text-[#a69f90]">Палитра PDF:</span>
             <button type="button" data-print-palette="color" class="px-2.5 py-1 rounded-full border transition ${pillCls(pOpts.palette === 'color')}">Цветной Ар-Нуво</button>
             <button type="button" data-print-palette="bw" class="px-2.5 py-1 rounded-full border transition ${pillCls(pOpts.palette === 'bw')}">Ч/Б контраст</button>
           </div>
 
           <div class="flex flex-wrap items-center gap-1">
-            <span class="text-[11px] text-[#a69f90] mr-0.5">Масштаб:</span>
+            <span class="text-[11px] text-[#a69f90] mr-0.5">Масштаб шрифта:</span>
             ${scaleChoices
               .map(
                 (sc) =>
@@ -6519,22 +6684,21 @@
               )
               .join('')}
           </div>
-
-          <button type="button" data-print-blank="toggle" class="px-3 py-1 rounded-full border transition ${pillCls(pOpts.blank)}">
-            ${pOpts.blank ? '✓ Пустой бланк' : 'Пустой бланк'}
-          </button>
         </div>
+
+        ${
+          pOpts.blank && dView === 'summary'
+            ? `<div class="relative z-10 text-[11px] text-[#f0dba8]">✦ Включён режим «Пустой бланк»: в PDF и в предпросмотр A4 пойдёт чистый лист для заполнения от руки, а сводка ниже сохраняет вашего персонажа.</div>`
+            : ''
+        }
 
         <div class="relative z-10 text-[11px] text-[#a69f90] leading-relaxed">
-          Для лучшего результата выберите в окне печати формат <strong class="text-[#f0eadc]">A4</strong> и снимите галочку колонтитулов браузера. Цветной Ар-Нуво рассчитан на чистую ч/б печать, а режим <strong class="text-[#f0eadc]">«Ч/Б контраст»</strong> даёт максимальную резкость без полутонов.
-        </div>
-        <div class="relative z-10 md:hidden text-[11px] text-[#d8b979]">
-          Лист показан в настоящих пропорциях A4 — прокрутите предпросмотр по горизонтали, чтобы рассмотреть все три колонки.
+          Для лучшего результата в диалоге печати выберите бумагу <strong class="text-[#f0eadc]">A4</strong> и отключите колонтитулы браузера. Цветной PDF хорошо ложится и на чёрно-белый принтер, а режим <strong class="text-[#f0eadc]">«Ч/Б контраст»</strong> даёт максимальную резкость без полутонов.
         </div>
       </div>
 
       ${
-        comp.warnings.length && !pOpts.blank
+        comp.warnings.length && !(pOpts.blank && dView === 'preview')
           ? `
         <div class="rounded-xl border border-[#e06d44]/45 bg-[#2a1512]/70 p-3.5 space-y-1 text-xs text-[#ffd6c9] no-print">
           <div class="font-semibold">◈ Напоминания по правилам C20</div>
@@ -6543,10 +6707,19 @@
           : ''
       }
 
-      <div class="c20-preview-stage">
-        ${renderC20SheetHTML(sheet, comp, pOpts)}
-      </div>
+      ${
+        dView === 'preview'
+          ? `<div class="c20-preview-stage">${renderC20SheetHTML(sheet, comp, pOpts)}</div>`
+          : renderDossierSummaryHTML(sheet, comp)
+      }
     `;
+
+    area.querySelectorAll('[data-dossier-view]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        state.chrysalisDossierView = btn.getAttribute('data-dossier-view') === 'preview' ? 'preview' : 'summary';
+        renderChrysalisDossierArea();
+      })
+    );
 
     area.querySelectorAll('[data-print-pages]').forEach((btn) =>
       btn.addEventListener('click', () => {
@@ -6637,6 +6810,15 @@
         state.chrysalisViewMode = 'interactive';
         renderChrysalisAll();
       });
+    }
+
+    if (dView === 'preview') {
+      requestAnimationFrame(fitA4PreviewPages);
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+          if (state.chrysalisDossierView === 'preview') fitA4PreviewPages();
+        });
+      }
     }
   }
 
