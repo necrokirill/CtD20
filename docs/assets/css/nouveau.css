@@ -836,6 +836,55 @@ body.mode-table .table-mode-only {
   box-shadow: 0 12px 32px rgba(216, 185, 121, 0.22), 0 8px 24px rgba(0, 0, 0, 0.7);
 }
 
+/* Chrysalis Path Form Controls */
+.chrysalis-input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(216, 185, 121, 0.28);
+  background: rgba(11, 17, 15, 0.78);
+  padding: 0.48rem 0.75rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ivory);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.chrysalis-input::placeholder {
+  color: #7b7669;
+}
+
+.chrysalis-input:focus {
+  outline: none;
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 0 2px rgba(216, 185, 121, 0.16);
+}
+
+.chrysalis-dot-btn {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(216, 185, 121, 0.35);
+  background: rgba(11, 17, 15, 0.8);
+  color: var(--gold-bright);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.chrysalis-dot-btn:hover:not(:disabled) {
+  border-color: var(--gold-bright);
+  background: rgba(216, 185, 121, 0.18);
+}
+
+.chrysalis-dot-btn:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -890,6 +939,7 @@ body.mode-table .table-mode-only {
   #cantrip-forge-interactive,
   #realms-interactive-area,
   #arts-interactive-area,
+  #chrysalis-interactive-area,
   #desktop-popover,
   #sheet-backdrop,
   #bottom-sheet,
@@ -897,6 +947,17 @@ body.mode-table .table-mode-only {
   #volumes-drawer,
   #lightbox-modal {
     display: none !important;
+  }
+
+  body.print-dossier-only main,
+  body.print-dossier-only #print-lexicon-section {
+    display: none !important;
+  }
+  body:not(.print-dossier-only) #print-dossier-section {
+    display: none !important;
+  }
+  body.print-dossier-only #print-dossier-section {
+    display: block !important;
   }
 
   .print-only {
@@ -916,6 +977,8 @@ body.mode-table .table-mode-only {
   .print-realm-card,
   .print-bunks-card,
   .print-art-card,
+  .print-chrysalis-card,
+  .print-dossier-card,
   .callout-sidebar,
   .callout-mechanics {
     background: #ffffff !important;
@@ -939,6 +1002,8 @@ body.mode-table .table-mode-only {
   .print-realm-card::after,
   .print-bunks-card::after,
   .print-art-card::after,
+  .print-chrysalis-card::after,
+  .print-dossier-card::after,
   .callout-sidebar::after {
     content: "";
     position: absolute;

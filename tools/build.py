@@ -173,6 +173,10 @@ def render_markdown(md_text: str, root_prefix: str = "./", apply_drop_cap: bool 
             out.append('<div id="arts-widget-mount" class="no-lex"></div>')
             i += 1
             continue
+        if stripped == "{{widget:chrysalis-path}}":
+            out.append('<div id="chrysalis-path-widget-mount" class="no-lex"></div>')
+            i += 1
+            continue
         if stripped == "{{widget:tempers}}":
             out.append('<div id="tempers-widget-mount" class="no-lex"></div>')
             i += 1
@@ -556,8 +560,11 @@ def render_shell(
 
   {main_html}
 
-  <!-- PRINT-ONLY LEXICON APPENDIX -->
-  <section class="print-only max-w-5xl mx-auto px-6 pt-5 mt-8 border-t-2 border-[#8c703b]" style="page-break-before: always;">
+  <!-- PRINT-ONLY DOSSIER & LEXICON APPENDIX -->
+  <section id="print-dossier-section" class="print-only max-w-5xl mx-auto px-4 pt-2">
+    <div id="print-dossier-container"></div>
+  </section>
+  <section id="print-lexicon-section" class="print-only max-w-5xl mx-auto px-6 pt-5 mt-8 border-t-2 border-[#8c703b]" style="page-break-before: always;">
     <h2 class="font-nouveau text-2xl font-bold mb-3">Единый Лексикон (Changeling: The Dreaming 20th)</h2>
     <div id="print-lexicon-container" class="print-lex-cols"></div>
   </section>
@@ -694,6 +701,9 @@ def build_site() -> dict:
     arts_path = CONTENT_DIR / "arts.json"
     arts_data = json.loads(arts_path.read_text(encoding="utf-8")) if arts_path.exists() else {"groups": [], "arts": []}
 
+    creation_path = CONTENT_DIR / "creation.json"
+    creation_data = json.loads(creation_path.read_text(encoding="utf-8")) if creation_path.exists() else {"steps": []}
+
     site_meta = manifest["site"]
     books = manifest.get("books", [])
     book_by_id = {b["id"]: b for b in books}
@@ -734,7 +744,13 @@ def build_site() -> dict:
 
         # Word count / reading estimate
         plain_words = len(re.findall(r"\S+", raw_md))
-        if slug == "02-kiths":
+        if slug == "01-world-and-creation":
+            plain_words += sum(
+                len(" ".join(st.get("rules", []))) // 6
+                + len(" ".join((st.get("saffron") or {}).get("paragraphs", []))) // 6
+                for st in creation_data.get("steps", [])
+            )
+        elif slug == "02-kiths":
             plain_words += sum(len(" ".join(k.get("lore", []))) // 6 for k in kiths)
         elif slug == "03-noble-houses":
             plain_words += sum(len(" ".join(h.get("lore", []))) // 6 for h in houses)
@@ -1219,6 +1235,7 @@ def build_site() -> dict:
         "meritsFlaws": merits_flaws_data,
         "realmsData": realms_data,
         "artsData": arts_data,
+        "creationData": creation_data,
         "books": books,
         "volumes": volumes,
         "search": all_search_entries,
@@ -1231,6 +1248,7 @@ def build_site() -> dict:
     return {
         "volumes": len(volumes),
         "ready": ready_count,
+        "creationSteps": len(creation_data.get("steps", [])),
         "kiths": len(kiths),
         "houses": len(houses),
         "legacies": len(legacies),

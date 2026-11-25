@@ -29,6 +29,8 @@
   const ARTS_DATA = BUNDLE.artsData || { groups: [], arts: [] };
   const ARTS = ARTS_DATA.arts || [];
   const ART_GROUPS = ARTS_DATA.groups || [];
+  const CREATION_DATA = BUNDLE.creationData || {};
+  const CREATION_STEPS = CREATION_DATA.steps || [];
   const LEX_MAP = Object.fromEntries(LEXICON.map((item) => [item.id, item]));
 
   /* ------------------------------------------------------------------------
@@ -340,6 +342,12 @@
     artDotFilter: 'all',      // 'all' | 1..5
     artQuery: '',
     artViewMode: 'atlas',     // 'atlas' | 'scroll'
+    chrysalisStepIdx: 0,
+    chrysalisViewMode: 'interactive', // 'interactive' | 'dossier' | 'scroll'
+    chrysalisMfKind: 'all',   // 'all' | 'merit' | 'flaw'
+    chrysalisMfQuery: '',
+    chrysalisFbOpen: { abil: false, bg: false, art: false, realm: false },
+    chrysalisSheet: null,
     tableMode: localStorage.getItem('ctd20_table_mode') === '1',
     forceSheet: false,
     seeming: 'wilder',
@@ -4439,6 +4447,1615 @@
   }
 
   /* ------------------------------------------------------------------------
+     3F. CHRYSALIS PATH & CHARACTER SHEET (PART 1)
+     ------------------------------------------------------------------------ */
+  const CHRYSALIS_STORAGE_KEY = 'ctd20_chrysalis_sheet_v1';
+  const REALM_NAME_TO_ID = {
+    Актёр: 'actor',
+    Фея: 'fae',
+    Природа: 'nature',
+    Предмет: 'prop',
+    Сцена: 'scene',
+    Время: 'time'
+  };
+  const ATTR_GROUP_NAMES = {
+    physical: 'Физические',
+    social: 'Социальные',
+    mental: 'Ментальные'
+  };
+  const ABIL_GROUP_NAMES = {
+    talents: 'Таланты',
+    skills: 'Навыки',
+    knowledges: 'Познания'
+  };
+  const SEEMING_NAMES = {
+    childling: 'Младенец',
+    wilder: 'Дикарь',
+    grump: 'Ворчун'
+  };
+  const ART_GROUP_NAMES = {
+    seasons: 'Времена года',
+    elements: 'Стихии и плоть',
+    mind: 'Власть, клятвы и разум',
+    fate: 'Судьба, сон и время'
+  };
+
+  function escHtml(val) {
+    return String(val == null ? '' : val)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function createEmptySheet() {
+    const attrBase = {};
+    ATTRIBUTES.forEach((a) => {
+      attrBase[a.id] = 1;
+    });
+    return {
+      name: '',
+      concept: '',
+      motley: '',
+      kithId: '',
+      court: 'Благой',
+      seeming: 'wilder',
+      wilderChoice: 'glamour',
+      seelieLegacyId: '',
+      unseelieLegacyId: '',
+      houseId: '',
+      trollOaths: 0,
+      attrPriority: { physical: 7, social: 5, mental: 3 },
+      attrBase,
+      abilPriority: { talents: 13, skills: 9, knowledges: 5 },
+      abilBase: {},
+      customAbilityNames: { hobby_talent: '', professional_skill: '', expert_knowledge: '' },
+      bgBase: {},
+      artBase: {},
+      realmBase: {},
+      freebie: {
+        attr: {},
+        abil: {},
+        bg: {},
+        art: {},
+        realm: {},
+        glamour: 0,
+        willpower: 0,
+        merits: [],
+        flaws: []
+      },
+      specialties: {},
+      thresholdId: '',
+      antithesis: '',
+      mortalGuise: '',
+      faeMien: '',
+      goals: '',
+      quirks: '',
+      backstory: '',
+      completedSteps: []
+    };
+  }
+
+  function normalizeSheet(raw) {
+    const base = createEmptySheet();
+    if (!raw || typeof raw !== 'object') return base;
+    const merged = Object.assign(base, raw);
+    merged.attrPriority = Object.assign({}, base.attrPriority, raw.attrPriority || {});
+    merged.attrBase = Object.assign({}, base.attrBase, raw.attrBase || {});
+    merged.abilPriority = Object.assign({}, base.abilPriority, raw.abilPriority || {});
+    merged.abilBase = Object.assign({}, raw.abilBase || {});
+    merged.customAbilityNames = Object.assign({}, base.customAbilityNames, raw.customAbilityNames || {});
+    merged.bgBase = Object.assign({}, raw.bgBase || {});
+    merged.artBase = Object.assign({}, raw.artBase || {});
+    merged.realmBase = Object.assign({}, raw.realmBase || {});
+    const rawFb = raw.freebie || {};
+    const mapMfList = (arr) =>
+      Array.isArray(arr)
+        ? arr.map((x) => {
+            const copy = Object.assign({}, x);
+            if (!copy.ru) {
+              const found = MF_ITEMS.find((it) => it.id === copy.id);
+              if (found) copy.ru = found.ru;
+            }
+            return copy;
+          })
+        : [];
+    merged.freebie = {
+      attr: Object.assign({}, rawFb.attr || {}),
+      abil: Object.assign({}, rawFb.abil || {}),
+      bg: Object.assign({}, rawFb.bg || {}),
+      art: Object.assign({}, rawFb.art || {}),
+      realm: Object.assign({}, rawFb.realm || {}),
+      glamour: Number(rawFb.glamour) || 0,
+      willpower: Number(rawFb.willpower) || 0,
+      merits: mapMfList(rawFb.merits),
+      flaws: mapMfList(rawFb.flaws)
+    };
+    merged.specialties = Object.assign({}, raw.specialties || {});
+    merged.completedSteps = Array.isArray(raw.completedSteps) ? [...raw.completedSteps] : [];
+    return merged;
+  }
+
+  function loadChrysalisSheet() {
+    try {
+      const saved = localStorage.getItem(CHRYSALIS_STORAGE_KEY);
+      if (saved) return normalizeSheet(JSON.parse(saved));
+    } catch (_err) {
+      /* ignore corrupted local storage */
+    }
+    return createEmptySheet();
+  }
+
+  function saveChrysalisSheet() {
+    try {
+      localStorage.setItem(CHRYSALIS_STORAGE_KEY, JSON.stringify(state.chrysalisSheet));
+    } catch (_err) {
+      /* ignore quota errors */
+    }
+  }
+
+  function sumMap(obj) {
+    return Object.values(obj || {}).reduce((acc, v) => acc + (Number(v) || 0), 0);
+  }
+
+  function renderDotStrip(count, maxDots, bonusCount = 0) {
+    const bits = [];
+    for (let i = 1; i <= maxDots; i++) {
+      const cls = i <= count ? 'wod-dot-sm filled' : 'wod-dot-sm';
+      bits.push(`<span class="${cls}"></span>`);
+    }
+    for (let b = 0; b < bonusCount; b++) {
+      bits.push('<span class="wod-dot-sm filled" title="Бонус Кита или Дома"></span>');
+    }
+    return `<span class="inline-flex items-center gap-0.5">${bits.join('')}</span>`;
+  }
+
+  function computeCharacterSheet(sheet) {
+    const kith = KITHS.find((k) => k.id === sheet.kithId) || null;
+    const house = HOUSES.find((h) => h.id === sheet.houseId) || null;
+    const seelieLegacy = LEGACIES.find((l) => l.id === sheet.seelieLegacyId) || null;
+    const unseelieLegacy = LEGACIES.find((l) => l.id === sheet.unseelieLegacyId) || null;
+    const threshold = THRESHOLDS.find((t) => t.id === sheet.thresholdId) || null;
+    const affinityRealmId = kith ? REALM_NAME_TO_ID[kith.affinity] || '' : '';
+
+    const attrBonus = {};
+    ATTRIBUTES.forEach((a) => {
+      attrBonus[a.id] = 0;
+    });
+    const bonusSources = {};
+    if (sheet.kithId === 'piskies') {
+      attrBonus.dexterity += 1;
+      bonusSources.dexterity = 'Писки +1';
+    } else if (sheet.kithId === 'satyrs') {
+      attrBonus.stamina += 1;
+      bonusSources.stamina = 'Сатиры +1';
+    } else if (sheet.kithId === 'selkies') {
+      attrBonus.appearance += 1;
+      attrBonus.charisma += 1;
+      bonusSources.appearance = 'Шелки +1';
+      bonusSources.charisma = 'Шелки +1';
+    } else if (sheet.kithId === 'arcadian_sidhe' || sheet.kithId === 'autumn_sidhe') {
+      attrBonus.appearance += 2;
+      bonusSources.appearance = 'Ши +2';
+    } else if (sheet.kithId === 'trolls') {
+      const oaths = Math.max(0, Math.min(2, Number(sheet.trollOaths) || 0));
+      attrBonus.strength += oaths;
+      if (oaths > 0) bonusSources.strength = `Тролли +${oaths}`;
+    }
+    if (sheet.houseId === 'beaumayn') {
+      attrBonus.perception += 1;
+      bonusSources.perception = bonusSources.perception ? `${bonusSources.perception}, Бомейн +1` : 'Дом Бомейн +1';
+    } else if (sheet.houseId === 'leanhaun') {
+      attrBonus.charisma += 1;
+      bonusSources.charisma = bonusSources.charisma ? `${bonusSources.charisma}, Лианнан +1` : 'Дом Лианнан +1';
+    }
+
+    const attrAddedByGroup = { physical: 0, social: 0, mental: 0 };
+    const finalAttr = {};
+    const maxAttr = {};
+    ATTRIBUTES.forEach((a) => {
+      const baseVal = Math.max(1, Math.min(5, Number(sheet.attrBase[a.id]) || 1));
+      const fbVal = Math.max(0, Number((sheet.freebie.attr || {})[a.id]) || 0);
+      attrAddedByGroup[a.group] += baseVal - 1;
+      maxAttr[a.id] = 5 + (attrBonus[a.id] || 0);
+      finalAttr[a.id] = Math.min(maxAttr[a.id], baseVal + (attrBonus[a.id] || 0) + fbVal);
+    });
+
+    const abilSpentByGroup = { talents: 0, skills: 0, knowledges: 0 };
+    const finalAbil = {};
+    ABILITIES.forEach((ab) => {
+      const baseVal = Math.max(0, Math.min(3, Number(sheet.abilBase[ab.id]) || 0));
+      const fbVal = Math.max(0, Number((sheet.freebie.abil || {})[ab.id]) || 0);
+      abilSpentByGroup[ab.group] += baseVal;
+      finalAbil[ab.id] = Math.min(5, baseVal + fbVal);
+    });
+
+    const finalBg = {};
+    BACKGROUNDS.forEach((b) => {
+      const baseVal = Math.max(0, Math.min(5, Number(sheet.bgBase[b.id]) || 0));
+      const fbVal = Math.max(0, Number((sheet.freebie.bg || {})[b.id]) || 0);
+      finalBg[b.id] = Math.min(5, baseVal + fbVal);
+    });
+    const finalArt = {};
+    ARTS.forEach((ar) => {
+      const baseVal = Math.max(0, Math.min(5, Number(sheet.artBase[ar.id]) || 0));
+      const fbVal = Math.max(0, Number((sheet.freebie.art || {})[ar.id]) || 0);
+      finalArt[ar.id] = Math.min(5, baseVal + fbVal);
+    });
+    const finalRealm = {};
+    REALMS.forEach((rl) => {
+      const baseVal = Math.max(0, Math.min(5, Number(sheet.realmBase[rl.id]) || 0));
+      const fbVal = Math.max(0, Number((sheet.freebie.realm || {})[rl.id]) || 0);
+      finalRealm[rl.id] = Math.min(5, baseVal + fbVal);
+    });
+
+    const glamourFromSeeming =
+      sheet.seeming === 'childling' ? 1 : sheet.seeming === 'wilder' && sheet.wilderChoice === 'glamour' ? 1 : 0;
+    const willpowerFromSeeming =
+      sheet.seeming === 'grump' ? 1 : sheet.seeming === 'wilder' && sheet.wilderChoice === 'willpower' ? 1 : 0;
+    const maxWillpower = sheet.houseId === 'balor' ? 6 : 10;
+    const baseGlamour = 4 + glamourFromSeeming;
+    const baseWillpower = Math.min(maxWillpower, 4 + willpowerFromSeeming);
+    const glamour = Math.min(10, baseGlamour + (Number(sheet.freebie.glamour) || 0));
+    const willpower = Math.min(maxWillpower, baseWillpower + (Number(sheet.freebie.willpower) || 0));
+    const banality = 3 + (sheet.houseId === 'liam' ? 1 : 0);
+
+    const extraBruised = sheet.kithId === 'trolls' ? Math.max(0, Math.min(2, Number(sheet.trollOaths) || 0)) : 0;
+    const healthLevels = 7 + extraBruised;
+
+    const meritsCost = (sheet.freebie.merits || []).reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
+    const flawTotal = (sheet.freebie.flaws || []).reduce((acc, f) => acc + (Number(f.cost) || 0), 0);
+    const flawCredit = Math.min(7, flawTotal);
+    const freebiePool = 15 + flawCredit;
+    const freebieSpent =
+      sumMap(sheet.freebie.attr) * 5 +
+      sumMap(sheet.freebie.abil) * 2 +
+      sumMap(sheet.freebie.bg) * 1 +
+      sumMap(sheet.freebie.art) * 5 +
+      sumMap(sheet.freebie.realm) * 2 +
+      (Number(sheet.freebie.glamour) || 0) * 3 +
+      (Number(sheet.freebie.willpower) || 0) * 2 +
+      meritsCost;
+    const freebieRemaining = freebiePool - freebieSpent;
+
+    const requiredSpecialties = [];
+    ATTRIBUTES.forEach((a) => {
+      if (finalAttr[a.id] >= 4) {
+        requiredSpecialties.push({
+          key: `attr:${a.id}`,
+          label: a.ru,
+          rating: finalAttr[a.id],
+          reason: 'Атрибут 4+',
+          suggestions: a.specialties || []
+        });
+      }
+    });
+    ABILITIES.forEach((ab) => {
+      const val = finalAbil[ab.id] || 0;
+      if (val >= 4 || (ab.mandatorySpecialty && val >= 1) || (ab.isCustomSlot && val >= 1)) {
+        const customName = sheet.customAbilityNames && sheet.customAbilityNames[ab.id];
+        requiredSpecialties.push({
+          key: `abil:${ab.id}`,
+          label: customName ? `${ab.ru}: ${customName}` : ab.ru,
+          rating: val,
+          reason: val >= 4 ? 'Способность 4+' : ab.isCustomSlot ? 'Направление слота' : 'Обязательно с 1 точки',
+          suggestions: ab.specialties || []
+        });
+      }
+    });
+
+    const warnings = [];
+    if (house && (finalBg.title || 0) === 0) {
+      warnings.push('Для принадлежности к Благородному Дому, его Дара и Изъяна требуется хотя бы 1 точка Дополнения «Титул» на Шаге III.');
+    }
+    if (sheet.kithId === 'arcadian_sidhe' && !house) {
+      warnings.push('Аркадийские ши по канону принадлежат к одному из четырнадцати Благородных Домов, если только не отреклись от титула.');
+    }
+    if (sheet.houseId === 'scathach' && sheet.kithId && sheet.kithId !== 'arcadian_sidhe' && (finalArt.sovereign || 0) > 0) {
+      warnings.push('По Изъяну Дома Скатах представителям Осенних ши и недворянских китов запрещено изучать Искусство «Владычество».');
+    }
+    if (sheet.houseId === 'liam' && threshold && threshold.type === 'ravaging') {
+      warnings.push('По Изъяну Дома Лиам дворяне этого Дома ни при каких обстоятельствах не способны к Опустошению.');
+    }
+    if (flawTotal > 7) {
+      warnings.push(`Взято Недостатков на ${flawTotal} очков: по правилам C20 в зачёт Свободных очков идёт не более 7.`);
+    }
+    if (freebieRemaining < 0) {
+      warnings.push(`Свободные очки перерасходованы на ${Math.abs(freebieRemaining)}.`);
+    }
+
+    return {
+      kith,
+      house,
+      seelieLegacy,
+      unseelieLegacy,
+      threshold,
+      affinityRealmId,
+      attrBonus,
+      bonusSources,
+      attrAddedByGroup,
+      finalAttr,
+      maxAttr,
+      abilSpentByGroup,
+      finalAbil,
+      bgBaseTotal: sumMap(sheet.bgBase),
+      artBaseTotal: sumMap(sheet.artBase),
+      realmBaseTotal: sumMap(sheet.realmBase),
+      finalBg,
+      finalArt,
+      finalRealm,
+      baseGlamour,
+      baseWillpower,
+      maxWillpower,
+      glamour,
+      willpower,
+      banality,
+      extraBruised,
+      healthLevels,
+      meritsCost,
+      flawTotal,
+      flawCredit,
+      freebiePool,
+      freebieSpent,
+      freebieRemaining,
+      requiredSpecialties,
+      warnings
+    };
+  }
+
+  function renderDotAdjusterRow(labelHtml, val, minVal, maxVal, decAttrs, incAttrs, noteHtml = '') {
+    return `
+      <div class="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg border border-[#d8b979]/15 bg-[#0b110f]/55">
+        <div class="min-w-0 flex-1">
+          <div class="text-xs sm:text-[13px] text-[#f0eadc] font-medium truncate">${labelHtml}</div>
+          ${noteHtml ? `<div class="text-[11px] text-[#a69f90]">${noteHtml}</div>` : ''}
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" ${decAttrs} class="chrysalis-dot-btn" ${val <= minVal ? 'disabled' : ''}>−</button>
+          <span class="min-w-[1.6rem] text-center text-xs font-semibold text-[#f0dba8]">${val}</span>
+          <button type="button" ${incAttrs} class="chrysalis-dot-btn" ${val >= maxVal ? 'disabled' : ''}>+</button>
+        </div>
+      </div>`;
+  }
+
+  function formatDossierText(sheet, comp) {
+    const kithName = comp.kith ? `${comp.kith.ru} (${comp.kith.en})` : 'не выбран';
+    const houseName = comp.house ? `${comp.house.ru} (${comp.house.en})` : 'без титула';
+    const primaryLeg = sheet.court === 'Благой' ? comp.seelieLegacy : comp.unseelieLegacy;
+    const secondaryLeg = sheet.court === 'Благой' ? comp.unseelieLegacy : comp.seelieLegacy;
+    const lines = [
+      `ЛИСТ ПОДМЕНЫША — ${sheet.name || 'Безымянный слёток'}`,
+      `Замысел: ${sheet.concept || '—'}`,
+      `Мотли: ${sheet.motley || '—'}`,
+      `Кит: ${kithName}${comp.kith ? ` · Сродство: ${comp.kith.affinity}` : ''}`,
+      `Двор: ${sheet.court} · Стадия души: ${SEEMING_NAMES[sheet.seeming] || 'Дикарь'}`,
+      `Ведущее Наследие: ${primaryLeg ? primaryLeg.ru : '—'} | Второе Наследие: ${secondaryLeg ? secondaryLeg.ru : '—'}`,
+      `Благородный Дом: ${houseName}`,
+      '',
+      'АТРИБУТЫ:',
+      ...ATTRIBUTES.map((a) => `- ${a.ru}: ${comp.finalAttr[a.id]}${comp.bonusSources[a.id] ? ` [${comp.bonusSources[a.id]}]` : ''}`),
+      '',
+      'СПОСОБНОСТИ:',
+      ...ABILITIES.filter((ab) => comp.finalAbil[ab.id] > 0).map((ab) => {
+        const cn = sheet.customAbilityNames && sheet.customAbilityNames[ab.id];
+        return `- ${ab.ru}${cn ? ` (${cn})` : ''}: ${comp.finalAbil[ab.id]}`;
+      }),
+      '',
+      'ДОПОЛНЕНИЯ, ИСКУССТВА И ВЛАДЕНИЯ:',
+      ...BACKGROUNDS.filter((b) => comp.finalBg[b.id] > 0).map((b) => `- Дополнение · ${b.ru}: ${comp.finalBg[b.id]}`),
+      ...ARTS.filter((ar) => comp.finalArt[ar.id] > 0).map((ar) => `- Искусство · ${ar.ru}: ${comp.finalArt[ar.id]}`),
+      ...REALMS.filter((rl) => comp.finalRealm[rl.id] > 0).map((rl) => `- Владение · ${rl.ru}: ${comp.finalRealm[rl.id]}${comp.affinityRealmId === rl.id ? ' [Сродство]' : ''}`),
+      '',
+      `ТЕМПЕРАМЕНТЫ: Сила Воли ${comp.willpower} (макс. ${comp.maxWillpower}) · Гламур ${comp.glamour} · Банальность ${comp.banality} · Кошмар 0`,
+      `ЗДОРОВЬЕ: ${comp.healthLevels} ступеней (Реальная и Химерическая шкалы)`
+    ];
+    if ((sheet.freebie.merits || []).length || (sheet.freebie.flaws || []).length) {
+      lines.push('', 'ДОСТОИНСТВА И НЕДОСТАТКИ:');
+      (sheet.freebie.merits || []).forEach((m) => lines.push(`- Достоинство: ${m.ru} (${m.cost})${m.note ? ` — ${m.note}` : ''}`));
+      (sheet.freebie.flaws || []).forEach((f) => lines.push(`- Недостаток: ${f.ru} (${f.cost})${f.note ? ` — ${f.note}` : ''}`));
+    }
+    if (comp.requiredSpecialties.length) {
+      lines.push('', 'СПЕЦИАЛИЗАЦИИ:');
+      comp.requiredSpecialties.forEach((sp) => lines.push(`- ${sp.label} (${sp.rating}): ${(sheet.specialties || {})[sp.key] || 'не указана'}`));
+    }
+    lines.push(
+      '',
+      `ПОРОГ ГЛАМУРА: ${comp.threshold ? `${comp.threshold.ru} (${comp.threshold.typeRu})` : 'определится в игре'}`,
+      `АНТИТЕЗА: ${sheet.antithesis || 'не указана'}`,
+      '',
+      `СМЕРТНЫЙ ОБЛИК: ${sheet.mortalGuise || '—'}`,
+      `ОБЛИК ФЕИ И ВУАЛЬ: ${sheet.faeMien || '—'}`,
+      `ЦЕЛИ: ${sheet.goals || '—'}`,
+      `ПРИЧУДЫ: ${sheet.quirks || '—'}`,
+      `ХРИЗАЛИДА И ИСТОРИЯ: ${sheet.backstory || '—'}`
+    );
+    return lines.join('\n');
+  }
+
+  function renderDossierBodyHTML(sheet, comp, forPrint = false) {
+    const kithName = comp.kith ? `${escHtml(comp.kith.ru)} <span class="text-xs opacity-75">(${escHtml(comp.kith.en)})</span>` : 'Не выбран';
+    const houseName = comp.house ? escHtml(comp.house.ru) : 'Без титула';
+    const primaryLeg = sheet.court === 'Благой' ? comp.seelieLegacy : comp.unseelieLegacy;
+    const secondaryLeg = sheet.court === 'Благой' ? comp.unseelieLegacy : comp.seelieLegacy;
+    const abilsTaken = ABILITIES.filter((ab) => comp.finalAbil[ab.id] > 0);
+    const bgsTaken = BACKGROUNDS.filter((b) => comp.finalBg[b.id] > 0);
+    const artsTaken = ARTS.filter((ar) => comp.finalArt[ar.id] > 0);
+    const realmsTaken = REALMS.filter((rl) => comp.finalRealm[rl.id] > 0);
+    const panelCls = forPrint ? 'print-dossier-card p-5 space-y-4 text-xs' : 'nouveau-panel p-5 sm:p-7 space-y-5';
+    const boxCls = forPrint ? 'border border-[#b5a990] rounded-lg p-3 space-y-1.5' : 'rounded-xl border border-[#d8b979]/22 bg-[#0b110f]/60 p-3.5 space-y-2';
+    const headCls = forPrint ? 'text-[11px] font-bold uppercase tracking-wider text-[#5c4824] border-b border-[#d5cbb8] pb-1' : 'text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d8b979] border-b border-[#d8b979]/20 pb-1';
+    const extraLevelsText = comp.extraBruised > 0 ? `${'Синяки [0] · '.repeat(comp.extraBruised)}` : '';
+    const healthTrackText = `${extraLevelsText}Синяки [0] · Ушиблен [−1] · Ранен [−1] · Тяжело ранен [−2] · Изувечен [−2] · Искалечен [−5] · Недееспособен`;
+
+    return `
+      <div class="${panelCls}">
+        <div class="flex flex-wrap items-baseline justify-between gap-3 border-b ${forPrint ? 'border-[#8c703b]' : 'border-[#d8b979]/25'} pb-3">
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.2em] ${forPrint ? 'text-[#5c4824]' : 'text-[#d8b979]'}">Лист подменыша · Changeling: The Dreaming 20th</div>
+            <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold ${forPrint ? 'text-[#1c1d1c]' : 'text-[#f0eadc]'} !mt-0.5 !mb-0">${escHtml(sheet.name || 'Безымянный слёток')}</h3>
+          </div>
+          <div class="text-xs ${forPrint ? 'text-[#444]' : 'text-[#a69f90]'} text-right">
+            <div>Свободные очки: <strong>${comp.freebieSpent}</strong> из <strong>${comp.freebiePool}</strong></div>
+            <div>Пройдено шагов: <strong>${(sheet.completedSteps || []).length}</strong> из 9</div>
+          </div>
+        </div>
+
+        ${comp.warnings.length && !forPrint ? `
+          <div class="rounded-xl border border-[#e06d44]/45 bg-[#2a1512]/70 p-3.5 space-y-1 text-xs text-[#ffd6c9]">
+            <div class="font-semibold">◈ Напоминания по правилам C20</div>
+            ${comp.warnings.map((w) => `<div>• ${escHtml(w)}</div>`).join('')}
+          </div>` : ''}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs leading-relaxed">
+          <div class="${boxCls}">
+            <div class="${headCls}">Происхождение и душа</div>
+            <div><strong>Замысел:</strong> ${escHtml(sheet.concept || '—')}</div>
+            <div><strong>Мотли:</strong> ${escHtml(sheet.motley || '—')}</div>
+            <div><strong>Кит:</strong> ${kithName}${comp.kith ? ` · <em>Сродство: ${escHtml(comp.kith.affinity)}</em>` : ''}</div>
+            <div><strong>Двор и Стадия:</strong> ${escHtml(sheet.court)} · ${escHtml(SEEMING_NAMES[sheet.seeming] || 'Дикарь')}</div>
+            <div><strong>Благородный Дом:</strong> ${houseName}</div>
+            <div><strong>Ведущее Наследие:</strong> ${primaryLeg ? escHtml(primaryLeg.ru) : '—'}</div>
+            <div><strong>Второе Наследие:</strong> ${secondaryLeg ? escHtml(secondaryLeg.ru) : '—'}</div>
+          </div>
+
+          <div class="${boxCls}">
+            <div class="${headCls}">Темпераменты, Порог и Здоровье</div>
+            <div><strong>Сила Воли:</strong> ${comp.willpower} ${renderDotStrip(comp.willpower, comp.maxWillpower)} <span class="opacity-70">(предел ${comp.maxWillpower})</span></div>
+            <div><strong>Гламур:</strong> ${comp.glamour} ${renderDotStrip(comp.glamour, 10)}</div>
+            <div><strong>Банальность:</strong> ${comp.banality} ${renderDotStrip(comp.banality, 10)}</div>
+            <div><strong>Кошмар:</strong> 0 из 10</div>
+            <div><strong>Порог Гламура:</strong> ${comp.threshold ? `${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)})` : 'определится в игре'}</div>
+            <div><strong>Антитеза:</strong> ${escHtml(sheet.antithesis || 'не выбрана')}</div>
+            <div><strong>Шкалы Здоровья (${comp.healthLevels}):</strong> ${healthTrackText}</div>
+          </div>
+        </div>
+
+        <div class="${boxCls}">
+          <div class="${headCls}">Атрибуты</div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            ${['physical', 'social', 'mental'].map((g) => `
+              <div class="space-y-1">
+                <div class="font-semibold opacity-80">${ATTR_GROUP_NAMES[g]}</div>
+                ${ATTRIBUTES.filter((a) => a.group === g).map((a) => `
+                  <div class="flex items-center justify-between gap-2">
+                    <span>${a.ru}${comp.bonusSources[a.id] ? ` <span class="opacity-75">(${comp.bonusSources[a.id]})</span>` : ''}</span>
+                    <span class="font-semibold">${comp.finalAttr[a.id]}</span>
+                  </div>`).join('')}
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div class="${boxCls}">
+            <div class="${headCls}">Способности</div>
+            ${abilsTaken.length
+              ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">${abilsTaken.map((ab) => {
+                  const cn = sheet.customAbilityNames && sheet.customAbilityNames[ab.id];
+                  return `<div class="flex items-center justify-between gap-2"><span>${ab.ru}${cn ? ` (${escHtml(cn)})` : ''}</span><strong>${comp.finalAbil[ab.id]}</strong></div>`;
+                }).join('')}</div>`
+              : '<div class="opacity-70">Способности ещё не распределены.</div>'}
+          </div>
+
+          <div class="${boxCls}">
+            <div class="${headCls}">Дополнения, Искусства и Владения</div>
+            ${bgsTaken.length ? `<div><strong>Дополнения:</strong> ${bgsTaken.map((b) => `${b.ru} ${comp.finalBg[b.id]}`).join(' · ')}</div>` : '<div class="opacity-70">Дополнения не выбраны.</div>'}
+            ${artsTaken.length ? `<div><strong>Искусства:</strong> ${artsTaken.map((ar) => `${ar.ru} ${comp.finalArt[ar.id]}`).join(' · ')}</div>` : '<div class="opacity-70">Искусства не выбраны.</div>'}
+            ${realmsTaken.length ? `<div><strong>Владения:</strong> ${realmsTaken.map((rl) => `${rl.ru} ${comp.finalRealm[rl.id]}${comp.affinityRealmId === rl.id ? ' ★' : ''}`).join(' · ')}</div>` : '<div class="opacity-70">Владения не выбраны.</div>'}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div class="${boxCls}">
+            <div class="${headCls}">Права, Дары, Достоинства и Недостатки</div>
+            ${comp.kith ? `<div><strong>Врождённые права:</strong> ${(comp.kith.birthrights || []).map((b) => escHtml(b.name)).join(' · ')}</div>` : ''}
+            ${comp.kith && comp.kith.frailty ? `<div><strong>Слабость Кита:</strong> ${escHtml(comp.kith.frailty.name)}</div>` : ''}
+            ${comp.house ? `<div><strong>Дар и Изъян Дома:</strong> ${escHtml(comp.house.boon.name)} · ${escHtml(comp.house.flaw.name)}</div>` : ''}
+            ${(sheet.freebie.merits || []).length ? `<div><strong>Достоинства:</strong> ${(sheet.freebie.merits || []).map((m) => `${escHtml(m.ru)} (${m.cost}${m.note ? `: ${escHtml(m.note)}` : ''})`).join('; ')}</div>` : ''}
+            ${(sheet.freebie.flaws || []).length ? `<div><strong>Недостатки:</strong> ${(sheet.freebie.flaws || []).map((f) => `${escHtml(f.ru)} (${f.cost}${f.note ? `: ${escHtml(f.note)}` : ''})`).join('; ')}</div>` : ''}
+          </div>
+
+          <div class="${boxCls}">
+            <div class="${headCls}">Специализации</div>
+            ${comp.requiredSpecialties.length
+              ? comp.requiredSpecialties.map((sp) => `<div><strong>${escHtml(sp.label)} (${sp.rating}):</strong> ${escHtml((sheet.specialties || {})[sp.key] || 'не указана')}</div>`).join('')
+              : '<div class="opacity-70">Пока нет черт 4+ или обязательных специализаций.</div>'}
+          </div>
+        </div>
+
+        <div class="${boxCls} text-xs leading-relaxed">
+          <div class="${headCls}">Искра жизни и облик</div>
+          <div><strong>Смертный облик:</strong> ${escHtml(sheet.mortalGuise || '—')}</div>
+          <div><strong>Облик феи и Вуаль:</strong> ${escHtml(sheet.faeMien || '—')}</div>
+          <div><strong>Цели:</strong> ${escHtml(sheet.goals || '—').replace(/\n/g, ' · ')}</div>
+          <div><strong>Причуды:</strong> ${escHtml(sheet.quirks || '—')}</div>
+          <div><strong>Хризалида и Мотли:</strong> ${escHtml(sheet.backstory || '—')}</div>
+        </div>
+      </div>`;
+  }
+
+  function initChrysalisPath() {
+    const mount = document.getElementById('chrysalis-path-widget-mount');
+    if (!mount || !CREATION_STEPS.length) return;
+
+    state.chrysalisSheet = loadChrysalisSheet();
+
+    mount.innerHTML = `
+      <section id="chrysalis-path" class="space-y-5 my-6 scroll-mt-24">
+        <div id="chrysalis-interactive-area" class="space-y-4">
+          <div id="chrysalis-toolbar" class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#d8b979]/20 pb-3"></div>
+          <div id="chrysalis-summary-bar" class="nouveau-panel p-3.5 sm:p-4"></div>
+          <div id="chrysalis-stepper" class="flex flex-wrap gap-1.5"></div>
+          <div id="chrysalis-step-body"></div>
+          <div id="chrysalis-dossier-area" class="hidden space-y-4"></div>
+        </div>
+        <div id="chrysalis-scroll-area" class="hidden space-y-5 no-print"></div>
+        <div id="print-chrysalis-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    renderChrysalisAll();
+  }
+
+  function renderChrysalisAll() {
+    renderChrysalisToolbar();
+    renderChrysalisSummary();
+    renderChrysalisStepper();
+    renderChrysalisModeAreas();
+    renderChrysalisScrollArea();
+  }
+
+  function renderChrysalisToolbar() {
+    const tb = document.getElementById('chrysalis-toolbar');
+    if (!tb) return;
+    const mode = state.chrysalisViewMode;
+    tb.innerHTML = `
+      <div class="inline-flex flex-wrap rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1">
+        <button type="button" data-cview="interactive" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition ${mode === 'interactive' ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'}">✦ Девять шагов</button>
+        <button type="button" data-cview="dossier" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition ${mode === 'dossier' ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'}">◈ Лист подменыша</button>
+        <button type="button" data-cview="scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition ${mode === 'scroll' ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'}">☰ Книжный свиток</button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" id="btn-load-saffron" class="px-3 py-1.5 rounded-full text-xs border border-[#d8b979]/40 bg-[#15211d]/85 text-[#f0dba8] hover:bg-[#d8b979]/20 transition">✦ Загрузить Саффрон (пример C20)</button>
+        <button type="button" id="btn-reset-sheet" class="px-3 py-1.5 rounded-full text-xs border border-[#d8b979]/25 bg-[#0b110f]/65 text-[#a69f90] hover:text-[#f0eadc] transition">Очистить лист</button>
+      </div>
+    `;
+    tb.querySelectorAll('[data-cview]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        state.chrysalisViewMode = btn.getAttribute('data-cview');
+        renderChrysalisAll();
+      })
+    );
+    const loadBtn = document.getElementById('btn-load-saffron');
+    if (loadBtn) {
+      loadBtn.addEventListener('click', () => {
+        state.chrysalisSheet = normalizeSheet(CREATION_DATA.saffronPreset);
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      });
+    }
+    const resetBtn = document.getElementById('btn-reset-sheet');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        state.chrysalisSheet = createEmptySheet();
+        state.chrysalisStepIdx = 0;
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      });
+    }
+  }
+
+  function renderChrysalisSummary() {
+    const bar = document.getElementById('chrysalis-summary-bar');
+    if (!bar) return;
+    const hideSummary = state.chrysalisViewMode === 'scroll';
+    bar.classList.toggle('hidden', hideSummary);
+    if (hideSummary) return;
+
+    const sheet = state.chrysalisSheet;
+    const comp = computeCharacterSheet(sheet);
+    const attrRem = Object.keys(sheet.attrPriority).map((g) => sheet.attrPriority[g] - comp.attrAddedByGroup[g]);
+    const abilRem = Object.keys(sheet.abilPriority).map((g) => sheet.abilPriority[g] - comp.abilSpentByGroup[g]);
+    bar.innerHTML = `
+      <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <strong id="chrysalis-summary-name" class="font-nouveau text-lg text-[#f0dba8]">${escHtml(sheet.name || 'Новый подменыш')}</strong>
+          ${comp.kith ? `<span class="px-2 py-0.5 rounded-full border border-[#d8b979]/35 bg-[#15211d] text-[#f0eadc]">${escHtml(comp.kith.ru)}</span>` : ''}
+          <span class="px-2 py-0.5 rounded-full border border-[#d8b979]/25 bg-[#0b110f]/70 text-[#a69f90]">${escHtml(sheet.court)} · ${escHtml(SEEMING_NAMES[sheet.seeming] || 'Дикарь')}</span>
+          ${comp.house ? `<span class="px-2 py-0.5 rounded-full border border-[#d8b979]/25 bg-[#0b110f]/70 text-[#f0dba8]">${escHtml(comp.house.ru)}</span>` : ''}
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-[11px] text-[#a69f90]">
+          <span>Атрибуты: <strong class="text-[#f0dba8]">${attrRem.join('/')}</strong></span>
+          <span>· Способности: <strong class="text-[#f0dba8]">${abilRem.join('/')}</strong></span>
+          <span>· Свободные: <strong class="${comp.freebieRemaining < 0 ? 'text-[#ff9c8a]' : 'text-[#f0dba8]'}">${comp.freebieRemaining}/${comp.freebiePool}</strong></span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderChrysalisStepper() {
+    const strip = document.getElementById('chrysalis-stepper');
+    if (!strip) return;
+    const hideStepper = state.chrysalisViewMode !== 'interactive';
+    strip.classList.toggle('hidden', hideStepper);
+    if (hideStepper) return;
+
+    const doneSet = new Set(state.chrysalisSheet.completedSteps || []);
+    strip.innerHTML = CREATION_STEPS.map((st, idx) => {
+      const act = idx === state.chrysalisStepIdx;
+      const done = doneSet.has(st.id);
+      return `
+        <button type="button" data-cstep="${idx}"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition ${
+            act
+              ? 'border-[#f0dba8]/80 bg-[#d8b979]/22 text-[#f0dba8] font-medium'
+              : done
+                ? 'border-[#d8b979]/45 bg-[#15211d]/80 text-[#f0eadc]'
+                : 'border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90] hover:text-[#f0eadc]'
+          }">
+          <span class="font-nouveau font-semibold">${st.num}</span>
+          <span>${st.short}</span>
+          ${done ? '<span class="text-[#78c87a]">✓</span>' : ''}
+        </button>`;
+    }).join('');
+    strip.querySelectorAll('[data-cstep]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        state.chrysalisStepIdx = parseInt(btn.getAttribute('data-cstep'), 10) || 0;
+        renderChrysalisAll();
+      })
+    );
+  }
+
+  function renderChrysalisModeAreas() {
+    const stepBody = document.getElementById('chrysalis-step-body');
+    const dossierArea = document.getElementById('chrysalis-dossier-area');
+    const scrollArea = document.getElementById('chrysalis-scroll-area');
+    const intArea = document.getElementById('chrysalis-interactive-area');
+    if (!stepBody || !dossierArea || !scrollArea || !intArea) return;
+
+    const mode = state.chrysalisViewMode;
+    intArea.classList.toggle('hidden', mode === 'scroll');
+    scrollArea.classList.toggle('hidden', mode !== 'scroll');
+    stepBody.classList.toggle('hidden', mode !== 'interactive');
+    dossierArea.classList.toggle('hidden', mode !== 'dossier');
+
+    if (mode === 'interactive') renderChrysalisStepBody();
+    else if (mode === 'dossier') renderChrysalisDossierArea();
+  }
+
+  function renderChrysalisStepForm(step, sheet, comp) {
+    if (step.id === 'concept') {
+      const seelieLegacies = LEGACIES.filter((l) => l.court === 'Благой');
+      const unseelieLegacies = LEGACIES.filter((l) => l.court === 'Неблагой');
+      const activeLegacyId = sheet.court === 'Благой' ? sheet.seelieLegacyId : sheet.unseelieLegacyId;
+      const activeLegacy = LEGACIES.find((l) => l.id === activeLegacyId) || null;
+      const examples = CREATION_DATA.conceptExamples || [];
+      return `
+        <div class="space-y-4 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-4">
+          <div class="text-xs uppercase tracking-[0.18em] text-[#d8b979] font-semibold">◈ Анкета Шага I · Основа образа</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Имя подменыша</span>
+              <input type="text" data-sheet-field="name" value="${escHtml(sheet.name)}" placeholder="Например: Саффрон (Сэффи)" class="chrysalis-input" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Мотли и союз</span>
+              <input type="text" data-sheet-field="motley" value="${escHtml(sheet.motley)}" placeholder="Например: стражи фрихолда «Крафтверк»" class="chrysalis-input" />
+            </label>
+          </div>
+          <div class="space-y-1.5 text-xs">
+            <label class="block space-y-1">
+              <span class="text-[#a69f90]">Замысел (призвание среди смертных)</span>
+              <input type="text" id="chrysalis-concept-input" data-sheet-field="concept" value="${escHtml(sheet.concept)}" placeholder="Кем персонаж живёт и дышит" class="chrysalis-input" />
+            </label>
+            <details class="lore-only text-xs">
+              <summary class="cursor-pointer text-[#d8b979] hover:text-[#f0dba8] select-none">Вдохновиться примерами замыслов из книги C20 (7)</summary>
+              <div class="flex flex-wrap gap-1.5 pt-2">
+                ${examples.map((ex, i) => `<button type="button" data-concept-sample="${i}" class="text-left px-2.5 py-1 rounded-lg border border-[#d8b979]/25 bg-[#15211d]/70 text-[11px] text-[#f0eadc]/90 hover:border-[#f0dba8]/60 transition">${escHtml(ex)}</button>`).join('')}
+              </div>
+            </details>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Кит (Kith)</span>
+              <select data-sheet-select="kithId" class="chrysalis-input">
+                <option value="">— Выберите Кит —</option>
+                ${KITHS.map((k) => `<option value="${k.id}" ${sheet.kithId === k.id ? 'selected' : ''}>${escHtml(k.ru)} (Сродство: ${escHtml(k.affinity)})</option>`).join('')}
+              </select>
+              ${comp.kith ? `<a href="../02-kiths/index.html?kith=${comp.kith.id}#kiths-arcana" target="_blank" rel="noopener" class="inline-block text-[11px] text-[#d8b979] hover:underline">Открыть Аркан Кита ↗</a>` : ''}
+            </label>
+
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Двор (Court)</span>
+              <select data-sheet-select="court" class="chrysalis-input">
+                <option value="Благой" ${sheet.court === 'Благой' ? 'selected' : ''}>Благой Двор (Seelie)</option>
+                <option value="Неблагой" ${sheet.court === 'Неблагой' ? 'selected' : ''}>Неблагой Двор (Unseelie)</option>
+              </select>
+            </label>
+
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Стадия души (Seeming)</span>
+              <select data-sheet-select="seeming" class="chrysalis-input">
+                <option value="childling" ${sheet.seeming === 'childling' ? 'selected' : ''}>Младенец (+1 Гламур)</option>
+                <option value="wilder" ${sheet.seeming === 'wilder' ? 'selected' : ''}>Дикарь (+1 Гламур или Сила Воли)</option>
+                <option value="grump" ${sheet.seeming === 'grump' ? 'selected' : ''}>Ворчун (+1 Сила Воли)</option>
+              </select>
+            </label>
+
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Благое Наследие ${sheet.court === 'Благой' ? '★ (ведущее)' : '(скрытое)'}</span>
+              <select data-sheet-select="seelieLegacyId" class="chrysalis-input">
+                <option value="">— Выберите Благое Наследие —</option>
+                ${seelieLegacies.map((l) => `<option value="${l.id}" ${sheet.seelieLegacyId === l.id ? 'selected' : ''}>${escHtml(l.ru)} (${escHtml(l.en)})</option>`).join('')}
+              </select>
+            </label>
+
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Неблагое Наследие ${sheet.court === 'Неблагой' ? '★ (ведущее)' : '(скрытое)'}</span>
+              <select data-sheet-select="unseelieLegacyId" class="chrysalis-input">
+                <option value="">— Выберите Неблагое Наследие —</option>
+                ${unseelieLegacies.map((l) => `<option value="${l.id}" ${sheet.unseelieLegacyId === l.id ? 'selected' : ''}>${escHtml(l.ru)} (${escHtml(l.en)})</option>`).join('')}
+              </select>
+            </label>
+
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Благородный Дом</span>
+              <select data-sheet-select="houseId" class="chrysalis-input">
+                <option value="">Без титула (вольный простолюдин)</option>
+                ${HOUSES.map((h) => `<option value="${h.id}" ${sheet.houseId === h.id ? 'selected' : ''}>${escHtml(h.ru)} (${escHtml(h.court)})</option>`).join('')}
+              </select>
+              ${comp.house ? `<a href="../03-noble-houses/index.html?house=${comp.house.id}#houses-arcana" target="_blank" rel="noopener" class="inline-block text-[11px] text-[#d8b979] hover:underline">Открыть витраж Дома ↗</a>` : ''}
+            </label>
+          </div>
+
+          ${activeLegacy ? `
+            <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/70 p-3 text-xs space-y-1">
+              <div class="font-semibold text-[#f0dba8]">Ведущее Наследие: ${escHtml(activeLegacy.ru)} — ${escHtml(activeLegacy.tagline)}</div>
+              <div><strong>Призвание:</strong> ${escHtml(activeLegacy.quest)}</div>
+              <div><strong>Запрет:</strong> ${escHtml(activeLegacy.ban)}</div>
+            </div>` : ''}
+        </div>`;
+    }
+
+    if (step.id === 'traits') {
+      const attrVals = [7, 5, 3];
+      const abilVals = [13, 9, 5];
+      return `
+        <div class="space-y-5 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-4">
+          <div class="space-y-3">
+            <div class="text-xs uppercase tracking-[0.18em] text-[#d8b979] font-semibold">◈ Анкета Шага II · Атрибуты (приоритеты 7 / 5 / 3)</div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              ${['physical', 'social', 'mental'].map((g) => {
+                const cap = sheet.attrPriority[g];
+                const used = comp.attrAddedByGroup[g];
+                const rem = cap - used;
+                return `
+                  <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/55 p-3 space-y-2">
+                    <div class="flex items-center justify-between gap-2 border-b border-[#d8b979]/15 pb-1.5">
+                      <div>
+                        <div class="text-xs font-semibold text-[#f0dba8]">${ATTR_GROUP_NAMES[g]}</div>
+                        <div class="text-[11px] ${rem < 0 ? 'text-[#ff9c8a]' : 'text-[#a69f90]'}">Остаток: <strong>${rem}</strong> из ${cap}</div>
+                      </div>
+                      <select data-prio-kind="attr" data-prio-group="${g}" class="chrysalis-input !w-auto !py-1 !px-2 text-xs">
+                        ${attrVals.map((v) => `<option value="${v}" ${cap === v ? 'selected' : ''}>${v} очков</option>`).join('')}
+                      </select>
+                    </div>
+                    <div class="space-y-1.5">
+                      ${ATTRIBUTES.filter((a) => a.group === g).map((a) => {
+                        const baseVal = sheet.attrBase[a.id] || 1;
+                        return renderDotAdjusterRow(
+                          escHtml(a.ru),
+                          baseVal,
+                          1,
+                          5,
+                          `data-dot-kind="attrBase" data-dot-id="${a.id}" data-dot-delta="-1" data-dot-group="${g}"`,
+                          `data-dot-kind="attrBase" data-dot-id="${a.id}" data-dot-delta="1" data-dot-group="${g}"`,
+                          comp.bonusSources[a.id] ? `+ бонус (${comp.bonusSources[a.id]})` : ''
+                        );
+                      }).join('')}
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="text-xs uppercase tracking-[0.18em] text-[#d8b979] font-semibold">◈ Анкета Шага II · Способности (приоритеты 13 / 9 / 5, максимум 3 до Свободных очков)</div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              ${['talents', 'skills', 'knowledges'].map((g) => {
+                const cap = sheet.abilPriority[g];
+                const used = comp.abilSpentByGroup[g];
+                const rem = cap - used;
+                return `
+                  <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/55 p-3 space-y-2">
+                    <div class="flex items-center justify-between gap-2 border-b border-[#d8b979]/15 pb-1.5">
+                      <div>
+                        <div class="text-xs font-semibold text-[#f0dba8]">${ABIL_GROUP_NAMES[g]}</div>
+                        <div class="text-[11px] ${rem < 0 ? 'text-[#ff9c8a]' : 'text-[#a69f90]'}">Остаток: <strong>${rem}</strong> из ${cap}</div>
+                      </div>
+                      <select data-prio-kind="abil" data-prio-group="${g}" class="chrysalis-input !w-auto !py-1 !px-2 text-xs">
+                        ${abilVals.map((v) => `<option value="${v}" ${cap === v ? 'selected' : ''}>${v} очков</option>`).join('')}
+                      </select>
+                    </div>
+                    <div class="space-y-1.5">
+                      ${ABILITIES.filter((ab) => ab.group === g).map((ab) => {
+                        const baseVal = sheet.abilBase[ab.id] || 0;
+                        const customInput = ab.isCustomSlot && baseVal > 0
+                          ? `<input type="text" data-custom-abil="${ab.id}" value="${escHtml((sheet.customAbilityNames || {})[ab.id] || '')}" placeholder="Укажите область..." class="chrysalis-input !py-1 !px-2 text-[11px] mt-1" />`
+                          : '';
+                        return `
+                          <div>
+                            ${renderDotAdjusterRow(
+                              `${escHtml(ab.ru)}${ab.mandatorySpecialty ? ' *' : ''}`,
+                              baseVal,
+                              0,
+                              3,
+                              `data-dot-kind="abilBase" data-dot-id="${ab.id}" data-dot-delta="-1" data-dot-group="${g}"`,
+                              `data-dot-kind="abilBase" data-dot-id="${ab.id}" data-dot-delta="1" data-dot-group="${g}"`
+                            )}
+                            ${customInput}
+                          </div>`;
+                      }).join('')}
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>
+            <p class="text-[11px] text-[#a69f90] !my-0">* Отмечены Способности с обязательной специализацией уже с первой точки.</p>
+          </div>
+        </div>`;
+    }
+
+    if (step.id === 'advantages') {
+      return `
+        <div class="space-y-4 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-4">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/55 p-3 space-y-2">
+              <div class="flex items-center justify-between border-b border-[#d8b979]/15 pb-1.5">
+                <div class="text-xs font-semibold text-[#f0dba8]">Дополнения (Backgrounds)</div>
+                <div class="text-[11px] ${5 - comp.bgBaseTotal < 0 ? 'text-[#ff9c8a]' : 'text-[#a69f90]'}">Остаток: <strong>${5 - comp.bgBaseTotal}</strong> из 5</div>
+              </div>
+              <div class="space-y-1.5">
+                ${BACKGROUNDS.map((b) => {
+                  const notes = [];
+                  if (b.poolable) notes.push('объединяется в Мотли');
+                  if (b.id === 'title' && comp.house && (sheet.bgBase.title || 0) === 0) notes.push('нужен для выбранного Дома');
+                  return renderDotAdjusterRow(
+                    escHtml(b.ru),
+                    sheet.bgBase[b.id] || 0,
+                    0,
+                    5,
+                    `data-dot-kind="bgBase" data-dot-id="${b.id}" data-dot-delta="-1"`,
+                    `data-dot-kind="bgBase" data-dot-id="${b.id}" data-dot-delta="1"`,
+                    notes.join(' · ')
+                  );
+                }).join('')}
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/55 p-3 space-y-2">
+              <div class="flex items-center justify-between border-b border-[#d8b979]/15 pb-1.5">
+                <div class="text-xs font-semibold text-[#f0dba8]">Шесть Владений (Realms)</div>
+                <div class="text-[11px] ${5 - comp.realmBaseTotal < 0 ? 'text-[#ff9c8a]' : 'text-[#a69f90]'}">Остаток: <strong>${5 - comp.realmBaseTotal}</strong> из 5</div>
+              </div>
+              <div class="space-y-1.5">
+                ${REALMS.map((rl) => {
+                  const isAff = comp.affinityRealmId === rl.id;
+                  return renderDotAdjusterRow(
+                    `${escHtml(rl.ru)}${isAff ? ' <span class="text-[#f0dba8]">★ Сродство</span>' : ''}`,
+                    sheet.realmBase[rl.id] || 0,
+                    0,
+                    5,
+                    `data-dot-kind="realmBase" data-dot-id="${rl.id}" data-dot-delta="-1"`,
+                    `data-dot-kind="realmBase" data-dot-id="${rl.id}" data-dot-delta="1"`,
+                    rl.kindRu
+                  );
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/55 p-3 space-y-2.5">
+            <div class="flex items-center justify-between border-b border-[#d8b979]/15 pb-1.5">
+              <div class="text-xs font-semibold text-[#f0dba8]">Восемнадцать Искусств (Arts)</div>
+              <div class="text-[11px] ${3 - comp.artBaseTotal < 0 ? 'text-[#ff9c8a]' : 'text-[#a69f90]'}">Остаток: <strong>${3 - comp.artBaseTotal}</strong> из 3</div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              ${['seasons', 'elements', 'mind', 'fate'].map((grp) => `
+                <div class="space-y-1.5">
+                  <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">${ART_GROUP_NAMES[grp]}</div>
+                  ${ARTS.filter((ar) => ar.group === grp).map((ar) => {
+                    const forbidden = sheet.houseId === 'scathach' && sheet.kithId !== 'arcadian_sidhe' && ar.id === 'sovereign';
+                    return renderDotAdjusterRow(
+                      escHtml(ar.ru),
+                      sheet.artBase[ar.id] || 0,
+                      0,
+                      5,
+                      `data-dot-kind="artBase" data-dot-id="${ar.id}" data-dot-delta="-1"`,
+                      `data-dot-kind="artBase" data-dot-id="${ar.id}" data-dot-delta="1"`,
+                      forbidden ? 'запрещено для Скатах (кроме Аркадийских ши)' : ''
+                    );
+                  }).join('')}
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    if (step.id === 'tempers') {
+      return `
+        <div class="space-y-4 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-4 text-xs">
+          ${sheet.seeming === 'wilder' ? `
+            <div class="flex flex-wrap items-center gap-2 pb-2 border-b border-[#d8b979]/15">
+              <span class="text-[#a69f90]">Дар <strong class="text-[#f0dba8]">Дикаря</strong>:</span>
+              <button type="button" data-wilder-choice="glamour" class="px-3 py-1 rounded-full border transition ${sheet.wilderChoice === 'glamour' ? 'border-[#f0dba8]/80 bg-[#d8b979]/20 text-[#f0dba8]' : 'border-[#d8b979]/25 text-[#a69f90]'}">+1 к Гламуру</button>
+              <button type="button" data-wilder-choice="willpower" class="px-3 py-1 rounded-full border transition ${sheet.wilderChoice === 'willpower' ? 'border-[#f0dba8]/80 bg-[#d8b979]/20 text-[#f0dba8]' : 'border-[#d8b979]/25 text-[#a69f90]'}">+1 к Силе Воли</button>
+            </div>` : ''}
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="rounded-lg border border-[#d8b979]/25 bg-[#15211d]/70 p-3 space-y-1.5">
+              <div class="text-[#d8b979] uppercase tracking-wider text-[11px]">Сила Воли</div>
+              <div class="font-nouveau text-2xl font-semibold text-[#f0eadc]">${comp.baseWillpower} <span class="text-xs font-sans text-[#a69f90]">(предел ${comp.maxWillpower})</span></div>
+              <div>${renderDotStrip(comp.baseWillpower, comp.maxWillpower)}</div>
+            </div>
+            <div class="rounded-lg border border-[#d8b979]/25 bg-[#15211d]/70 p-3 space-y-1.5">
+              <div class="text-[#d8b979] uppercase tracking-wider text-[11px]">Гламур</div>
+              <div class="font-nouveau text-2xl font-semibold text-[#f0eadc]">${comp.baseGlamour} <span class="text-xs font-sans text-[#a69f90]">(предел 10)</span></div>
+              <div>${renderDotStrip(comp.baseGlamour, 10)}</div>
+            </div>
+            <div class="rounded-lg border border-[#d8b979]/25 bg-[#15211d]/70 p-3 space-y-1.5">
+              <div class="text-[#d8b979] uppercase tracking-wider text-[11px]">Банальность</div>
+              <div class="font-nouveau text-2xl font-semibold text-[#f0eadc]">${comp.banality} <span class="text-xs font-sans text-[#a69f90]">${sheet.houseId === 'liam' ? '(Дом Лиам +1)' : '(база 3)'}</span></div>
+              <div>${renderDotStrip(comp.banality, 10)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    if (step.id === 'birthrights') {
+      const kithBlock = comp.kith
+        ? `
+          <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/60 p-3.5 space-y-2 text-xs leading-relaxed">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#d8b979]/15 pb-1.5">
+              <strong class="text-sm font-nouveau text-[#f0dba8]">Кит: ${escHtml(comp.kith.ru)}</strong>
+              <span class="text-[#a69f90]">Сродство: ${escHtml(comp.kith.affinity)}</span>
+            </div>
+            ${sheet.kithId === 'trolls' ? `
+              <div class="flex flex-wrap items-center gap-2 py-1">
+                <span class="text-[#a69f90]">Принесённых клятв верности (Мощь титана):</span>
+                ${[0, 1, 2].map((o) => `<button type="button" data-troll-oaths="${o}" class="px-2.5 py-0.5 rounded-full border transition ${Number(sheet.trollOaths) === o ? 'border-[#f0dba8]/80 bg-[#d8b979]/20 text-[#f0dba8]' : 'border-[#d8b979]/25 text-[#a69f90]'}">${o}</button>`).join('')}
+              </div>` : ''}
+            ${(comp.kith.birthrights || []).map((br) => `<div><strong>${escHtml(br.name)}:</strong> ${linkifyHTML(formatInlineMd((br.paragraphs || []).join(' ')))}</div>`).join('')}
+            ${comp.kith.frailty ? `<div><strong class="text-[#dfd0ff]">Слабость — ${escHtml(comp.kith.frailty.name)}:</strong> ${linkifyHTML(formatInlineMd((comp.kith.frailty.paragraphs || []).join(' ')))}</div>` : ''}
+          </div>`
+        : '<div class="text-xs text-[#a69f90]">Кит ещё не выбран на Шаге I — вернитесь и выберите народ Конкордии, чтобы подставились Врождённые права и Слабость.</div>';
+
+      const houseBlock = comp.house
+        ? `
+          <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/60 p-3.5 space-y-2 text-xs leading-relaxed">
+            <div class="font-nouveau text-sm font-semibold text-[#f0dba8] border-b border-[#d8b979]/15 pb-1.5">${escHtml(comp.house.ru)} (${escHtml(comp.house.court)} Двор)</div>
+            <div><strong>Дар — ${escHtml(comp.house.boon.name)}:</strong> ${linkifyHTML(formatInlineMd((comp.house.boon.paragraphs || [comp.house.boon.text || '']).join(' ')))}</div>
+            <div><strong class="text-[#ffd6c9]">Изъян — ${escHtml(comp.house.flaw.name)}:</strong> ${linkifyHTML(formatInlineMd((comp.house.flaw.paragraphs || [comp.house.flaw.text || '']).join(' ')))}</div>
+          </div>`
+        : '';
+
+      return `<div class="space-y-3 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-4">${kithBlock}${houseBlock}</div>`;
+    }
+
+    if (step.id === 'freebies') {
+      const costRows = (CREATION_DATA.freebieCosts || [])
+        .map((r) => `<tr><td class="font-medium text-[#f0dba8]">${escHtml(r.trait)}</td><td>${linkifyHTML(formatInlineMd(r.cost))}</td></tr>`)
+        .join('');
+      const mfFiltered = MF_ITEMS.filter((it) => {
+        if (state.chrysalisMfKind !== 'all' && it.kind !== 'both' && it.kind !== state.chrysalisMfKind) return false;
+        if (state.chrysalisMfQuery) {
+          const q = state.chrysalisMfQuery.toLowerCase();
+          return `${it.ru} ${it.en}`.toLowerCase().includes(q);
+        }
+        return true;
+      });
+      return `
+        <div class="space-y-4 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#d8b979]/15 pb-2.5">
+            <div class="text-xs uppercase tracking-[0.18em] text-[#d8b979] font-semibold">◈ Анкета Шага VI · Свободные очки</div>
+            <div class="text-xs">
+              Доступно: <strong class="${comp.freebieRemaining < 0 ? 'text-[#ff9c8a]' : 'text-[#f0dba8]'}">${comp.freebieRemaining}</strong>
+              <span class="text-[#a69f90]">(база 15 + ${comp.flawCredit} за Недостатки − потрачено ${comp.freebieSpent})</span>
+            </div>
+          </div>
+
+          <div class="nouveau-table-wrap !my-1">
+            <table class="nouveau-table text-xs">
+              <thead><tr><th>Черта</th><th>Цена в Свободных очках</th></tr></thead>
+              <tbody>${costRows}</tbody>
+            </table>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/55 p-3 space-y-2">
+              <div class="font-semibold text-[#f0dba8]">Темпераменты и Атрибуты (за Свободные очки)</div>
+              ${renderDotAdjusterRow('Гламур (3 очка/точка)', comp.glamour, comp.baseGlamour, 10, 'data-fb-temper="glamour" data-dot-delta="-1"', 'data-fb-temper="glamour" data-dot-delta="1"')}
+              ${renderDotAdjusterRow(`Сила Воли (2 очка/точка, макс. ${comp.maxWillpower})`, comp.willpower, comp.baseWillpower, comp.maxWillpower, 'data-fb-temper="willpower" data-dot-delta="-1"', 'data-fb-temper="willpower" data-dot-delta="1"')}
+              <div class="pt-1 border-t border-[#d8b979]/15 text-[11px] text-[#a69f90]">Атрибуты (5 очков за точку):</div>
+              <div class="space-y-1 max-h-52 overflow-y-auto pr-1">
+                ${ATTRIBUTES.map((a) => {
+                  const minV = (sheet.attrBase[a.id] || 1) + (comp.attrBonus[a.id] || 0);
+                  return renderDotAdjusterRow(escHtml(a.ru), comp.finalAttr[a.id], minV, comp.maxAttr[a.id], `data-fb-kind="attr" data-dot-id="${a.id}" data-dot-delta="-1"`, `data-fb-kind="attr" data-dot-id="${a.id}" data-dot-delta="1"`);
+                }).join('')}
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/55 p-3 space-y-2">
+              <div class="font-semibold text-[#f0dba8]">Способности (2), Дополнения (1), Искусства (5), Владения (2)</div>
+              <details data-fb-drawer="abil" class="text-xs"${state.chrysalisFbOpen.abil ? ' open' : ''}>
+                <summary class="cursor-pointer text-[#d8b979] py-1">Способности (2 очка за точку)</summary>
+                <div class="space-y-1 max-h-48 overflow-y-auto pt-1 pr-1">
+                  ${ABILITIES.map((ab) => renderDotAdjusterRow(escHtml(ab.ru), comp.finalAbil[ab.id], sheet.abilBase[ab.id] || 0, 5, `data-fb-kind="abil" data-dot-id="${ab.id}" data-dot-delta="-1"`, `data-fb-kind="abil" data-dot-id="${ab.id}" data-dot-delta="1"`)).join('')}
+                </div>
+              </details>
+              <details data-fb-drawer="bg" class="text-xs"${state.chrysalisFbOpen.bg ? ' open' : ''}>
+                <summary class="cursor-pointer text-[#d8b979] py-1">Дополнения (1 очко за точку)</summary>
+                <div class="space-y-1 max-h-48 overflow-y-auto pt-1 pr-1">
+                  ${BACKGROUNDS.map((b) => renderDotAdjusterRow(escHtml(b.ru), comp.finalBg[b.id], sheet.bgBase[b.id] || 0, 5, `data-fb-kind="bg" data-dot-id="${b.id}" data-dot-delta="-1"`, `data-fb-kind="bg" data-dot-id="${b.id}" data-dot-delta="1"`)).join('')}
+                </div>
+              </details>
+              <details data-fb-drawer="art" class="text-xs"${state.chrysalisFbOpen.art ? ' open' : ''}>
+                <summary class="cursor-pointer text-[#d8b979] py-1">Искусства (5 очков за точку)</summary>
+                <div class="space-y-1 max-h-48 overflow-y-auto pt-1 pr-1">
+                  ${ARTS.map((ar) => renderDotAdjusterRow(escHtml(ar.ru), comp.finalArt[ar.id], sheet.artBase[ar.id] || 0, 5, `data-fb-kind="art" data-dot-id="${ar.id}" data-dot-delta="-1"`, `data-fb-kind="art" data-dot-id="${ar.id}" data-dot-delta="1"`)).join('')}
+                </div>
+              </details>
+              <details data-fb-drawer="realm" class="text-xs"${state.chrysalisFbOpen.realm ? ' open' : ''}>
+                <summary class="cursor-pointer text-[#d8b979] py-1">Владения (2 очка за точку)</summary>
+                <div class="space-y-1 max-h-48 overflow-y-auto pt-1 pr-1">
+                  ${REALMS.map((rl) => renderDotAdjusterRow(escHtml(rl.ru), comp.finalRealm[rl.id], sheet.realmBase[rl.id] || 0, 5, `data-fb-kind="realm" data-dot-id="${rl.id}" data-dot-delta="-1"`, `data-fb-kind="realm" data-dot-id="${rl.id}" data-dot-delta="1"`)).join('')}
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/55 p-3 space-y-3 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="font-semibold text-[#f0dba8]">Выбранные Достоинства (${comp.meritsCost}) и Недостатки (${comp.flawTotal}, в зачёт ${comp.flawCredit})</div>
+              <a href="../06-merits-flaws/index.html#merits-flaws-widget-mount" target="_blank" rel="noopener" class="text-[11px] text-[#d8b979] hover:underline">Открыть Атлас Достоинств ↗</a>
+            </div>
+            <div class="space-y-1.5">
+              ${(sheet.freebie.merits || []).map((m, i) => `
+                <div class="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border border-[#78c87a]/35 bg-[#0f1f17]/75">
+                  <span>✦ <strong>${escHtml(m.ru)}</strong> (−${m.cost} очка)</span>
+                  <input type="text" data-mf-note="merits" data-mf-idx="${i}" value="${escHtml(m.note || '')}" placeholder="Детали или заметка..." class="chrysalis-input !w-auto flex-1 min-w-[8rem] !py-0.5 !px-2 text-[11px]" />
+                  <button type="button" data-rm-mf="merits" data-rm-idx="${i}" class="text-[#a69f90] hover:text-[#f0eadc]">Удалить ✕</button>
+                </div>`).join('')}
+              ${(sheet.freebie.flaws || []).map((f, i) => `
+                <div class="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border border-[#e06d44]/35 bg-[#231412]/75">
+                  <span>◆ <strong>${escHtml(f.ru)}</strong> (+${f.cost} очка)</span>
+                  <input type="text" data-mf-note="flaws" data-mf-idx="${i}" value="${escHtml(f.note || '')}" placeholder="Детали или заметка..." class="chrysalis-input !w-auto flex-1 min-w-[8rem] !py-0.5 !px-2 text-[11px]" />
+                  <button type="button" data-rm-mf="flaws" data-rm-idx="${i}" class="text-[#a69f90] hover:text-[#f0eadc]">Удалить ✕</button>
+                </div>`).join('')}
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-[#d8b979]/15">
+              <div class="inline-flex rounded-full border border-[#d8b979]/30 p-0.5">
+                ${[['all', 'Все'], ['merit', 'Достоинства'], ['flaw', 'Недостатки']].map(([k, lbl]) => `
+                  <button type="button" data-mf-pick-kind="${k}" class="px-2.5 py-1 rounded-full text-[11px] transition ${state.chrysalisMfKind === k ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90]'}">${lbl}</button>`).join('')}
+              </div>
+              <input type="search" id="chrysalis-mf-search" value="${escHtml(state.chrysalisMfQuery)}" placeholder="Поиск по 121 дару и недостатку..." class="chrysalis-input !w-auto flex-1 min-w-[12rem] !py-1 text-xs" />
+            </div>
+            <div id="chrysalis-mf-list" class="max-h-56 overflow-y-auto space-y-1.5 pr-1">
+              ${renderChrysalisMfResultsHTML(mfFiltered)}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    if (step.id === 'specialties') {
+      return `
+        <div class="space-y-3 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-4 text-xs">
+          <div class="text-xs uppercase tracking-[0.18em] text-[#d8b979] font-semibold">◈ Анкета Шага VII · Ваши специализации</div>
+          ${comp.requiredSpecialties.length
+            ? `<div class="space-y-3">${comp.requiredSpecialties.map((sp) => `
+                <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/55 p-3 space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <strong class="text-[#f0dba8]">${escHtml(sp.label)} (${sp.rating})</strong>
+                    <span class="text-[11px] text-[#a69f90]">${escHtml(sp.reason)}</span>
+                  </div>
+                  <input type="text" data-spec-key="${sp.key}" value="${escHtml((sheet.specialties || {})[sp.key] || '')}" placeholder="Впишите специализацию..." class="chrysalis-input" />
+                  ${sp.suggestions.length ? `<div class="flex flex-wrap gap-1">${sp.suggestions.map((sg) => `<button type="button" data-spec-suggest="${sp.key}" data-spec-val="${escHtml(sg)}" class="px-2 py-0.5 rounded-full border border-[#d8b979]/25 bg-[#0b110f]/70 text-[11px] text-[#a69f90] hover:text-[#f0dba8]">+ ${escHtml(sg)}</button>`).join('')}</div>` : ''}
+                </div>`).join('')}</div>`
+            : '<div class="text-[#a69f90]">Пока ни один Атрибут или Способность не достигли рейтинга 4, и нет выбранных Способностей с обязательной специализацией.</div>'}
+        </div>`;
+    }
+
+    if (step.id === 'threshold') {
+      const musingList = THRESHOLDS.filter((t) => t.type === 'musing');
+      const ravagingList = THRESHOLDS.filter((t) => t.type === 'ravaging');
+      return `
+        <div class="space-y-3 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-4 text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Порог Гламура</span>
+              <select data-sheet-select="thresholdId" class="chrysalis-input">
+                <option value="">Определится в первых сценах игры</option>
+                <optgroup label="Пороги Вдохновения (Musing)">
+                  ${musingList.map((t) => `<option value="${t.id}" ${sheet.thresholdId === t.id ? 'selected' : ''}>${escHtml(t.ru)} (${escHtml(t.en)})</option>`).join('')}
+                </optgroup>
+                <optgroup label="Пороги Опустошения (Ravaging)">
+                  ${ravagingList.map((t) => `<option value="${t.id}" ${sheet.thresholdId === t.id ? 'selected' : ''}>${escHtml(t.ru)} (${escHtml(t.en)})</option>`).join('')}
+                </optgroup>
+              </select>
+            </label>
+            <label class="space-y-1">
+              <span class="text-[#a69f90]">Личная Антитеза</span>
+              <input type="text" data-sheet-field="antithesis" value="${escHtml(sheet.antithesis)}" placeholder="Например: высмеивать чужое искреннее творчество" class="chrysalis-input" />
+            </label>
+          </div>
+          ${comp.threshold ? `
+            <div class="rounded-lg border border-[#d8b979]/20 bg-[#15211d]/60 p-3 space-y-1">
+              <strong class="text-[#f0dba8]">${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)}):</strong>
+              <span>${linkifyHTML(formatInlineMd(comp.threshold.desc))}</span>
+            </div>` : ''}
+        </div>`;
+    }
+
+    return `
+      <div class="space-y-3 rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/55 p-4 text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label class="space-y-1">
+            <span class="text-[#a69f90]">Смертный облик</span>
+            <textarea rows="3" data-sheet-field="mortalGuise" placeholder="Как персонаж выглядит в глазах обычных людей" class="chrysalis-input">${escHtml(sheet.mortalGuise)}</textarea>
+          </label>
+          <label class="space-y-1">
+            <span class="text-[#a69f90]">Облик феи и Вуаль</span>
+            <textarea rows="3" data-sheet-field="faeMien" placeholder="Сказочная внешность, наряд из снов и видимые химерические вещи" class="chrysalis-input">${escHtml(sheet.faeMien)}</textarea>
+          </label>
+          <label class="space-y-1">
+            <span class="text-[#a69f90]">Три цели (повседневная, ближняя, заветная)</span>
+            <textarea rows="3" data-sheet-field="goals" placeholder="Что ведёт персонажа каждый день и к чему он стремится в хронике" class="chrysalis-input">${escHtml(sheet.goals)}</textarea>
+          </label>
+          <label class="space-y-1">
+            <span class="text-[#a69f90]">Причуды и привычки</span>
+            <textarea rows="3" data-sheet-field="quirks" placeholder="Любимые словечки, мелкие жесты, странности" class="chrysalis-input">${escHtml(sheet.quirks)}</textarea>
+          </label>
+        </div>
+        <label class="block space-y-1">
+          <span class="text-[#a69f90]">Хризалида, смертная жизнь и связь с Мотли</span>
+          <textarea rows="2" data-sheet-field="backstory" placeholder="Где рос персонаж, как пробудился и что держит его рядом с Мотли" class="chrysalis-input">${escHtml(sheet.backstory)}</textarea>
+        </label>
+        <div class="pt-1 flex justify-end">
+          <button type="button" data-open-dossier class="px-4 py-2 rounded-full text-xs font-medium border border-[#f0dba8]/80 bg-[#d8b979]/22 text-[#f0dba8] hover:bg-[#d8b979]/32 transition">◈ Открыть готовый Лист подменыша →</button>
+        </div>
+      </div>`;
+  }
+
+  function renderChrysalisMfResultsHTML(items) {
+    if (!items.length) return '<div class="text-[#a69f90] py-2">Ничего не найдено по запросу.</div>';
+    return items.slice(0, 24).map((it) => {
+      const addBtns =
+        it.id === 'winged'
+          ? `<button type="button" data-add-mf="${it.id}" data-add-kind="flaw" data-add-cost="2" class="px-2 py-0.5 rounded-full border border-[#e06d44]/45 text-[#ffd6c9] hover:bg-[#e06d44]/15">+ Недостаток (+2)</button>
+             <button type="button" data-add-mf="${it.id}" data-add-kind="merit" data-add-cost="4" class="px-2 py-0.5 rounded-full border border-[#78c87a]/45 text-[#bfeec2] hover:bg-[#78c87a]/15">+ Достоинство (−4)</button>`
+          : (it.costs || []).map((c) => {
+              const isFlaw = it.kind === 'flaw';
+              const sign = isFlaw ? `+${c}` : `−${c}`;
+              const cls = isFlaw ? 'border-[#e06d44]/45 text-[#ffd6c9] hover:bg-[#e06d44]/15' : 'border-[#78c87a]/45 text-[#bfeec2] hover:bg-[#78c87a]/15';
+              return `<button type="button" data-add-mf="${it.id}" data-add-kind="${it.kind}" data-add-cost="${c}" class="px-2 py-0.5 rounded-full border ${cls}">${sign}</button>`;
+            }).join('');
+      return `
+        <div class="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border border-[#d8b979]/15 bg-[#0b110f]/70">
+          <div class="min-w-0 flex-1">
+            <span class="font-medium text-[#f0eadc]">${escHtml(it.ru)}</span>
+            <span class="text-[11px] text-[#a69f90]">(${escHtml(it.en)})</span>
+          </div>
+          <div class="flex flex-wrap gap-1 shrink-0">${addBtns}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderChrysalisStepBody() {
+    const body = document.getElementById('chrysalis-step-body');
+    if (!body) return;
+    const idx = Math.max(0, Math.min(CREATION_STEPS.length - 1, state.chrysalisStepIdx));
+    const step = CREATION_STEPS[idx];
+    const sheet = state.chrysalisSheet;
+    const comp = computeCharacterSheet(sheet);
+    const isDone = (sheet.completedSteps || []).includes(step.id);
+
+    body.innerHTML = `
+      <div class="nouveau-panel p-5 sm:p-7 space-y-5 spotlight-anim">
+        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#d8b979]/20 pb-3.5">
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.22em] text-[#d8b979]">Шаг ${step.num} · ${escHtml(step.budget)}</div>
+            <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc] !mt-0.5 !mb-0">${escHtml(step.ru)} <span class="text-sm font-sans font-normal text-[#a69f90]">(${escHtml(step.en)})</span></h3>
+          </div>
+          <button type="button" id="btn-toggle-step-done" class="px-3.5 py-1.5 rounded-full text-xs border transition shrink-0 ${isDone ? 'border-[#78c87a]/65 bg-[#78c87a]/18 text-[#bfeec2]' : 'border-[#d8b979]/35 bg-[#0b110f]/70 text-[#a69f90] hover:text-[#f0eadc]'}">
+            ${isDone ? '✓ Шаг завершён' : 'Отметить шаг пройденным'}
+          </button>
+        </div>
+
+        <div class="relative z-10 flex flex-wrap gap-2">
+          ${(step.links || []).map((lk) => `<a href="${escHtml(lk.href)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-[#d8b979]/40 bg-[#15211d]/85 text-[#f0dba8] hover:border-[#f0dba8] transition">${escHtml(lk.label)} ↗</a>`).join('')}
+        </div>
+
+        <div class="relative z-10 space-y-2 text-xs sm:text-[13.5px] leading-relaxed text-[#f0eadc]/92">
+          ${(step.rules || []).map((r) => `<p class="!my-0">${linkifyHTML(formatInlineMd(r))}</p>`).join('')}
+        </div>
+
+        ${comp.warnings.length ? `
+          <div class="relative z-10 rounded-xl border border-[#e06d44]/45 bg-[#2a1512]/70 p-3 space-y-1 text-xs text-[#ffd6c9]">
+            ${comp.warnings.map((w) => `<div>◈ ${escHtml(w)}</div>`).join('')}
+          </div>` : ''}
+
+        <div class="relative z-10">
+          ${renderChrysalisStepForm(step, sheet, comp)}
+        </div>
+
+        ${step.saffron ? `
+          <details class="relative z-10 lore-only callout-sidebar">
+            <summary class="cursor-pointer font-nouveau text-lg font-semibold text-[#f0dba8] select-none list-none flex items-center justify-between gap-2">
+              <span>✦ ${escHtml(step.saffron.title)}</span>
+              <span class="text-xs font-sans text-[#a69f90]">Раскрыть ▾</span>
+            </summary>
+            <div class="space-y-2 pt-2.5 text-xs sm:text-[13px] leading-relaxed text-[#f0eadc]/90">
+              ${(step.saffron.paragraphs || []).map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+            </div>
+          </details>` : ''}
+
+        <div class="relative z-10 flex items-center justify-between gap-3 pt-2 border-t border-[#d8b979]/20">
+          <button type="button" data-cstep-nav="-1" class="px-4 py-2 rounded-full text-xs border border-[#d8b979]/35 bg-[#0b110f]/75 text-[#f0eadc] hover:border-[#f0dba8] transition ${idx === 0 ? 'invisible' : ''}">← Предыдущий шаг</button>
+          <button type="button" data-cstep-nav="1" class="px-4 py-2 rounded-full text-xs font-medium border border-[#f0dba8]/70 bg-[#d8b979]/20 text-[#f0dba8] hover:bg-[#d8b979]/30 transition">${idx === CREATION_STEPS.length - 1 ? '◈ К готовому Листу →' : 'Следующий шаг →'}</button>
+        </div>
+      </div>
+    `;
+
+    bindChrysalisStepEvents(body, step);
+  }
+
+  function bindChrysalisStepEvents(body, step) {
+    const sheet = state.chrysalisSheet;
+
+    const doneBtn = document.getElementById('btn-toggle-step-done');
+    if (doneBtn) {
+      doneBtn.addEventListener('click', () => {
+        const list = sheet.completedSteps || [];
+        const pos = list.indexOf(step.id);
+        if (pos >= 0) list.splice(pos, 1);
+        else list.push(step.id);
+        sheet.completedSteps = list;
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      });
+    }
+
+    body.querySelectorAll('[data-cstep-nav]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const d = parseInt(btn.getAttribute('data-cstep-nav'), 10);
+        if (state.chrysalisStepIdx + d >= CREATION_STEPS.length) {
+          state.chrysalisViewMode = 'dossier';
+          renderChrysalisAll();
+        } else {
+          state.chrysalisStepIdx = Math.max(0, Math.min(CREATION_STEPS.length - 1, state.chrysalisStepIdx + d));
+          renderChrysalisAll();
+        }
+      })
+    );
+
+    const openDossierBtn = body.querySelector('[data-open-dossier]');
+    if (openDossierBtn) {
+      openDossierBtn.addEventListener('click', () => {
+        state.chrysalisViewMode = 'dossier';
+        renderChrysalisAll();
+      });
+    }
+
+    body.querySelectorAll('[data-sheet-field]').forEach((el) => {
+      el.addEventListener('input', () => {
+        const f = el.getAttribute('data-sheet-field');
+        sheet[f] = el.value;
+        saveChrysalisSheet();
+        if (f === 'name') {
+          const sumName = document.getElementById('chrysalis-summary-name');
+          if (sumName) sumName.textContent = el.value || 'Новый подменыш';
+        }
+      });
+    });
+
+    const clampTemperFreebies = () => {
+      const gFromS = sheet.seeming === 'childling' ? 1 : sheet.seeming === 'wilder' && sheet.wilderChoice === 'glamour' ? 1 : 0;
+      const wFromS = sheet.seeming === 'grump' ? 1 : sheet.seeming === 'wilder' && sheet.wilderChoice === 'willpower' ? 1 : 0;
+      const maxW = sheet.houseId === 'balor' ? 6 : 10;
+      const baseG = 4 + gFromS;
+      const baseW = Math.min(maxW, 4 + wFromS);
+      sheet.freebie.glamour = Math.max(0, Math.min(10 - baseG, Number(sheet.freebie.glamour) || 0));
+      sheet.freebie.willpower = Math.max(0, Math.min(maxW - baseW, Number(sheet.freebie.willpower) || 0));
+    };
+
+    body.querySelectorAll('[data-sheet-select]').forEach((el) => {
+      el.addEventListener('change', () => {
+        const f = el.getAttribute('data-sheet-select');
+        sheet[f] = el.value;
+        if (f === 'houseId' || f === 'seeming') clampTemperFreebies();
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      });
+    });
+
+    body.querySelectorAll('[data-fb-drawer]').forEach((det) =>
+      det.addEventListener('toggle', () => {
+        state.chrysalisFbOpen[det.getAttribute('data-fb-drawer')] = det.open;
+      })
+    );
+
+    body.querySelectorAll('[data-concept-sample]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const text = (CREATION_DATA.conceptExamples || [])[parseInt(btn.getAttribute('data-concept-sample'), 10)] || '';
+        sheet.concept = text;
+        saveChrysalisSheet();
+        const inp = document.getElementById('chrysalis-concept-input');
+        if (inp) inp.value = text;
+      })
+    );
+
+    body.querySelectorAll('[data-prio-kind]').forEach((sel) =>
+      sel.addEventListener('change', () => {
+        const kind = sel.getAttribute('data-prio-kind');
+        const grp = sel.getAttribute('data-prio-group');
+        const newVal = parseInt(sel.value, 10);
+        const map = kind === 'attr' ? sheet.attrPriority : sheet.abilPriority;
+        const oldVal = map[grp];
+        const swapKey = Object.keys(map).find((k) => k !== grp && map[k] === newVal);
+        map[grp] = newVal;
+        if (swapKey) map[swapKey] = oldVal;
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      })
+    );
+
+    body.querySelectorAll('[data-dot-kind]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const kind = btn.getAttribute('data-dot-kind');
+        const id = btn.getAttribute('data-dot-id');
+        const delta = parseInt(btn.getAttribute('data-dot-delta'), 10);
+        const minV = kind === 'attrBase' ? 1 : 0;
+        const maxV = kind === 'abilBase' ? 3 : 5;
+        const cur = Number((sheet[kind] || {})[id]);
+        const safeCur = Number.isNaN(cur) ? minV : cur;
+        const nxt = Math.max(minV, Math.min(maxV, safeCur + delta));
+        sheet[kind][id] = nxt;
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      })
+    );
+
+    body.querySelectorAll('[data-custom-abil]').forEach((inp) =>
+      inp.addEventListener('input', () => {
+        const id = inp.getAttribute('data-custom-abil');
+        sheet.customAbilityNames[id] = inp.value;
+        saveChrysalisSheet();
+      })
+    );
+
+    body.querySelectorAll('[data-wilder-choice]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        sheet.wilderChoice = btn.getAttribute('data-wilder-choice');
+        clampTemperFreebies();
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      })
+    );
+
+    body.querySelectorAll('[data-troll-oaths]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        sheet.trollOaths = parseInt(btn.getAttribute('data-troll-oaths'), 10) || 0;
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      })
+    );
+
+    body.querySelectorAll('[data-fb-temper]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-fb-temper');
+        const delta = parseInt(btn.getAttribute('data-dot-delta'), 10);
+        const cur = Number(sheet.freebie[key]) || 0;
+        sheet.freebie[key] = Math.max(0, cur + delta);
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      })
+    );
+
+    body.querySelectorAll('[data-fb-kind]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const kind = btn.getAttribute('data-fb-kind');
+        const id = btn.getAttribute('data-dot-id');
+        const delta = parseInt(btn.getAttribute('data-dot-delta'), 10);
+        const cur = Number((sheet.freebie[kind] || {})[id]) || 0;
+        sheet.freebie[kind][id] = Math.max(0, cur + delta);
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      })
+    );
+
+    body.querySelectorAll('[data-mf-pick-kind]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        state.chrysalisMfKind = btn.getAttribute('data-mf-pick-kind');
+        renderChrysalisStepBody();
+      })
+    );
+
+    const mfSearch = document.getElementById('chrysalis-mf-search');
+    if (mfSearch) {
+      mfSearch.addEventListener('input', () => {
+        state.chrysalisMfQuery = mfSearch.value;
+        const listEl = document.getElementById('chrysalis-mf-list');
+        if (listEl) {
+          const mfFiltered = MF_ITEMS.filter((it) => {
+            if (state.chrysalisMfKind !== 'all' && it.kind !== 'both' && it.kind !== state.chrysalisMfKind) return false;
+            if (state.chrysalisMfQuery) {
+              const q = state.chrysalisMfQuery.toLowerCase();
+              return `${it.ru} ${it.en}`.toLowerCase().includes(q);
+            }
+            return true;
+          });
+          listEl.innerHTML = renderChrysalisMfResultsHTML(mfFiltered);
+          bindChrysalisMfAddButtons(listEl);
+        }
+      });
+    }
+    const mfList = document.getElementById('chrysalis-mf-list');
+    if (mfList) bindChrysalisMfAddButtons(mfList);
+
+    body.querySelectorAll('[data-rm-mf]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const bucket = btn.getAttribute('data-rm-mf');
+        const rIdx = parseInt(btn.getAttribute('data-rm-idx'), 10);
+        if (Array.isArray(sheet.freebie[bucket])) {
+          sheet.freebie[bucket].splice(rIdx, 1);
+          saveChrysalisSheet();
+          renderChrysalisAll();
+        }
+      })
+    );
+
+    body.querySelectorAll('[data-mf-note]').forEach((inp) =>
+      inp.addEventListener('input', () => {
+        const bucket = inp.getAttribute('data-mf-note');
+        const idx = parseInt(inp.getAttribute('data-mf-idx'), 10);
+        if (sheet.freebie[bucket] && sheet.freebie[bucket][idx]) {
+          sheet.freebie[bucket][idx].note = inp.value;
+          saveChrysalisSheet();
+        }
+      })
+    );
+
+    body.querySelectorAll('[data-spec-key]').forEach((inp) =>
+      inp.addEventListener('input', () => {
+        sheet.specialties[inp.getAttribute('data-spec-key')] = inp.value;
+        saveChrysalisSheet();
+      })
+    );
+
+    body.querySelectorAll('[data-spec-suggest]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const k = btn.getAttribute('data-spec-suggest');
+        const v = btn.getAttribute('data-spec-val');
+        sheet.specialties[k] = v;
+        saveChrysalisSheet();
+        const inp = body.querySelector(`[data-spec-key="${k}"]`);
+        if (inp) inp.value = v;
+      })
+    );
+  }
+
+  function bindChrysalisMfAddButtons(container) {
+    container.querySelectorAll('[data-add-mf]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-add-mf');
+        const kind = btn.getAttribute('data-add-kind');
+        const cost = parseInt(btn.getAttribute('data-add-cost'), 10) || 1;
+        const item = MF_ITEMS.find((x) => x.id === id);
+        if (!item) return;
+        const bucket = kind === 'flaw' ? 'flaws' : 'merits';
+        state.chrysalisSheet.freebie[bucket].push({ id: item.id, ru: item.ru, cost, note: '' });
+        saveChrysalisSheet();
+        renderChrysalisAll();
+      })
+    );
+  }
+
+  function renderChrysalisDossierArea() {
+    const area = document.getElementById('chrysalis-dossier-area');
+    if (!area) return;
+    const sheet = state.chrysalisSheet;
+    const comp = computeCharacterSheet(sheet);
+    area.innerHTML = `
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="btn-copy-dossier" class="px-4 py-2 rounded-full text-xs font-medium border border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8] hover:bg-[#d8b979]/30 transition">Скопировать лист текстом</button>
+          <button type="button" id="btn-print-dossier" class="px-4 py-2 rounded-full text-xs font-medium border border-[#d8b979]/50 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">Печать Листа (PDF)</button>
+        </div>
+        <button type="button" id="btn-back-steps" class="px-3.5 py-2 rounded-full text-xs border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc] transition">← Вернуться к шагам</button>
+      </div>
+      ${renderDossierBodyHTML(sheet, comp, false)}
+    `;
+    const copyBtn = document.getElementById('btn-copy-dossier');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        const txt = formatDossierText(sheet, comp);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(() => {
+            copyBtn.textContent = '✓ Лист скопирован';
+            setTimeout(() => {
+              copyBtn.textContent = 'Скопировать лист текстом';
+            }, 2000);
+          });
+        }
+      });
+    }
+    const printBtn = document.getElementById('btn-print-dossier');
+    if (printBtn) {
+      printBtn.addEventListener('click', () => {
+        const box = document.getElementById('print-dossier-container');
+        if (box) box.innerHTML = renderDossierBodyHTML(sheet, comp, true);
+        document.body.classList.add('print-dossier-only');
+        const cleanup = () => {
+          document.body.classList.remove('print-dossier-only');
+        };
+        window.addEventListener('afterprint', cleanup, { once: true });
+        window.print();
+        setTimeout(cleanup, 1200);
+      });
+    }
+    const backBtn = document.getElementById('btn-back-steps');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        state.chrysalisViewMode = 'interactive';
+        renderChrysalisAll();
+      });
+    }
+  }
+
+  function renderChrysalisScrollArea() {
+    const area = document.getElementById('chrysalis-scroll-area');
+    if (!area) return;
+    area.innerHTML = CREATION_STEPS.map((st) => `
+      <article class="nouveau-panel p-5 sm:p-6 space-y-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-[#d8b979]/20 pb-2">
+          <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0eadc] !mt-0 !mb-0">Шаг ${st.num}. ${escHtml(st.ru)} <span class="text-sm font-sans font-normal text-[#a69f90]">(${escHtml(st.en)})</span></h3>
+          <span class="text-xs text-[#d8b979]">${escHtml(st.budget)}</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          ${(st.links || []).map((lk) => `<a href="${escHtml(lk.href)}" class="px-2.5 py-1 rounded-full text-xs border border-[#d8b979]/35 bg-[#0b110f]/70 text-[#f0dba8] hover:border-[#f0dba8]">${escHtml(lk.label)} →</a>`).join('')}
+        </div>
+        <div class="space-y-2 text-xs sm:text-[13.5px] leading-relaxed text-[#f0eadc]/92">
+          ${(st.rules || []).map((r) => `<p class="!my-0">${linkifyHTML(formatInlineMd(r))}</p>`).join('')}
+        </div>
+        ${st.saffron ? `
+          <div class="lore-only callout-sidebar space-y-1.5 text-xs leading-relaxed">
+            <h4 class="font-nouveau text-lg font-semibold text-[#f0dba8] !mt-0 !mb-1">${escHtml(st.saffron.title)}</h4>
+            ${(st.saffron.paragraphs || []).map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p))}</p>`).join('')}
+          </div>` : ''}
+      </article>
+    `).join('');
+  }
+
+  /* ------------------------------------------------------------------------
      4. WIDGETS: STEP 4 TEMPERS & STEP 3 CANTRIP EQUATION
      ------------------------------------------------------------------------ */
   const CANTRIP_EXAMPLES = {
@@ -5621,6 +7238,22 @@
       ).join('');
     }
 
+    const chrysalisPrint = document.getElementById('print-chrysalis-container');
+    if (chrysalisPrint && CREATION_STEPS.length) {
+      chrysalisPrint.innerHTML = CREATION_STEPS.map(
+        (st) => `
+        <article class="print-chrysalis-card p-3 space-y-1.5">
+          <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+            <h4 class="font-nouveau text-lg font-bold">Шаг ${st.num}. ${escHtml(st.ru)}</h4>
+            <span class="text-xs font-semibold">${escHtml(st.budget)}</span>
+          </div>
+          <div class="text-xs leading-snug space-y-1">
+            ${(st.rules || []).map((r) => `<p class="!my-0">${formatInlineMd(r)}</p>`).join('')}
+          </div>
+        </article>`
+      ).join('');
+    }
+
     const lexPrint = document.getElementById('print-lexicon-container');
     if (lexPrint && LEXICON.length) {
       const sorted = [...LEXICON].sort((a, b) => a.ru.localeCompare(b.ru, 'ru'));
@@ -5655,6 +7288,7 @@
     initCantripForge();
     initRealmsAtlas();
     initArtsGrimoire();
+    initChrysalisPath();
     initTempersWidget();
     initCantripWidget();
     initLexiconDirectory();
