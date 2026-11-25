@@ -430,7 +430,7 @@ def render_shell(
                }">
               <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">{html.escape(v['num'])}</span>
               <span class="flex-1 text-xs leading-snug">{html.escape(v['title'])}</span>
-              <span class="text-[11px] shrink-0 mt-0.5 {'text-[#f0dba8]' if v.get('status') == 'ready' else 'text-[#7b7669]'}" title="{'Открыто' if v.get('status') == 'ready' else 'В туманах Грёзы'}">{'✦' if v.get('status') == 'ready' else '◇'}</span>
+              <span class="text-[11px] shrink-0 mt-0.5 {'text-[#f0dba8]' if v.get('status') == 'ready' else ('text-[#9ad9e5]' if v.get('status') == 'in_progress' else 'text-[#7b7669]')}" title="{'Открыто' if v.get('status') == 'ready' else ('Пишется' if v.get('status') == 'in_progress' else 'В туманах Грёзы')}">{'✦' if v.get('status') == 'ready' else ('◐' if v.get('status') == 'in_progress' else '◇')}</span>
             </a>"""
             for v in b_vols
         )
@@ -731,7 +731,7 @@ def build_site() -> dict:
         chapter_html, toc, search_chunks = render_markdown(
             raw_md,
             root_prefix="../",
-            apply_drop_cap=(vol.get("status") == "ready" and slug != "02-kiths"),
+            apply_drop_cap=(vol.get("status") in ("ready", "in_progress") and slug != "02-kiths"),
         )
 
         for sc in search_chunks:
@@ -852,7 +852,15 @@ def build_site() -> dict:
         )
 
         planned_notice = ""
-        if vol.get("status") != "ready":
+        if vol.get("status") == "in_progress":
+            planned_notice = """
+            <div class="nouveau-panel p-5 sm:p-6 border-[#4b9aa8]/45 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <div class="relative z-10 space-y-1">
+                <div class="text-xs uppercase tracking-[0.2em] text-[#9ad9e5]">◐ Глава наполняется</div>
+                <p class="text-xs sm:text-sm text-[#a69f90]">Первые разделы этой главы уже открыты для чтения; последующие разделы Книги Третьей добавляются линейно по книге правил.</p>
+              </div>
+            </div>"""
+        elif vol.get("status") != "ready":
             planned_notice = """
             <div class="nouveau-panel p-5 sm:p-6 border-[#d8b979]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div class="relative z-10 space-y-1">
@@ -1015,7 +1023,7 @@ def build_site() -> dict:
             </p>
           </div>
           <div class="relative z-10 pt-3 border-t border-[#d8b979]/15 flex items-center justify-between text-xs text-[#d8b979]">
-            <span>{'Открыть главу' if v.get('status') == 'ready' else 'Заглянуть за завесу'}</span>
+            <span>{'Открыть главу' if v.get('status') in ('ready', 'in_progress') else 'Заглянуть за завесу'}</span>
             <span class="transition-transform group-hover:translate-x-1">→</span>
           </div>
         </a>
