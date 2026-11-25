@@ -164,7 +164,16 @@
     'Очарованных',
     'Очарованными',
     'Очарованную',
-    'Очарованной'
+    'Очарованной',
+    'Дарование',
+    'Дарования',
+    'Дарованию',
+    'Дарованием',
+    'Даровании',
+    'Дарований',
+    'Дарованиям',
+    'Дарованиями',
+    'Дарованиях'
   ]);
   const EXACT_LOOKUP = new Map();
   const LOWER_LOOKUP = new Map();
@@ -3829,6 +3838,17 @@
     `).join('');
   }
 
+  function cantripSpecialText(c) {
+    return (c.specialBlocks || [])
+      .map((sb) => {
+        const itemsStr = (sb.items || [])
+          .map((it) => `${it.title || ''} ${it.en || ''} ${it.badge || ''} ${it.text || ''}`)
+          .join(' ');
+        return `${sb.title || ''} ${sb.text || ''} ${itemsStr}`;
+      })
+      .join(' ');
+  }
+
   function artTypeMeta(c) {
     if (c.type === 'wyrd') {
       return {
@@ -3875,9 +3895,27 @@
         ? c.specialBlocks
             .map(
               (sb) => `
-              <div class="rounded-lg border border-[#c4a8ff]/35 bg-[#1a1526]/70 px-3.5 py-2.5 space-y-1 text-xs sm:text-[13px] leading-relaxed">
+              <div class="rounded-lg border border-[#c4a8ff]/35 bg-[#1a1526]/70 px-3.5 py-2.5 space-y-1.5 text-xs sm:text-[13px] leading-relaxed">
                 <div class="font-semibold text-[#dfd0ff]">◈ ${formatInlineMd(sb.title)}</div>
-                <p class="text-[#f0eadc]/90 !my-0">${linkifyHTML(formatInlineMd(sb.text))}</p>
+                ${sb.text ? `<p class="text-[#f0eadc]/90 !my-0">${linkifyHTML(formatInlineMd(sb.text))}</p>` : ''}
+                ${
+                  sb.items && sb.items.length
+                    ? `<div class="space-y-1.5 pt-0.5">
+                        ${sb.items
+                          .map(
+                            (it) => `
+                          <div class="rounded border border-[#c4a8ff]/25 bg-[#120e1b]/80 px-3 py-2 space-y-0.5">
+                            <div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                              <span class="font-semibold text-[#dfd0ff]">${linkifyHTML(formatInlineMd(it.title))}${it.en ? ` <span class="font-normal text-[11px] text-[#f0eadc]/55 italic">(${formatInlineMd(it.en)})</span>` : ''}</span>
+                              ${it.badge ? `<span class="text-[11px] px-1.5 py-0.5 rounded bg-[#c4a8ff]/15 border border-[#c4a8ff]/30 text-[#dfd0ff] whitespace-nowrap">${formatInlineMd(it.badge)}</span>` : ''}
+                            </div>
+                            <p class="text-[#f0eadc]/90 !my-0">${linkifyHTML(formatInlineMd(it.text))}</p>
+                          </div>`
+                          )
+                          .join('')}
+                      </div>`
+                    : ''
+                }
               </div>`
             )
             .join('')
@@ -4091,7 +4129,7 @@
         const matchedCantrips = [];
         ARTS.forEach((a) => {
           (a.cantrips || []).forEach((c) => {
-            const hay = `${a.ru} ${a.en} ${c.ru} ${c.en} ${(c.lore || []).join(' ')} ${(c.system || []).join(' ')}`.toLowerCase();
+            const hay = `${a.ru} ${a.en} ${c.ru} ${c.en} ${(c.lore || []).join(' ')} ${(c.system || []).join(' ')} ${cantripSpecialText(c)}`.toLowerCase();
             if (hay.includes(state.artQuery)) matchedCantrips.push({ art: a, cantrip: c });
           });
         });
@@ -4143,7 +4181,7 @@
       if (state.artGroup !== 'all' && a.group !== state.artGroup) return false;
       if (state.artQuery) {
         const cantripStr = (a.cantrips || [])
-          .map((c) => `${c.ru} ${c.en} ${(c.system || []).join(' ')}`)
+          .map((c) => `${c.ru} ${c.en} ${(c.system || []).join(' ')} ${cantripSpecialText(c)}`)
           .join(' ');
         const hay = `${a.ru} ${a.en} ${a.summary} ${a.groupRu} ${cantripStr}`.toLowerCase();
         if (!hay.includes(state.artQuery)) return false;
@@ -5110,12 +5148,14 @@
       (a.cantrips || []).forEach((c) => {
         const meta = artTypeMeta(c);
         const sysStr = (c.system || []).join(' ');
-        const hay = `${c.ru} ${c.en} ${(c.lore || []).join(' ')} ${sysStr}`.toLowerCase();
+        const specialStr = cantripSpecialText(c);
+        const hay = `${c.ru} ${c.en} ${(c.lore || []).join(' ')} ${sysStr} ${specialStr}`.toLowerCase();
         if (hay.includes(q)) {
+          const snpSrc = sysStr.toLowerCase().includes(q) || !specialStr ? sysStr : specialStr;
           hits.push({
             badge: `Кантрип · ${a.ru} ${'•'.repeat(c.dots)} · ${meta.short}`,
             title: `${c.ru} (${c.en})`,
-            snippet: (sysStr.replace(/\*\*|\*/g, '') || '').slice(0, 150) + '…',
+            snippet: (snpSrc.replace(/\*\*|\*/g, '') || '').slice(0, 150) + '…',
             url: `${ROOT}08-grimoire-arts/index.html?art=${a.id}&dot=${c.dots}#arts-grimoire`
           });
         }
@@ -5441,7 +5481,21 @@
                     : '';
                 const sbs =
                   c.specialBlocks && c.specialBlocks.length
-                    ? ` ${c.specialBlocks.map((sb) => `<strong>${formatInlineMd(sb.title)}:</strong> ${formatInlineMd(sb.text)}`).join(' ')}`
+                    ? ` ${c.specialBlocks
+                        .map((sb) => {
+                          const head = `<strong>${formatInlineMd(sb.title)}:</strong>${sb.text ? ` ${formatInlineMd(sb.text)}` : ''}`;
+                          const items =
+                            sb.items && sb.items.length
+                              ? ` ${sb.items
+                                  .map(
+                                    (it) =>
+                                      `<em>${formatInlineMd(it.title)}</em>${it.badge ? ` (${formatInlineMd(it.badge)})` : ''}: ${formatInlineMd(it.text)}`
+                                  )
+                                  .join('; ')}.`
+                              : '';
+                          return `${head}${items}`;
+                        })
+                        .join(' ')}`
                     : '';
                 return `<div><strong>${'●'.repeat(c.dots)} ${c.ru} (${c.en})</strong> <em>[${c.typeRu}${c.typeNote ? ` — ${c.typeNote}` : ''}]</em>: ${sys}${tbl}${sbs}</div>`;
               })
