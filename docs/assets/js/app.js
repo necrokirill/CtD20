@@ -4831,7 +4831,8 @@
       `Мотли: ${sheet.motley || '—'}`,
       `Кит: ${kithName}${comp.kith ? ` · Сродство: ${comp.kith.affinity}` : ''}`,
       `Двор: ${sheet.court} · Стадия души: ${SEEMING_NAMES[sheet.seeming] || 'Дикарь'}`,
-      `Ведущее Наследие: ${primaryLeg ? primaryLeg.ru : '—'} | Второе Наследие: ${secondaryLeg ? secondaryLeg.ru : '—'}`,
+      `Ведущее Наследие: ${primaryLeg ? primaryLeg.ru : '—'}${primaryLeg ? ` (Призвание: ${primaryLeg.quest} Запрет: ${primaryLeg.ban})` : ''}`,
+      `Второе Наследие: ${secondaryLeg ? secondaryLeg.ru : '—'}${secondaryLeg ? ` (Призвание: ${secondaryLeg.quest} Запрет: ${secondaryLeg.ban})` : ''}`,
       `Благородный Дом: ${houseName}`,
       '',
       'АТРИБУТЫ:',
@@ -4874,18 +4875,20 @@
     return lines.join('\n');
   }
 
-  function summarizeForSheet(rawText, maxLen = 130) {
-    const clean = String(rawText || '')
+  function cleanMdPlain(rawText) {
+    return String(rawText || '')
       .replace(/\[([^\x5d]+)\]\([^\x29]+\)/g, '$1')
       .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
       .replace(/\*\*(.+?)\*\*/g, '$1')
       .replace(/\*(.+?)\*/g, '$1')
       .replace(/\s+/g, ' ')
       .trim();
-    if (!clean) return '';
-    if (clean.length <= maxLen) return clean;
-    const sliced = clean.slice(0, maxLen).replace(/\s+\S*$/, '');
-    return `${sliced || clean.slice(0, maxLen)}…`;
+  }
+
+  function stripEnParens(name) {
+    return String(name || '')
+      .replace(/\s*\([^\x28\x29]+\)\s*$/, '')
+      .trim();
   }
 
   const CHRYSALIS_PRINT_STORAGE_KEY = 'ctd20_chrysalis_print_v1';
@@ -5139,52 +5142,65 @@
             ${renderRuledBlock('', 2)}
             <div class="c20-note-line"><strong>Дар и Изъян Дома:</strong></div>
             ${renderRuledBlock('', 2)}
-            <div class="c20-note-line" style="margin-top:0.15em;"><strong>Порог Гламура:</strong> ______________________</div>
-            <div class="c20-note-line"><strong>Антитеза:</strong> ___________________________</div>
-            ${isCompact ? '<div class="c20-note-line"><strong>Достоинства / Недостатки:</strong></div>' + renderRuledBlock('', 2) : ''}
+            ${
+              isCompact
+                ? `
+              <div class="c20-note-line" style="margin-top:0.15em;"><strong>Наследия (Призвание / Запрет):</strong></div>
+              ${renderRuledBlock('', 2)}
+              <div class="c20-note-line"><strong>Порог Гламура:</strong> ______________________</div>
+              <div class="c20-note-line"><strong>Антитеза:</strong> ___________________________</div>
+              <div class="c20-note-line"><strong>Достоинства / Недостатки:</strong></div>
+              ${renderRuledBlock('', 2)}`
+                : ''
+            }
           </div>`;
       }
       const blocks = [];
       if (comp.kith) {
         (comp.kith.birthrights || []).forEach((br) => {
-          const sum = summarizeForSheet((br.paragraphs || []).join(' '), isCompact ? 85 : 115);
-          blocks.push(`<div class="c20-note-line"><strong>Право · ${escHtml(br.name)}:</strong> ${escHtml(sum)}</div>`);
+          const mech = br.sheetSummary || cleanMdPlain((br.paragraphs || []).join(' '));
+          blocks.push(`<div class="c20-note-line"><strong>Право · ${escHtml(stripEnParens(br.name))}:</strong> ${escHtml(mech)}</div>`);
         });
         if (comp.kith.frailty) {
-          const sumF = summarizeForSheet((comp.kith.frailty.paragraphs || []).join(' '), isCompact ? 85 : 110);
-          blocks.push(`<div class="c20-note-line"><strong>Слабость · ${escHtml(comp.kith.frailty.name)}:</strong> ${escHtml(sumF)}</div>`);
+          const mechF = comp.kith.frailty.sheetSummary || cleanMdPlain((comp.kith.frailty.paragraphs || []).join(' '));
+          blocks.push(
+            `<div class="c20-note-line"><strong>Слабость · ${escHtml(stripEnParens(comp.kith.frailty.name))}:</strong> ${escHtml(mechF)}</div>`
+          );
         }
       } else {
         blocks.push('<div class="c20-note-line"><strong>Права и Слабость:</strong> Кит не выбран</div>');
       }
       if (comp.house) {
-        const boonSum = summarizeForSheet((comp.house.boon.paragraphs || [comp.house.boon.text || '']).join(' '), isCompact ? 75 : 95);
-        const flawSum = summarizeForSheet((comp.house.flaw.paragraphs || [comp.house.flaw.text || '']).join(' '), isCompact ? 75 : 95);
-        blocks.push(`<div class="c20-note-line"><strong>Дар Дома (${escHtml(comp.house.boon.name)}):</strong> ${escHtml(boonSum)}</div>`);
-        blocks.push(`<div class="c20-note-line"><strong>Изъян (${escHtml(comp.house.flaw.name)}):</strong> ${escHtml(flawSum)}</div>`);
+        const boonSum = comp.house.boon.sheetSummary || cleanMdPlain((comp.house.boon.paragraphs || [comp.house.boon.text || '']).join(' '));
+        const flawSum = comp.house.flaw.sheetSummary || cleanMdPlain((comp.house.flaw.paragraphs || [comp.house.flaw.text || '']).join(' '));
+        blocks.push(`<div class="c20-note-line"><strong>Дар (${escHtml(stripEnParens(comp.house.boon.name))}):</strong> ${escHtml(boonSum)}</div>`);
+        blocks.push(`<div class="c20-note-line"><strong>Изъян (${escHtml(stripEnParens(comp.house.flaw.name))}):</strong> ${escHtml(flawSum)}</div>`);
       }
-      blocks.push(
-        `<div class="c20-note-line" style="padding-top:0.15em;border-top:0.5pt solid var(--sh-rule-soft);"><strong>Порог Гламура:</strong> ${
-          comp.threshold ? `${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)})` : 'определится в игре'
-        }</div>`
-      );
-      blocks.push(`<div class="c20-note-line"><strong>Антитеза:</strong> ${escHtml(sheet.antithesis || 'не выбрана')}</div>`);
       if (isCompact) {
+        if (primaryLeg) {
+          blocks.push(
+            `<div class="c20-note-line" style="padding-top:0.15em;border-top:0.5pt solid var(--sh-rule-soft);"><strong>Ведущее Наследие (${escHtml(primaryLeg.ru)}):</strong> Призвание — ${escHtml(primaryLeg.quest)} Запрет — ${escHtml(primaryLeg.ban)}</div>`
+          );
+        }
+        if (secondaryLeg) {
+          blocks.push(
+            `<div class="c20-note-line"><strong>Второе Наследие (${escHtml(secondaryLeg.ru)}):</strong> Призвание — ${escHtml(secondaryLeg.quest)} Запрет — ${escHtml(secondaryLeg.ban)}</div>`
+          );
+        }
+        blocks.push(
+          `<div class="c20-note-line" style="padding-top:0.15em;border-top:0.5pt solid var(--sh-rule-soft);"><strong>Порог Гламура:</strong> ${
+            comp.threshold
+              ? `${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)}) — ${escHtml(comp.threshold.tagline)}`
+              : 'определится в игре'
+          }</div>`
+        );
+        blocks.push(`<div class="c20-note-line"><strong>Антитеза:</strong> ${escHtml(sheet.antithesis || 'не выбрана')}</div>`);
         const mfAll = [
           ...(sheet.freebie.merits || []).map((m) => `+${m.ru} (−${m.cost})`),
           ...(sheet.freebie.flaws || []).map((f) => `−${f.ru} (+${f.cost})`)
         ];
         if (mfAll.length) {
           blocks.push(`<div class="c20-note-line"><strong>Достоинства / Недостатки:</strong> ${escHtml(mfAll.join('; '))}</div>`);
-        }
-        const specs = comp.requiredSpecialties
-          .map((sp) => {
-            const val = (sheet.specialties || {})[sp.key];
-            return val ? `${sp.label}: ${val}` : sp.label;
-          })
-          .filter(Boolean);
-        if (specs.length) {
-          blocks.push(`<div class="c20-note-line"><strong>Специализации:</strong> ${escHtml(specs.join('; '))}</div>`);
         }
       }
       return `
@@ -5340,19 +5356,11 @@
     if (!isCompact) {
       const merits = isBlank ? [] : sheet.freebie.merits || [];
       const flaws = isBlank ? [] : sheet.freebie.flaws || [];
-      const mfLines = [
-        ...merits.map((m) => `✦ <strong>Достоинство · ${escHtml(m.ru)}</strong> (−${m.cost})${m.note ? ` — ${escHtml(m.note)}` : ''}`),
-        ...flaws.map((f) => `◆ <strong>Недостаток · ${escHtml(f.ru)}</strong> (+${f.cost})${f.note ? ` — ${escHtml(f.note)}` : ''}`)
-      ];
-      const mfPadCount = Math.max(0, 6 - mfLines.length);
-
-      const specsList = isBlank
-        ? []
-        : comp.requiredSpecialties.map((sp) => {
-            const txt = (sheet.specialties || {})[sp.key] || 'не указана';
-            return `<strong>${escHtml(sp.label)} (${sp.rating}):</strong> ${escHtml(txt)}`;
-          });
-      const specsPadCount = Math.max(0, 3 - specsList.length);
+      const meritLines = merits.map((m) => `✦ <strong>${escHtml(m.ru)}</strong> (−${m.cost})${m.note ? ` — ${escHtml(m.note)}` : ''}`);
+      const flawLines = flaws.map((f) => `◆ <strong>${escHtml(f.ru)}</strong> (+${f.cost})${f.note ? ` — ${escHtml(f.note)}` : ''}`);
+      const meritPad = Math.max(0, 3 - meritLines.length);
+      const flawPad = Math.max(0, 3 - flawLines.length);
+      const oppositeCourt = sheet.court === 'Благой' ? 'Неблагой' : 'Благой';
 
       const emptyRows = (cols, count) =>
         Array.from({ length: count }, () => `<tr>${Array.from({ length: cols }, () => '<td>&nbsp;</td>').join('')}</tr>`).join('');
@@ -5376,24 +5384,69 @@
 
             <div class="c20-grid-2">
               <div class="c20-card">
-                <div class="c20-card-title">Достоинства и Недостатки</div>
-                ${mfLines.map((ln) => `<div class="c20-note-line">${ln}</div>`).join('')}
-                ${mfPadCount > 0 ? `<div class="c20-ruled-lines">${Array.from({ length: mfPadCount }, () => '<div class="c20-ruled-line"></div>').join('')}</div>` : ''}
-              </div>
-              <div class="c20-card">
-                <div class="c20-card-title">Специализации и Порог Гламура</div>
-                ${specsList.map((ln) => `<div class="c20-note-line">${ln}</div>`).join('')}
-                ${specsPadCount > 0 ? `<div class="c20-ruled-lines">${Array.from({ length: specsPadCount }, () => '<div class="c20-ruled-line"></div>').join('')}</div>` : ''}
-                <div class="c20-note-line" style="margin-top:0.25em;padding-top:0.2em;border-top:0.5pt solid var(--sh-rule-soft);">
-                  <strong>Порог Гламура:</strong> ${
-                    isBlank
-                      ? '____________________________________'
-                      : comp.threshold
-                        ? `${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)}) — ${escHtml(summarizeForSheet(comp.threshold.desc, 190))}`
-                        : 'определится в первых сценах игры'
+                <div class="c20-card-title">Наследия: Призвание и Запрет</div>
+                ${
+                  isBlank
+                    ? `
+                  <div class="c20-note-line"><strong>Ведущее Наследие:</strong> _____________________</div>
+                  <div class="c20-note-line"><strong>Призвание:</strong></div>
+                  ${renderRuledBlock('', 1)}
+                  <div class="c20-note-line"><strong>Запрет:</strong></div>
+                  ${renderRuledBlock('', 1)}
+                  <div class="c20-note-line" style="margin-top:0.15em;padding-top:0.15em;border-top:0.5pt solid var(--sh-rule-soft);"><strong>Второе Наследие:</strong> ______________________</div>
+                  <div class="c20-note-line"><strong>Призвание:</strong></div>
+                  ${renderRuledBlock('', 1)}
+                  <div class="c20-note-line"><strong>Запрет:</strong></div>
+                  ${renderRuledBlock('', 1)}`
+                    : `
+                  <div class="c20-note-line"><strong>Ведущее · ${primaryLeg ? escHtml(primaryLeg.ru) : 'не выбрано'}</strong> (${escHtml(sheet.court)} Двор)</div>
+                  ${
+                    primaryLeg
+                      ? `<div class="c20-note-line"><strong>Призвание:</strong> ${escHtml(primaryLeg.quest)}</div>
+                         <div class="c20-note-line"><strong>Запрет:</strong> ${escHtml(primaryLeg.ban)}</div>`
+                      : ''
                   }
+                  <div class="c20-note-line" style="margin-top:0.15em;padding-top:0.15em;border-top:0.5pt solid var(--sh-rule-soft);"><strong>Второе · ${secondaryLeg ? escHtml(secondaryLeg.ru) : 'не выбрано'}</strong> (${oppositeCourt} Двор)</div>
+                  ${
+                    secondaryLeg
+                      ? `<div class="c20-note-line"><strong>Призвание:</strong> ${escHtml(secondaryLeg.quest)}</div>
+                         <div class="c20-note-line"><strong>Запрет:</strong> ${escHtml(secondaryLeg.ban)}</div>`
+                      : ''
+                  }`
+                }
+                <div class="c20-temper-sub" style="margin-top:0.15em;">Призвание восстанавливает Силу Воли · нарушение Запрета отнимает 1 пункт Силы Воли</div>
+              </div>
+
+              <div class="c20-card">
+                <div class="c20-card-title">Порог Гламура и Антитеза</div>
+                ${
+                  isBlank
+                    ? `
+                  <div class="c20-note-line"><strong>Порог Гламура:</strong> ______________________</div>
+                  <div class="c20-note-line"><strong>Вдохновение / Опустошение и способ добычи:</strong></div>
+                  ${renderRuledBlock('', 4)}
+                  <div class="c20-note-line" style="margin-top:0.15em;"><strong>Антитеза:</strong> ___________________________</div>`
+                    : `
+                  <div class="c20-note-line"><strong>${comp.threshold ? `${escHtml(comp.threshold.ru)} (${escHtml(comp.threshold.typeRu)})` : 'Порог определится в первых сценах игры'}</strong></div>
+                  ${comp.threshold ? `<div class="c20-note-line">${escHtml(comp.threshold.desc)}</div>` : ''}
+                  <div class="c20-note-line" style="margin-top:0.2em;padding-top:0.2em;border-top:0.5pt solid var(--sh-rule-soft);"><strong>Антитеза:</strong> ${escHtml(sheet.antithesis || 'не указана')}</div>`
+                }
+              </div>
+            </div>
+
+            <div class="c20-card">
+              <div class="c20-card-title">Достоинства и Недостатки</div>
+              <div class="c20-grid-2">
+                <div>
+                  <div class="c20-note-line"><strong>Достоинства</strong></div>
+                  ${meritLines.map((ln) => `<div class="c20-note-line">${ln}</div>`).join('')}
+                  ${meritPad > 0 ? `<div class="c20-ruled-lines">${Array.from({ length: meritPad }, () => '<div class="c20-ruled-line"></div>').join('')}</div>` : ''}
                 </div>
-                <div class="c20-note-line"><strong>Антитеза:</strong> ${isBlank ? '________________________________________' : escHtml(sheet.antithesis || 'не указана')}</div>
+                <div>
+                  <div class="c20-note-line"><strong>Недостатки</strong></div>
+                  ${flawLines.map((ln) => `<div class="c20-note-line">${ln}</div>`).join('')}
+                  ${flawPad > 0 ? `<div class="c20-ruled-lines">${Array.from({ length: flawPad }, () => '<div class="c20-ruled-line"></div>').join('')}</div>` : ''}
+                </div>
               </div>
             </div>
 
@@ -5401,24 +5454,24 @@
             <div class="c20-grid-2">
               <div class="c20-card">
                 <div class="c20-card-title">Смертный облик</div>
-                ${renderRuledBlock(isBlank ? '' : sheet.mortalGuise, 3)}
+                ${renderRuledBlock(isBlank ? '' : sheet.mortalGuise, 2)}
               </div>
               <div class="c20-card">
                 <div class="c20-card-title">Облик феи и Вуаль</div>
-                ${renderRuledBlock(isBlank ? '' : sheet.faeMien, 3)}
+                ${renderRuledBlock(isBlank ? '' : sheet.faeMien, 2)}
               </div>
               <div class="c20-card">
                 <div class="c20-card-title">Три цели</div>
-                ${renderRuledBlock(isBlank ? '' : sheet.goals, 3)}
+                ${renderRuledBlock(isBlank ? '' : sheet.goals, 2)}
               </div>
               <div class="c20-card">
                 <div class="c20-card-title">Причуды и привычки</div>
-                ${renderRuledBlock(isBlank ? '' : sheet.quirks, 3)}
+                ${renderRuledBlock(isBlank ? '' : sheet.quirks, 2)}
               </div>
             </div>
             <div class="c20-card">
               <div class="c20-card-title">Хризалида, смертная жизнь и связь с Мотли</div>
-              ${renderRuledBlock(isBlank ? '' : sheet.backstory, 3)}
+              ${renderRuledBlock(isBlank ? '' : sheet.backstory, 2)}
             </div>
 
             ${renderSheetSectionHead('Кантрипы, Уловки и Сокровища')}
@@ -5432,7 +5485,7 @@
                 </tr>
               </thead>
               <tbody>
-                ${emptyRows(4, 5)}
+                ${emptyRows(4, 4)}
               </tbody>
             </table>
 
@@ -5445,7 +5498,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  ${emptyRows(2, 5)}
+                  ${emptyRows(2, 4)}
                 </tbody>
               </table>
 
@@ -5464,7 +5517,7 @@
                 </table>
                 <div class="c20-card">
                   <div class="c20-card-title">Клятвы, Дворы и союзники</div>
-                  ${renderRuledBlock('', 3)}
+                  ${renderRuledBlock('', 2)}
                 </div>
               </div>
             </div>
@@ -5522,8 +5575,16 @@
             <div><strong>Кит:</strong> ${kithName}${comp.kith ? ` · <em>Сродство: ${escHtml(comp.kith.affinity)}</em>` : ''}</div>
             <div><strong>Двор и Стадия:</strong> ${escHtml(sheet.court)} · ${escHtml(SEEMING_NAMES[sheet.seeming] || 'Дикарь')}</div>
             <div><strong>Благородный Дом:</strong> ${houseName}</div>
-            <div><strong>Ведущее Наследие:</strong> ${primaryLeg ? escHtml(primaryLeg.ru) : '—'}</div>
-            <div><strong>Второе Наследие:</strong> ${secondaryLeg ? escHtml(secondaryLeg.ru) : '—'}</div>
+            <div><strong>Ведущее Наследие:</strong> ${
+              primaryLeg
+                ? `${escHtml(primaryLeg.ru)} — <em>Призвание:</em> ${escHtml(primaryLeg.quest)} <em>Запрет:</em> ${escHtml(primaryLeg.ban)}`
+                : '—'
+            }</div>
+            <div><strong>Второе Наследие:</strong> ${
+              secondaryLeg
+                ? `${escHtml(secondaryLeg.ru)} — <em>Призвание:</em> ${escHtml(secondaryLeg.quest)} <em>Запрет:</em> ${escHtml(secondaryLeg.ban)}`
+                : '—'
+            }</div>
           </div>
 
           <div class="${boxCls}">

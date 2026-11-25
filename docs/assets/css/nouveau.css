@@ -1112,7 +1112,7 @@ body.mode-table .table-mode-only {
   align-items: baseline;
   gap: 0.32em;
   border-bottom: 0.6pt solid var(--sh-rule-soft);
-  padding-bottom: 0.1em;
+  padding-bottom: 0.14em;
   min-height: 1.32em;
 }
 
@@ -1121,15 +1121,18 @@ body.mode-table .table-mode-only {
   font-weight: 600;
   color: var(--sh-accent-deep);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .c20-field-val {
   font-size: 0.92em;
   color: var(--sh-ink);
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+  line-height: 1.24;
 }
 
 .c20-grid-3 {
@@ -1182,9 +1185,10 @@ body.mode-table .table-mode-only {
 .c20-trait-name {
   font-size: 0.9em;
   color: var(--sh-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.16;
   flex: 0 1 auto;
   min-width: 0;
 }
