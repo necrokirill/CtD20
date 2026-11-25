@@ -5210,17 +5210,18 @@
               blank: isBlank
             })}
             ${renderSheetBoxes(10)}
-            ${!isBlank && comp.maxWillpower < 10 ? `<div class="c20-temper-sub">предел ${comp.maxWillpower} (Дом Балор)</div>` : ''}
+            <div class="c20-temper-sub" style="text-align:center;">${!isBlank && comp.maxWillpower < 10 ? `предел ${comp.maxWillpower} (Дом Балор) · ` : ''}Дисбаланс обводится на квадратах · Бедлам — когда отмечены все</div>
+          </div>
+          <div class="c20-temper-block">
+            <div class="c20-temper-title">Кошмар</div>
+            ${renderSheetBoxes(10)}
+            <div class="c20-temper-sub" style="text-align:center;">при 10: сброс в 0, 1 Дисбаланс на Силе Воли и +1 временный Гламур</div>
           </div>
           <div class="c20-temper-block">
             <div class="c20-temper-title">Банальность</div>
             ${renderSheetDots(isBlank ? 0 : comp.banality, 10, { banality: true, blank: isBlank })}
             ${renderSheetBoxes(10)}
-          </div>
-          <div class="c20-temper-block">
-            <div class="c20-temper-title">Кошмар</div>
-            ${renderSheetBoxes(10)}
-            <div class="c20-temper-sub">постоянно не расходуется · Бедлам при 10</div>
+            <div class="c20-temper-sub" style="text-align:center;">сверх 10 временных: сброс и +1 постоянная · 10 постоянных — Развеивание</div>
           </div>
         </div>
       </div>`;
