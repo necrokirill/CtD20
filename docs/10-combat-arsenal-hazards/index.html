@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ru" data-root="../" style="--aura-hex: #b54856; --aura-rgb: 181, 72, 86;">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Часть Десятая. Поединки, Арсенал и Опасности — Changeling: The Dreaming</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="../assets/css/nouveau.css" />
+</head>
+<body class="antialiased selection:bg-[#d8b979]/25 selection:text-[#f0dba8]">
+  <div class="velvet-grain" aria-hidden="true"></div>
+  <div class="ambient-aura" aria-hidden="true"></div>
+
+  <!-- FLOATING GLASSMORPHIC TOP NAVIGATION BAR -->
+  <header class="no-print sticky top-0 z-50 border-b border-[#d8b979]/25 backdrop-blur-md bg-[#0b110f]/88">
+    <div class="max-w-6xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+        <button type="button" data-open-volumes aria-label="Открыть оглавление книги" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-[13px] font-medium text-[#f0dba8] bg-[#d8b979]/12 hover:bg-[#d8b979]/22 border border-[#d8b979]/40 transition shrink-0">
+          <span>☰</span>
+          <span class="hidden sm:inline">Оглавление</span>
+        </button>
+
+        <a href="../index.html" class="flex items-center gap-2 group min-w-0">
+          <span class="w-8 h-8 rounded-full border border-[#d8b979]/55 bg-[#15211d] flex items-center justify-center transition group-hover:border-[#f0dba8] shrink-0">
+            <svg class="w-4 h-4 text-[#d8b979]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 3C8.5 6.2 6.5 9.8 6.5 13.5a5.5 5.5 0 0 0 11 0C17.5 9.8 15.5 6.2 12 3Z"/>
+              <path d="M12 7v12M12 12.5l3-2.5M12 15l-3-2"/>
+            </svg>
+          </span>
+          <span class="font-nouveau text-base sm:text-xl font-semibold tracking-wide text-[#f0eadc] truncate">
+            CtD 20 <span class="hidden sm:inline text-[#d8b979]">· Книга игрока</span>
+          </span>
+        </a>
+      </div>
+
+      <nav aria-label="Разделы книги" class="hidden lg:flex items-center gap-1">
+        
+        <div class="nav-dropdown" data-nav-dropdown="character">
+          <button type="button" data-nav-trigger aria-expanded="false" aria-haspopup="true"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition shrink-0 text-[#a69f90] hover:text-[#f0dba8] border-transparent hover:bg-[#d8b979]/10">
+            <span>Персонаж</span>
+            <svg class="nav-chevron w-3.5 h-3.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="nav-dropdown-panel" role="menu">
+            <div class="relative z-10 px-3 pt-1 pb-2 mb-1 border-b border-[#d8b979]/20">
+              <div class="text-[10px] uppercase tracking-[0.2em] text-[#d8b979]">Книга Первая</div>
+              <div class="font-nouveau text-base font-semibold text-[#f0eadc]">Создание и Облик</div>
+            </div>
+            <div class="relative z-10 space-y-0.5">
+            <a href="../01-world-and-creation/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">I</span>
+              <span class="flex-1 text-xs leading-snug">Мир Грёзы и Пробуждение Подменыша</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#f0dba8]" title="Открыто">✦</span>
+            </a>
+
+            <a href="../02-kiths/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">II</span>
+              <span class="flex-1 text-xs leading-snug">Киты Конкордии</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#f0dba8]" title="Открыто">✦</span>
+            </a>
+
+            <a href="../03-noble-houses/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">III</span>
+              <span class="flex-1 text-xs leading-snug">Благородные Дома</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#f0dba8]" title="Открыто">✦</span>
+            </a>
+
+            <a href="../04-legacies-thresholds/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">IV</span>
+              <span class="flex-1 text-xs leading-snug">Наследия и Пороги Гламура</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#f0dba8]" title="Открыто">✦</span>
+            </a>
+
+            <a href="../05-traits-backgrounds/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">V</span>
+              <span class="flex-1 text-xs leading-snug">Черты и Дополнения</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#f0dba8]" title="Открыто">✦</span>
+            </a>
+
+            <a href="../06-merits-flaws/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">VI</span>
+              <span class="flex-1 text-xs leading-snug">Достоинства и Недостатки</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#f0dba8]" title="Открыто">✦</span>
+            </a></div>
+          </div>
+        </div>
+
+        <div class="nav-dropdown" data-nav-dropdown="magic">
+          <button type="button" data-nav-trigger aria-expanded="false" aria-haspopup="true"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition shrink-0 text-[#a69f90] hover:text-[#f0dba8] border-transparent hover:bg-[#d8b979]/10">
+            <span>Магия</span>
+            <svg class="nav-chevron w-3.5 h-3.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="nav-dropdown-panel" role="menu">
+            <div class="relative z-10 px-3 pt-1 pb-2 mb-1 border-b border-[#d8b979]/20">
+              <div class="text-[10px] uppercase tracking-[0.2em] text-[#d8b979]">Книга Вторая</div>
+              <div class="font-nouveau text-base font-semibold text-[#f0eadc]">Магия Грёзы</div>
+            </div>
+            <div class="relative z-10 space-y-0.5">
+            <a href="../07-laws-of-glamour-realms/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">VII</span>
+              <span class="flex-1 text-xs leading-snug">Законы Магии и Владения</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#f0dba8]" title="Открыто">✦</span>
+            </a>
+
+            <a href="../08-grimoire-arts/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">VIII</span>
+              <span class="flex-1 text-xs leading-snug">Гримуар Искусств</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#f0dba8]" title="Открыто">✦</span>
+            </a></div>
+          </div>
+        </div>
+
+        <div class="nav-dropdown" data-nav-dropdown="rules">
+          <button type="button" data-nav-trigger aria-expanded="false" aria-haspopup="true"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition shrink-0 text-[#f0dba8] bg-[#d8b979]/15 border-[#d8b979]/45">
+            <span>Законы игры</span>
+            <svg class="nav-chevron w-3.5 h-3.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="nav-dropdown-panel" role="menu">
+            <div class="relative z-10 px-3 pt-1 pb-2 mb-1 border-b border-[#d8b979]/20">
+              <div class="text-[10px] uppercase tracking-[0.2em] text-[#d8b979]">Книга Третья</div>
+              <div class="font-nouveau text-base font-semibold text-[#f0eadc]">Законы Игры и Грёзы</div>
+            </div>
+            <div class="relative z-10 space-y-0.5">
+            <a href="../09-rules-epiphany-oaths/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">IX</span>
+              <span class="flex-1 text-xs leading-snug">Законы Игры, Эпифания и Клятвы</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#7b7669]" title="В туманах Грёзы">◇</span>
+            </a>
+
+            <a href="../10-combat-arsenal-hazards/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition bg-[#d8b979]/15 text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">X</span>
+              <span class="flex-1 text-xs leading-snug">Поединки, Арсенал и Опасности</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#7b7669]" title="В туманах Грёзы">◇</span>
+            </a>
+
+            <a href="../11-mists-bedlam-chimera/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">XI</span>
+              <span class="flex-1 text-xs leading-snug">Туманы, Бедлам, Химеры и Сокровища</span>
+              <span class="text-[11px] shrink-0 mt-0.5 text-[#7b7669]" title="В туманах Грёзы">◇</span>
+            </a></div>
+          </div>
+        </div>
+        <a href="../lexicon/index.html" class="px-3 py-1.5 rounded-full text-[13px] font-medium border transition shrink-0 text-[#a69f90] hover:text-[#f0dba8] border-transparent hover:bg-[#d8b979]/10">Лексикон</a>
+      </nav>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button type="button" data-open-search class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs border border-[#d8b979]/30 bg-[#101916]/90 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/70 transition" title="Быстрый поиск по всей книге (Ctrl+K)">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <span class="hidden md:inline">Поиск</span>
+          <kbd class="hidden xl:inline text-[10px] px-1.5 py-0.2 rounded bg-[#0b110f] border border-[#d8b979]/25 text-[#7b7669]">Ctrl+K</kbd>
+        </button>
+
+        <button type="button" id="btn-depth-toggle" data-toggle-depth class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/30 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#d8b979] transition" title="Скрыть художественные описания и оставить только механику">
+          <span id="depth-dot" class="depth-dot w-1.5 h-1.5 rounded-full bg-[#d8b979]"></span>
+          <span class="depth-label-short sm:hidden">Лор</span>
+          <span id="depth-text" class="depth-label-full hidden sm:inline">Лор + Правила</span>
+        </button>
+
+        <button type="button" onclick="window.print()" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/55 bg-[#d8b979]/15 text-[#f0dba8] hover:bg-[#d8b979]/25 transition" title="Печать страницы или сохранение в PDF">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+          <span>PDF</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  
+        <main class="max-w-6xl mx-auto px-3.5 sm:px-6 pt-5 sm:pt-8 pb-12 space-y-7">
+          <div class="hidden table-mode-only no-print items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-[#d8b979]/45 bg-[#15211d]/90 text-xs text-[#f0eadc]">
+            <span>✦ <strong>Режим стола:</strong> художественный лор скрыт — оставлены только механики, формулы и характеристики.</span>
+            <button type="button" id="btn-restore-lore" class="text-[#f0dba8] underline shrink-0">Вернуть лор</button>
+          </div>
+
+          <div class="space-y-3">
+            
+        <nav aria-label="Навигация по книге" class="no-print flex flex-wrap items-center gap-1.5 text-xs text-[#a69f90]">
+          <a href="../index.html" class="hover:text-[#f0dba8] transition">Обложка</a>
+          <span class="text-[#7b7669]" aria-hidden="true">›</span>
+          <a href="../index.html#book-rules" class="hover:text-[#f0dba8] transition">Книга Третья · Законы Игры и Грёзы</a><span class="text-[#7b7669]" aria-hidden="true">›</span>
+          <span class="text-[#f0dba8] font-medium">Часть Десятая</span>
+        </nav>
+            <section class="nouveau-hero-arch px-6 py-8 sm:px-12 sm:py-12 text-center">
+              <div class="relative z-10">
+                <div class="flex items-center justify-center gap-2.5 mb-3">
+                  <span class="text-xs uppercase tracking-[0.25em] text-[#d8b979]">Часть Десятая</span>
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В туманах Грёзы</span>
+                  <span class="text-xs text-[#7b7669]">· ~2 мин чтения</span>
+                </div>
+                <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">Поединки, Арсенал и Опасности</h1>
+                <p class="text-xs sm:text-sm text-[#a69f90] max-w-2xl mx-auto mt-2.5">Четыре фазы схватки, боевые манёвры, таблицы оружия и доспехов, поглощение урона, Холодное железо, заживление и смертельные опасности</p>
+                
+                
+              </div>
+            </section>
+          </div>
+
+          <div class="flex flex-col lg:flex-row items-start gap-7">
+            
+            <aside class="no-print hidden lg:block w-64 shrink-0">
+              <div class="sticky top-20 nouveau-panel p-4 space-y-2.5 max-h-[calc(100vh-6.5rem)] overflow-y-auto">
+                <div class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979] px-2">Содержание главы</div>
+                <nav class="space-y-0.5"><a href="#sec-1" class="toc-link depth-2">Поединки, манёвры и Арсенал</a>
+<a href="#sec-2" class="toc-link depth-3">Четыре фазы боевого хода и манёвры</a>
+<a href="#sec-3" class="toc-link depth-3">Арсенал: броня, щиты и оружие</a>
+<a href="#sec-4" class="toc-link depth-2">Здоровье, Холодное железо и смертельные опасности</a>
+<a href="#sec-5" class="toc-link depth-3">Две шкалы Здоровья, поглощение и заживление</a>
+<a href="#sec-6" class="toc-link depth-3">Яды, болезни, падения, огонь и электричество</a></nav>
+              </div>
+            </aside>
+            <div class="flex-1 min-w-0 w-full">
+              
+            <details id="mobile-chapter-toc" class="no-print lg:hidden nouveau-panel mb-5">
+              <summary class="relative z-10 flex items-center justify-between gap-2 px-4 py-3 cursor-pointer list-none select-none text-xs sm:text-sm font-medium text-[#f0dba8]">
+                <span class="inline-flex items-center gap-2">
+                  <span class="text-[#d8b979]">☰</span>
+                  <span>Содержание главы (6)</span>
+                </span>
+                <svg class="toc-chevron w-4 h-4 text-[#d8b979] transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <nav class="relative z-10 px-4 pb-3.5 pt-1 border-t border-[#d8b979]/15 space-y-0.5 max-h-72 overflow-y-auto">
+                <a href="#sec-1" class="toc-link depth-2">Поединки, манёвры и Арсенал</a>
+<a href="#sec-2" class="toc-link depth-3">Четыре фазы боевого хода и манёвры</a>
+<a href="#sec-3" class="toc-link depth-3">Арсенал: броня, щиты и оружие</a>
+<a href="#sec-4" class="toc-link depth-2">Здоровье, Холодное железо и смертельные опасности</a>
+<a href="#sec-5" class="toc-link depth-3">Две шкалы Здоровья, поглощение и заживление</a>
+<a href="#sec-6" class="toc-link depth-3">Яды, болезни, падения, огонь и электричество</a>
+              </nav>
+            </details>
+              
+            <div class="nouveau-panel p-5 sm:p-6 border-[#d8b979]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <div class="relative z-10 space-y-1">
+                <div class="text-xs uppercase tracking-[0.2em] text-[#d8b979]">✦ Страницы скрыты Туманами</div>
+                <p class="text-xs sm:text-sm text-[#a69f90]">Туманы Грёзы ещё не рассеялись над этой главой. Ниже начертано краткое содержание грядущих разделов.</p>
+              </div>
+            </div>
+              <article class="nouveau-panel p-6 sm:p-10 chapter-prose auto-lex">
+                <div class="relative z-10">
+                  <p>Сталь против клыка, химерический клинок против холодной земной пули — в этой главе собраны законы боя, снаряжения, ранений и опасных стихий Осеннего мира и Ближней Грёзы.</p>
+<h2 id="sec-1">Поединки, манёвры и Арсенал</h2>
+<p>Первый большой блок раскрывает ход схватки от броска инициативы до полного перечня оружия и защитного снаряжения.</p>
+<h3 id="sec-2">Четыре фазы боевого хода и манёвры</h3>
+<ul><li><strong>Инициатива и объявление намерений:</strong> порядок заявок, разделение действий, правило двух шагов и неожиданные осложнения на поле боя.</li><li><strong>Атака, защита и вычисление урона:</strong> выбор цели, укрытия и дистанции, уклонение, парирование и блок, перенос лишних успехов в урон.</li><li><strong>Боевые манёвры:</strong> приёмы ближнего боя <em>(удар, пинок, захват, подсечка, когти, обезоруживание, опутывание, ослепление)</em>, стрельбы и защиты.</li></ul>
+<h3 id="sec-3">Арсенал: броня, щиты и оружие</h3>
+<ul><li><strong>Доспехи и щиты:</strong> плотность защиты и штрафы к Ловкости в реальных и химерических схватках.</li><li><strong>Оружие ближнего боя, огнестрельное и метательное:</strong> полные таблицы сложностей, урона, дальности, скорострельности, ёмкости и скрытности ношения.</li><li><strong>Живой пример боя:</strong> пошаговый разбор схватки из книги правил с инициативой, манёврами, промахами и поглощением ран.</li></ul>
+<div class="botanical-divider my-8" aria-hidden="true"><svg class="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M10 2 L12.5 7.5 L18 10 L12.5 12.5 L10 18 L7.5 12.5 L2 10 L7.5 7.5 Z"/></svg></div>
+<h2 id="sec-4">Здоровье, Холодное железо и смертельные опасности</h2>
+<p>Второй блок посвящён цене ранений, исцелению двух тел подменыша и грозным испытаниям среды.</p>
+<h3 id="sec-5">Две шкалы Здоровья, поглощение и заживление</h3>
+<ul><li><strong>Химерический и реальный бой:</strong> как сочетаются два тела подменыша, правила <strong>поглощения урона</strong> и перетекание <strong>оглушающего урона</strong> в <strong>летальный урон</strong>.</li><li><strong>Холодное железо <em>(Cold Iron)</em>:</strong> почему оно пробивает химерическую защиту, ранит обе шкалы разом <strong>аггравированным уроном</strong> и сжигает запас Гламура.</li><li><strong>Сроки восстановления:</strong> таблицы естественного заживления реальных и химерических ран на природе, во Фрихолде и в Грёзе.</li></ul>
+<h3 id="sec-6">Яды, болезни, падения, огонь и электричество</h3>
+<ul><li><strong>Яды и хвори:</strong> пять ступеней токсичности, сложности сопротивления и последствия от лёгкого недомогания до смертельных токсинов.</li><li><strong>Стихийные опасности:</strong> урон при падении с высоты, разгорающийся огонь в зависимости от охвата пламенем и поражение электрическим током.</li></ul>
+                </div>
+              </article>
+
+              <div class="no-print grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                <a href="../09-rules-epiphany-oaths/index.html" class="nouveau-panel p-4 sm:p-5 hover:border-[#f0dba8]/65 transition block">
+                      <div class="relative z-10 text-[11px] uppercase tracking-wider text-[#a69f90]">← Часть Девятая</div>
+                      <div class="relative z-10 font-nouveau text-xl font-semibold text-[#f0dba8] mt-1">Законы Игры, Эпифания и Клятвы</div>
+                    </a><a href="../11-mists-bedlam-chimera/index.html" class="nouveau-panel p-4 sm:p-5 hover:border-[#f0dba8]/65 transition block text-right">
+                      <div class="relative z-10 text-[11px] uppercase tracking-wider text-[#a69f90]">Часть Одиннадцатая →</div>
+                      <div class="relative z-10 font-nouveau text-xl font-semibold text-[#f0dba8] mt-1">Туманы, Бедлам, Химеры и Сокровища</div>
+                    </a>
+              </div>
+            </div>
+          </div>
+        </main>
+        
+
+  <!-- PRINT-ONLY LEXICON APPENDIX -->
+  <section class="print-only max-w-5xl mx-auto px-6 pt-5 mt-8 border-t-2 border-[#8c703b]" style="page-break-before: always;">
+    <h2 class="font-nouveau text-2xl font-bold mb-3">Единый Лексикон (Changeling: The Dreaming 20th)</h2>
+    <div id="print-lexicon-container" class="print-lex-cols"></div>
+  </section>
+
+  <footer class="no-print border-t border-[#d8b979]/15 py-8 text-center text-xs text-[#7b7669] px-4 mt-14">
+    <p class="font-nouveau text-base text-[#a69f90]">Changeling: The Dreaming · Книга Игрока</p>
+    <p class="mt-1">Некоммерческий фанатский справочник и перевод правил C20 в оформлении «Ар-Нуво и Золото».</p>
+  </footer>
+
+  <!-- DESKTOP CHAINED GLOSSARY POPOVER -->
+  <div id="desktop-popover" class="no-print" role="dialog" aria-label="Карточка термина">
+    <div class="relative z-10 p-4 sm:p-5 space-y-2.5">
+      <div class="flex items-center justify-between gap-2 pb-2 border-b border-[#d8b979]/20">
+        <div id="pop-breadcrumbs" class="flex items-center gap-1 overflow-x-auto text-[11px] text-[#a69f90] pr-1"></div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" id="pop-pin-btn" class="px-2 py-0.5 rounded-full text-[11px] border border-[#d8b979]/35 text-[#a69f90] hover:text-[#f0dba8] transition">Закрепить</button>
+          <button type="button" data-close-pop class="w-6 h-6 rounded-full border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc] flex items-center justify-center text-xs transition" aria-label="Закрыть">✕</button>
+        </div>
+      </div>
+      <div id="pop-content" class="space-y-1.5"></div>
+    </div>
+  </div>
+
+  <!-- MOBILE / TEST BOTTOM SHEET -->
+  <div id="sheet-backdrop" class="no-print" data-close-sheet></div>
+  <div id="bottom-sheet" class="no-print" role="dialog" aria-modal="true" aria-label="Справочник терминов">
+    <div class="flex justify-center pt-3 pb-1.5 cursor-pointer" data-close-sheet>
+      <span class="w-11 h-1 rounded-full bg-[#d8b979]/45"></span>
+    </div>
+    <div class="px-4 pb-2.5 border-b border-[#d8b979]/20 flex items-center justify-between gap-2">
+      <div id="sheet-breadcrumbs" class="flex items-center gap-1.5 overflow-x-auto text-xs py-0.5"></div>
+      <button type="button" data-close-sheet class="px-2.5 py-1 rounded-full text-xs border border-[#d8b979]/35 text-[#a69f90] hover:text-[#f0eadc] shrink-0">Закрыть ✕</button>
+    </div>
+    <div id="sheet-content" class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3"></div>
+  </div>
+
+  <!-- GLOBAL SEARCH MODAL (Ctrl+K) -->
+  <div id="search-modal" class="modal-backdrop no-print flex items-start justify-center pt-14 sm:pt-20 px-3" data-close-search>
+    <div class="nouveau-panel w-full max-w-2xl p-4 sm:p-6 space-y-4 max-h-[80vh] flex flex-col" onclick="event.stopPropagation()">
+      <div class="relative z-10 flex items-center gap-2 border-b border-[#d8b979]/25 pb-3">
+        <svg class="w-4 h-4 text-[#d8b979] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="global-search-input" type="search" placeholder="Поиск по главам, Китам, Домам, дарам и Лексикону..." class="w-full bg-transparent text-sm sm:text-base text-[#f0eadc] placeholder-[#7b7669] focus:outline-none" />
+        <button type="button" data-close-search class="px-2.5 py-1 rounded-full text-xs border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc]">Esc</button>
+      </div>
+      <div id="global-search-results" class="relative z-10 overflow-y-auto space-y-2.5 pr-1"></div>
+    </div>
+  </div>
+
+  <!-- 3-BOOK DRAWER -->
+  <div id="volumes-drawer" class="modal-backdrop no-print flex justify-start" data-close-volumes>
+    <div class="w-full max-w-md bg-[#101916] border-r border-[#d8b979]/35 h-full flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="p-4 sm:p-5 border-b border-[#d8b979]/20 flex items-center justify-between gap-2 shrink-0">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979]">Содержание книги</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full border border-[#d8b979]/30 bg-[#0b110f]/70 text-[#f0dba8]">Открыто 8 из 11</span>
+          </div>
+          <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc] mt-0.5">Главы Книги Игрока</h3>
+        </div>
+        <button type="button" data-close-volumes class="w-8 h-8 rounded-full border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc] shrink-0" aria-label="Закрыть">✕</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+        <div class="grid grid-cols-2 gap-2">
+          <a href="../index.html" class="px-3 py-2 rounded-xl border text-xs font-medium text-center transition border-[#d8b979]/25 bg-[#0b110f]/55 text-[#f0eadc] hover:border-[#d8b979]/55">✦ Обложка</a>
+          <a href="../lexicon/index.html" class="px-3 py-2 rounded-xl border text-xs font-medium text-center transition border-[#d8b979]/25 bg-[#0b110f]/55 text-[#f0eadc] hover:border-[#d8b979]/55">◈ Лексикон Грёзы</a>
+        </div>
+        
+        <div class="space-y-2">
+          <div class="px-1 pt-1 flex items-baseline justify-between gap-2">
+            <span class="text-[11px] uppercase tracking-[0.2em] text-[#d8b979] font-semibold">Книга Первая · Создание и Облик</span>
+          </div>
+          <div class="space-y-1.5">
+            <a href="../01-world-and-creation/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">I</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Мир Грёзы и Пробуждение Подменыша</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Двойственная природа Подменышей, Дворы, законы Эсшита, Стадии души и девять шагов создания персонажа</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Открыто</span></div>
+            </a>
+
+            <a href="../02-kiths/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">II</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Киты Конкордии</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Тринадцать сказочных народов Грёзы, их врождённые права, слабости, стереотипы и рождение новых Китов</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Открыто</span></div>
+            </a>
+
+            <a href="../03-noble-houses/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">III</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Благородные Дома</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Четырнадцать аристократических Домов Благого и Неблагого Дворов, их клятвы, дары, изъяны и титулы</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Открыто</span></div>
+            </a>
+
+            <a href="../04-legacies-thresholds/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">IV</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Наследия и Пороги Гламура</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Двадцать восемь Наследий души, четырнадцать Порогов вдохновения и личная Антитеза</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Открыто</span></div>
+            </a>
+
+            <a href="../05-traits-backgrounds/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">V</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Черты и Дополнения</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Девять Атрибутов, тридцать Способностей, десять Дополнений, объединение даров Мотли, Темпераменты, Здоровье и Опыт</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Открыто</span></div>
+            </a>
+
+            <a href="../06-merits-flaws/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">VI</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Достоинства и Недостатки</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Шестьдесят пять Достоинств, пятьдесят пять Недостатков и двойной дар Крылатости в четырёх гранях, правила их обретения в хронике и Звериные черты</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Открыто</span></div>
+            </a></div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="px-1 pt-1 flex items-baseline justify-between gap-2">
+            <span class="text-[11px] uppercase tracking-[0.2em] text-[#d8b979] font-semibold">Книга Вторая · Магия Грёзы</span>
+          </div>
+          <div class="space-y-1.5">
+            <a href="../07-laws-of-glamour-realms/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">VII</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Законы Магии и Владения</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Плетение Кантрипов, театральные Уловки, шкала Кошмара, дикое Высвобождение и шесть Владений</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Открыто</span></div>
+            </a>
+
+            <a href="../08-grimoire-arts/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">VIII</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Гримуар Искусств</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Восемнадцать магических Искусств Китэйнов и девяносто Кантрипов — от времён года и стихий до власти, снов, судьбы и Истинных Имён</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/60 bg-[#d8b979]/18 text-[#f0dba8]">✦ Открыто</span></div>
+            </a></div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="px-1 pt-1 flex items-baseline justify-between gap-2">
+            <span class="text-[11px] uppercase tracking-[0.2em] text-[#d8b979] font-semibold">Книга Третья · Законы Игры и Грёзы</span>
+          </div>
+          <div class="space-y-1.5">
+            <a href="../09-rules-epiphany-oaths/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">IX</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Законы Игры, Эпифания и Клятвы</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Броски судьбы, драматические испытания, пять путей Эпифании, Шлак, Очарование смертных и семь Священных Клятв</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В туманах Грёзы</span></div>
+            </a>
+
+            <a href="../10-combat-arsenal-hazards/index.html"
+               data-active-drawer-item="true"
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#f0dba8]/70 bg-[#d8b979]/15">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">X</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Поединки, Арсенал и Опасности</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Четыре фазы схватки, боевые манёвры, таблицы оружия и доспехов, поглощение урона, Холодное железо, заживление и смертельные опасности</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В туманах Грёзы</span></div>
+            </a>
+
+            <a href="../11-mists-bedlam-chimera/index.html"
+               
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">XI</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">Туманы, Бедлам, Химеры и Сокровища</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">Шкала Банальности, Туманы, три Похода очищения, Пороги Бедлама, ковка Химер, каталог Ридов и Сокровища</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5"><span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-[#d8b979]/22 bg-[#0b110f]/60 text-[#a69f90]">◇ В туманах Грёзы</span></div>
+            </a></div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-[#d8b979]/20 bg-[#0b110f]/60 space-y-2 shrink-0">
+        <button type="button" data-toggle-depth class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium border border-[#d8b979]/30 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#d8b979] transition">
+          <span class="inline-flex items-center gap-2">
+            <span class="depth-dot w-2 h-2 rounded-full bg-[#d8b979]"></span>
+            <span class="depth-label-full">Лор + Правила</span>
+          </span>
+          <span class="text-[11px] text-[#a69f90]">Переключить</span>
+        </button>
+        <div class="flex gap-2">
+          <button type="button" onclick="window.print()" class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-[#d8b979]/50 bg-[#d8b979]/15 text-[#f0dba8] hover:bg-[#d8b979]/25 transition">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+            <span>Печать / PDF</span>
+          </button>
+          <button type="button" id="btn-sheet-toggle" class="hidden md:inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-[#d8b979]/30 bg-[#101916]/90 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/75 transition" title="Переключить десктопные тултипы в режим мобильной шторки">
+            <span id="sheet-text">Тест шторки</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE LIGHTBOX -->
+  <div id="lightbox-modal" class="modal-backdrop no-print flex items-center justify-center p-4" data-close-lightbox>
+    <div class="max-w-4xl max-h-[90vh] flex flex-col items-center gap-3" onclick="event.stopPropagation()">
+      <img id="lightbox-img" src="" alt="" class="max-h-[80vh] w-auto rounded-xl border border-[#d8b979]/55 shadow-2xl" />
+      <div class="flex items-center gap-4">
+        <span id="lightbox-caption" class="font-nouveau italic text-lg text-[#f0dba8]"></span>
+        <button type="button" data-close-lightbox class="px-3 py-1 rounded-full text-xs border border-[#d8b979]/45 text-[#f0eadc] bg-[#0b110f]/80">Закрыть ✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING BACK TO TOP -->
+  <button type="button" id="btn-back-to-top" class="no-print" aria-label="Вернуться к началу страницы" title="Наверх">
+    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+
+  <script src="../assets/data/bundle.js"></script>
+  <script src="../assets/js/app.js"></script>
+</body>
+</html>

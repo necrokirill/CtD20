@@ -401,26 +401,82 @@ def render_shell(
     aura_hex: str,
     active_slug: str,
     main_html: str,
+    books: list[dict],
     volumes: list[dict],
     site_meta: dict,
 ) -> str:
     aura_rgb = hex_to_rgb(aura_hex)
-    vol_drawer_items = "\n".join(
-        f"""
-        <a href="{root_prefix}{v['slug']}/index.html"
-           class="flex items-start justify-between gap-3 p-3 rounded-xl border transition {
-             'border-[#f0dba8]/70 bg-[#d8b979]/15' if v['slug'] == active_slug else 'border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55'
-           }">
-          <div>
-            <div class="text-[11px] uppercase tracking-wider text-[#d8b979]">{html.escape(v['part'])}</div>
-            <div class="font-nouveau text-lg font-semibold text-[#f0eadc] leading-snug">{html.escape(v['title'])}</div>
-            <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">{html.escape(v['summary'])}</div>
+    ready_count = sum(1 for v in volumes if v.get("status") == "ready")
+    active_vol = next((v for v in volumes if v["slug"] == active_slug), None)
+    active_book_id = active_vol.get("book", "") if active_vol else ""
+
+    def render_nav_dropdown(b: dict) -> str:
+        b_vols = [v for v in volumes if v.get("book") == b["id"]]
+        is_act_book = active_book_id == b["id"]
+        trigger_cls = (
+            "text-[#f0dba8] bg-[#d8b979]/15 border-[#d8b979]/45"
+            if is_act_book
+            else "text-[#a69f90] hover:text-[#f0dba8] border-transparent hover:bg-[#d8b979]/10"
+        )
+        items_html = "\n".join(
+            f"""
+            <a href="{root_prefix}{v['slug']}/index.html"
+               class="flex items-start gap-2.5 px-3 py-2 rounded-lg transition {
+                 'bg-[#d8b979]/15 text-[#f0dba8]' if v['slug'] == active_slug else 'text-[#f0eadc]/90 hover:bg-[#d8b979]/10 hover:text-[#f0dba8]'
+               }">
+              <span class="font-nouveau text-sm font-semibold w-6 shrink-0 text-[#d8b979]">{html.escape(v['num'])}</span>
+              <span class="flex-1 text-xs leading-snug">{html.escape(v['title'])}</span>
+              <span class="text-[11px] shrink-0 mt-0.5 {'text-[#f0dba8]' if v.get('status') == 'ready' else 'text-[#7b7669]'}" title="{'Открыто' if v.get('status') == 'ready' else 'В туманах Грёзы'}">{'✦' if v.get('status') == 'ready' else '◇'}</span>
+            </a>"""
+            for v in b_vols
+        )
+        return f"""
+        <div class="nav-dropdown" data-nav-dropdown="{html.escape(b['id'], quote=True)}">
+          <button type="button" data-nav-trigger aria-expanded="false" aria-haspopup="true"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition shrink-0 {trigger_cls}">
+            <span>{html.escape(b['short'])}</span>
+            <svg class="nav-chevron w-3.5 h-3.5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="nav-dropdown-panel" role="menu">
+            <div class="relative z-10 px-3 pt-1 pb-2 mb-1 border-b border-[#d8b979]/20">
+              <div class="text-[10px] uppercase tracking-[0.2em] text-[#d8b979]">{html.escape(b['num'])}</div>
+              <div class="font-nouveau text-base font-semibold text-[#f0eadc]">{html.escape(b['title'])}</div>
+            </div>
+            <div class="relative z-10 space-y-0.5">{items_html}</div>
           </div>
-          <div class="shrink-0 mt-0.5">{status_badge_html(v['status'])}</div>
-        </a>
-        """
-        for v in volumes
-    )
+        </div>"""
+
+    desktop_nav_html = "\n".join(render_nav_dropdown(b) for b in books)
+
+    def render_drawer_book(b: dict) -> str:
+        b_vols = [v for v in volumes if v.get("book") == b["id"]]
+        cards = "\n".join(
+            f"""
+            <a href="{root_prefix}{v['slug']}/index.html"
+               {'data-active-drawer-item="true"' if v['slug'] == active_slug else ''}
+               class="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border transition {
+                 'border-[#f0dba8]/70 bg-[#d8b979]/15' if v['slug'] == active_slug else 'border-[#d8b979]/20 bg-[#0b110f]/55 hover:border-[#d8b979]/55'
+               }">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="w-7 h-7 rounded-full border border-[#d8b979]/35 bg-[#15211d]/80 flex items-center justify-center font-nouveau text-sm font-semibold text-[#d8b979] shrink-0 mt-0.5">{html.escape(v['num'])}</span>
+                <div class="min-w-0">
+                  <div class="font-nouveau text-[17px] font-semibold text-[#f0eadc] leading-snug">{html.escape(v['title'])}</div>
+                  <div class="text-xs text-[#a69f90] mt-0.5 line-clamp-1">{html.escape(v['summary'])}</div>
+                </div>
+              </div>
+              <div class="shrink-0 mt-0.5">{status_badge_html(v['status'])}</div>
+            </a>"""
+            for v in b_vols
+        )
+        return f"""
+        <div class="space-y-2">
+          <div class="px-1 pt-1 flex items-baseline justify-between gap-2">
+            <span class="text-[11px] uppercase tracking-[0.2em] text-[#d8b979] font-semibold">{html.escape(b['num'])} · {html.escape(b['title'])}</span>
+          </div>
+          <div class="space-y-1.5">{cards}</div>
+        </div>"""
+
+    vol_drawer_sections = "\n".join(render_drawer_book(b) for b in books)
 
     return f"""<!DOCTYPE html>
 <html lang="ru" data-root="{root_prefix}" style="--aura-hex: {aura_hex}; --aura-rgb: {aura_rgb};">
@@ -451,54 +507,48 @@ def render_shell(
   <div class="ambient-aura" aria-hidden="true"></div>
 
   <!-- FLOATING GLASSMORPHIC TOP NAVIGATION BAR -->
-  <header class="no-print sticky top-0 z-50 border-b border-[#d8b979]/25 backdrop-blur-md bg-[#0b110f]/85">
-    <div class="max-w-6xl mx-auto px-3.5 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
-      <a href="{root_prefix}index.html" class="flex items-center gap-2.5 group shrink-0">
-        <span class="w-8 h-8 rounded-full border border-[#d8b979]/55 bg-[#15211d] flex items-center justify-center transition group-hover:border-[#f0dba8]">
-          <svg class="w-4 h-4 text-[#d8b979]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M12 3C8.5 6.2 6.5 9.8 6.5 13.5a5.5 5.5 0 0 0 11 0C17.5 9.8 15.5 6.2 12 3Z"/>
-            <path d="M12 7v12M12 12.5l3-2.5M12 15l-3-2"/>
-          </svg>
-        </span>
-        <span class="font-nouveau text-lg sm:text-xl font-semibold tracking-wide text-[#f0eadc]">
-          CtD 20 <span class="text-[#d8b979]">· Книга игрока</span>
-        </span>
-      </a>
-
-      <nav class="order-3 lg:order-2 w-full lg:w-auto flex items-center justify-center gap-1 sm:gap-1.5 pt-1.5 lg:pt-0 border-t border-[#d8b979]/15 lg:border-none text-xs sm:text-[13px] overflow-x-auto">
-        <button type="button" data-open-volumes class="px-3 py-1 rounded-full text-[#f0eadc] hover:text-[#f0dba8] hover:bg-[#d8b979]/12 border border-[#d8b979]/25 transition shrink-0">
-          ☰ Оглавление
+  <header class="no-print sticky top-0 z-50 border-b border-[#d8b979]/25 backdrop-blur-md bg-[#0b110f]/88">
+    <div class="max-w-6xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+        <button type="button" data-open-volumes aria-label="Открыть оглавление книги" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-[13px] font-medium text-[#f0dba8] bg-[#d8b979]/12 hover:bg-[#d8b979]/22 border border-[#d8b979]/40 transition shrink-0">
+          <span>☰</span>
+          <span class="hidden sm:inline">Оглавление</span>
         </button>
-        <a href="{root_prefix}01-world-and-creation/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='01-world-and-creation' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Пробуждение</a>
-        <a href="{root_prefix}02-kiths/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='02-kiths' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Арканы Китов</a>
-        <a href="{root_prefix}03-noble-houses/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='03-noble-houses' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Дома</a>
-        <a href="{root_prefix}04-legacies-thresholds/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='04-legacies-thresholds' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Наследия</a>
-        <a href="{root_prefix}05-traits-backgrounds/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='05-traits-backgrounds' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Черты</a>
-        <a href="{root_prefix}06-merits-flaws/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='06-merits-flaws' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Достоинства</a>
-        <a href="{root_prefix}07-laws-of-glamour-realms/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='07-laws-of-glamour-realms' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Магия</a>
-        <a href="{root_prefix}08-grimoire-arts/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='08-grimoire-arts' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Гримуар</a>
-        <a href="{root_prefix}lexicon/index.html" class="px-2.5 py-1 rounded-full transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15' if active_slug=='lexicon' else 'text-[#a69f90] hover:text-[#f0dba8]'}">Лексикон</a>
+
+        <a href="{root_prefix}index.html" class="flex items-center gap-2 group min-w-0">
+          <span class="w-8 h-8 rounded-full border border-[#d8b979]/55 bg-[#15211d] flex items-center justify-center transition group-hover:border-[#f0dba8] shrink-0">
+            <svg class="w-4 h-4 text-[#d8b979]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 3C8.5 6.2 6.5 9.8 6.5 13.5a5.5 5.5 0 0 0 11 0C17.5 9.8 15.5 6.2 12 3Z"/>
+              <path d="M12 7v12M12 12.5l3-2.5M12 15l-3-2"/>
+            </svg>
+          </span>
+          <span class="font-nouveau text-base sm:text-xl font-semibold tracking-wide text-[#f0eadc] truncate">
+            CtD 20 <span class="hidden sm:inline text-[#d8b979]">· Книга игрока</span>
+          </span>
+        </a>
+      </div>
+
+      <nav aria-label="Разделы книги" class="hidden lg:flex items-center gap-1">
+        {desktop_nav_html}
+        <a href="{root_prefix}lexicon/index.html" class="px-3 py-1.5 rounded-full text-[13px] font-medium border transition shrink-0 {'text-[#f0dba8] bg-[#d8b979]/15 border-[#d8b979]/45' if active_slug=='lexicon' else 'text-[#a69f90] hover:text-[#f0dba8] border-transparent hover:bg-[#d8b979]/10'}">Лексикон</a>
       </nav>
 
-      <div class="order-2 lg:order-3 flex items-center gap-1.5 shrink-0">
+      <div class="flex items-center gap-1.5 shrink-0">
         <button type="button" data-open-search class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs border border-[#d8b979]/30 bg-[#101916]/90 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/70 transition" title="Быстрый поиск по всей книге (Ctrl+K)">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <span class="hidden sm:inline">Поиск</span>
-          <kbd class="hidden md:inline text-[10px] px-1.5 py-0.2 rounded bg-[#0b110f] border border-[#d8b979]/25 text-[#7b7669]">Ctrl+K</kbd>
+          <span class="hidden md:inline">Поиск</span>
+          <kbd class="hidden xl:inline text-[10px] px-1.5 py-0.2 rounded bg-[#0b110f] border border-[#d8b979]/25 text-[#7b7669]">Ctrl+K</kbd>
         </button>
 
-        <button type="button" id="btn-depth-toggle" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/30 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#d8b979] transition" title="Скрыть художественные описания и оставить только механику">
-          <span id="depth-dot" class="w-1.5 h-1.5 rounded-full bg-[#d8b979]"></span>
-          <span id="depth-text">Лор + Правила</span>
+        <button type="button" id="btn-depth-toggle" data-toggle-depth class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/30 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#d8b979] transition" title="Скрыть художественные описания и оставить только механику">
+          <span id="depth-dot" class="depth-dot w-1.5 h-1.5 rounded-full bg-[#d8b979]"></span>
+          <span class="depth-label-short sm:hidden">Лор</span>
+          <span id="depth-text" class="depth-label-full hidden sm:inline">Лор + Правила</span>
         </button>
 
-        <button type="button" id="btn-sheet-toggle" class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/30 bg-[#101916]/90 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/75 transition" title="Переключить десктопные тултипы в режим мобильной шторки">
-          <span id="sheet-text">Тест шторки</span>
-        </button>
-
-        <button type="button" onclick="window.print()" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/55 bg-[#d8b979]/15 text-[#f0dba8] hover:bg-[#d8b979]/25 transition" title="Печать страницы или сохранение в PDF">
+        <button type="button" onclick="window.print()" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-[#d8b979]/55 bg-[#d8b979]/15 text-[#f0dba8] hover:bg-[#d8b979]/25 transition" title="Печать страницы или сохранение в PDF">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
-          <span class="hidden sm:inline">PDF</span>
+          <span>PDF</span>
         </button>
       </div>
     </div>
@@ -556,17 +606,46 @@ def render_shell(
     </div>
   </div>
 
-  <!-- 10-VOLUME DRAWER -->
-  <div id="volumes-drawer" class="modal-backdrop no-print flex justify-end" data-close-volumes>
-    <div class="w-full max-w-md bg-[#101916] border-l border-[#d8b979]/35 h-full p-5 overflow-y-auto space-y-4 shadow-2xl" onclick="event.stopPropagation()">
-      <div class="flex items-center justify-between border-b border-[#d8b979]/20 pb-3">
+  <!-- 3-BOOK DRAWER -->
+  <div id="volumes-drawer" class="modal-backdrop no-print flex justify-start" data-close-volumes>
+    <div class="w-full max-w-md bg-[#101916] border-r border-[#d8b979]/35 h-full flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="p-4 sm:p-5 border-b border-[#d8b979]/20 flex items-center justify-between gap-2 shrink-0">
         <div>
-          <div class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979]">Содержание книги</div>
-          <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc]">Главы Книги Игрока</h3>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] uppercase tracking-[0.22em] text-[#d8b979]">Содержание книги</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full border border-[#d8b979]/30 bg-[#0b110f]/70 text-[#f0dba8]">Открыто {ready_count} из {len(volumes)}</span>
+          </div>
+          <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc] mt-0.5">Главы Книги Игрока</h3>
         </div>
-        <button type="button" data-close-volumes class="w-8 h-8 rounded-full border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc]">✕</button>
+        <button type="button" data-close-volumes class="w-8 h-8 rounded-full border border-[#d8b979]/30 text-[#a69f90] hover:text-[#f0eadc] shrink-0" aria-label="Закрыть">✕</button>
       </div>
-      <div class="space-y-2.5">{vol_drawer_items}</div>
+
+      <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+        <div class="grid grid-cols-2 gap-2">
+          <a href="{root_prefix}index.html" class="px-3 py-2 rounded-xl border text-xs font-medium text-center transition {'border-[#f0dba8]/70 bg-[#d8b979]/18 text-[#f0dba8]' if active_slug == 'home' else 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#f0eadc] hover:border-[#d8b979]/55'}">✦ Обложка</a>
+          <a href="{root_prefix}lexicon/index.html" class="px-3 py-2 rounded-xl border text-xs font-medium text-center transition {'border-[#f0dba8]/70 bg-[#d8b979]/18 text-[#f0dba8]' if active_slug == 'lexicon' else 'border-[#d8b979]/25 bg-[#0b110f]/55 text-[#f0eadc] hover:border-[#d8b979]/55'}">◈ Лексикон Грёзы</a>
+        </div>
+        {vol_drawer_sections}
+      </div>
+
+      <div class="p-4 border-t border-[#d8b979]/20 bg-[#0b110f]/60 space-y-2 shrink-0">
+        <button type="button" data-toggle-depth class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium border border-[#d8b979]/30 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#d8b979] transition">
+          <span class="inline-flex items-center gap-2">
+            <span class="depth-dot w-2 h-2 rounded-full bg-[#d8b979]"></span>
+            <span class="depth-label-full">Лор + Правила</span>
+          </span>
+          <span class="text-[11px] text-[#a69f90]">Переключить</span>
+        </button>
+        <div class="flex gap-2">
+          <button type="button" onclick="window.print()" class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-[#d8b979]/50 bg-[#d8b979]/15 text-[#f0dba8] hover:bg-[#d8b979]/25 transition">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+            <span>Печать / PDF</span>
+          </button>
+          <button type="button" id="btn-sheet-toggle" class="hidden md:inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-[#d8b979]/30 bg-[#101916]/90 text-[#a69f90] hover:text-[#f0dba8] hover:border-[#d8b979]/75 transition" title="Переключить десктопные тултипы в режим мобильной шторки">
+            <span id="sheet-text">Тест шторки</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -580,6 +659,11 @@ def render_shell(
       </div>
     </div>
   </div>
+
+  <!-- FLOATING BACK TO TOP -->
+  <button type="button" id="btn-back-to-top" class="no-print" aria-label="Вернуться к началу страницы" title="Наверх">
+    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
 
   <script src="{root_prefix}assets/data/bundle.js"></script>
   <script src="{root_prefix}assets/js/app.js"></script>
@@ -611,6 +695,8 @@ def build_site() -> dict:
     arts_data = json.loads(arts_path.read_text(encoding="utf-8")) if arts_path.exists() else {"groups": [], "arts": []}
 
     site_meta = manifest["site"]
+    books = manifest.get("books", [])
+    book_by_id = {b["id"]: b for b in books}
     volumes = manifest["volumes"]
 
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
@@ -626,7 +712,7 @@ def build_site() -> dict:
     all_search_entries: list[dict] = []
     ready_count = sum(1 for v in volumes if v.get("status") == "ready")
 
-    # 1. Build each of the 10 Volume pages -> docs/<slug>/index.html
+    # 1. Build each Volume page -> docs/<slug>/index.html
     for idx, vol in enumerate(volumes):
         slug = vol["slug"]
         md_path = CONTENT_DIR / "chapters" / vol["file"]
@@ -731,6 +817,23 @@ def build_site() -> dict:
             if len(toc) >= 2
             else ""
         )
+        mobile_toc_html = (
+            f"""
+            <details id="mobile-chapter-toc" class="no-print lg:hidden nouveau-panel mb-5">
+              <summary class="relative z-10 flex items-center justify-between gap-2 px-4 py-3 cursor-pointer list-none select-none text-xs sm:text-sm font-medium text-[#f0dba8]">
+                <span class="inline-flex items-center gap-2">
+                  <span class="text-[#d8b979]">☰</span>
+                  <span>Содержание главы ({len(toc)})</span>
+                </span>
+                <svg class="toc-chevron w-4 h-4 text-[#d8b979] transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <nav class="relative z-10 px-4 pb-3.5 pt-1 border-t border-[#d8b979]/15 space-y-0.5 max-h-72 overflow-y-auto">
+                {toc_links_html}
+              </nav>
+            </details>"""
+            if len(toc) >= 2
+            else ""
+        )
 
         planned_notice = ""
         if vol.get("status") != "ready":
@@ -761,30 +864,49 @@ def build_site() -> dict:
                     </a>"""
             )
 
+        vol_book = book_by_id.get(vol.get("book", ""), {})
+        book_crumb = (
+            f'<a href="../index.html#book-{html.escape(vol_book["id"], quote=True)}" class="hover:text-[#f0dba8] transition">{html.escape(vol_book["num"])} · {html.escape(vol_book["title"])}</a>'
+            f'<span class="text-[#7b7669]" aria-hidden="true">›</span>'
+            if vol_book
+            else ""
+        )
+        breadcrumbs_html = f"""
+        <nav aria-label="Навигация по книге" class="no-print flex flex-wrap items-center gap-1.5 text-xs text-[#a69f90]">
+          <a href="../index.html" class="hover:text-[#f0dba8] transition">Обложка</a>
+          <span class="text-[#7b7669]" aria-hidden="true">›</span>
+          {book_crumb}
+          <span class="text-[#f0dba8] font-medium">{html.escape(vol['part'])}</span>
+        </nav>"""
+
         vol_main = f"""
-        <main class="max-w-6xl mx-auto px-3.5 sm:px-6 pt-6 sm:pt-10 pb-12 space-y-8">
+        <main class="max-w-6xl mx-auto px-3.5 sm:px-6 pt-5 sm:pt-8 pb-12 space-y-7">
           <div class="hidden table-mode-only no-print items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-[#d8b979]/45 bg-[#15211d]/90 text-xs text-[#f0eadc]">
             <span>✦ <strong>Режим стола:</strong> художественный лор скрыт — оставлены только механики, формулы и характеристики.</span>
             <button type="button" id="btn-restore-lore" class="text-[#f0dba8] underline shrink-0">Вернуть лор</button>
           </div>
 
-          <section class="nouveau-hero-arch px-6 py-8 sm:px-12 sm:py-12 text-center">
-            <div class="relative z-10">
-              <div class="flex items-center justify-center gap-2.5 mb-3">
-                <span class="text-xs uppercase tracking-[0.25em] text-[#d8b979]">{html.escape(vol['part'])}</span>
-                {status_badge_html(vol.get('status', 'planned'))}
-                <span class="text-xs text-[#7b7669]">· ~{read_mins} мин чтения</span>
+          <div class="space-y-3">
+            {breadcrumbs_html}
+            <section class="nouveau-hero-arch px-6 py-8 sm:px-12 sm:py-12 text-center">
+              <div class="relative z-10">
+                <div class="flex items-center justify-center gap-2.5 mb-3">
+                  <span class="text-xs uppercase tracking-[0.25em] text-[#d8b979]">{html.escape(vol['part'])}</span>
+                  {status_badge_html(vol.get('status', 'planned'))}
+                  <span class="text-xs text-[#7b7669]">· ~{read_mins} мин чтения</span>
+                </div>
+                <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">{html.escape(vol['title'])}</h1>
+                <p class="text-xs sm:text-sm text-[#a69f90] max-w-2xl mx-auto mt-2.5">{html.escape(vol['summary'])}</p>
+                {epigraph_html}
+                {cover_html}
               </div>
-              <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">{html.escape(vol['title'])}</h1>
-              <p class="text-xs sm:text-sm text-[#a69f90] max-w-2xl mx-auto mt-2.5">{html.escape(vol['summary'])}</p>
-              {epigraph_html}
-              {cover_html}
-            </div>
-          </section>
+            </section>
+          </div>
 
           <div class="flex flex-col lg:flex-row items-start gap-7">
             {sidebar_html}
             <div class="flex-1 min-w-0 w-full">
+              {mobile_toc_html}
               {planned_notice}
               <article class="nouveau-panel p-6 sm:p-10 chapter-prose auto-lex">
                 <div class="relative z-10">
@@ -809,6 +931,7 @@ def build_site() -> dict:
                 aura_hex=vol.get("auraHex", "#d8b979"),
                 active_slug=slug,
                 main_html=vol_main,
+                books=books,
                 volumes=volumes,
                 site_meta=site_meta,
             ),
@@ -817,16 +940,23 @@ def build_site() -> dict:
 
     # 2. Build Dedicated Lexicon Directory -> docs/lexicon/index.html
     lex_main = f"""
-    <main class="max-w-5xl mx-auto px-3.5 sm:px-6 pt-6 sm:pt-10 pb-12 space-y-8">
-      <section class="nouveau-hero-arch px-6 py-8 sm:px-12 sm:py-12 text-center">
-        <div class="relative z-10">
-          <p class="text-xs uppercase tracking-[0.26em] text-[#d8b979] mb-2">Наречие Конкордии</p>
-          <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">Лексикон Грёзы</h1>
-          <p class="text-xs sm:text-sm text-[#a69f90] max-w-2xl mx-auto mt-3">
-            Словарь мира Грёзы и памятки правил игры с исконными английскими названиями. Нажимайте на выделенные слова внутри карточек, чтобы переходить от понятия к понятию.
-          </p>
-        </div>
-      </section>
+    <main class="max-w-5xl mx-auto px-3.5 sm:px-6 pt-5 sm:pt-8 pb-12 space-y-7">
+      <div class="space-y-3">
+        <nav aria-label="Навигация по книге" class="no-print flex flex-wrap items-center gap-1.5 text-xs text-[#a69f90]">
+          <a href="../index.html" class="hover:text-[#f0dba8] transition">Обложка</a>
+          <span class="text-[#7b7669]" aria-hidden="true">›</span>
+          <span class="text-[#f0dba8] font-medium">Лексикон Грёзы</span>
+        </nav>
+        <section class="nouveau-hero-arch px-6 py-8 sm:px-12 sm:py-12 text-center">
+          <div class="relative z-10">
+            <p class="text-xs uppercase tracking-[0.26em] text-[#d8b979] mb-2">Наречие Конкордии</p>
+            <h1 class="font-nouveau fluid-hero-title font-semibold text-[#f0eadc]">Лексикон Грёзы</h1>
+            <p class="text-xs sm:text-sm text-[#a69f90] max-w-2xl mx-auto mt-3">
+              Словарь мира Грёзы и памятки правил игры с исконными английскими названиями. Нажимайте на выделенные слова внутри карточек, чтобы переходить от понятия к понятию.
+            </p>
+          </div>
+        </section>
+      </div>
       <div id="lexicon-directory-mount"></div>
     </main>
     """
@@ -838,6 +968,7 @@ def build_site() -> dict:
             aura_hex="#d8b979",
             active_slug="lexicon",
             main_html=lex_main,
+            books=books,
             volumes=volumes,
             site_meta=site_meta,
         ),
@@ -848,8 +979,8 @@ def build_site() -> dict:
     intro_raw = site_meta["intro"]
     intro_drop = f'<span class="drop-cap" aria-hidden="true">{html.escape(intro_raw[0])}</span>{html.escape(intro_raw[1:])}'
 
-    vol_cards_html = "\n".join(
-        f"""
+    def render_vol_card(v: dict) -> str:
+        return f"""
         <a href="{v['slug']}/index.html"
            class="nouveau-panel p-5 sm:p-6 flex flex-col justify-between gap-4 group hover:border-[#f0dba8]/70 transition"
            style="--gold-outer: rgba({hex_to_rgb(v.get('auraHex', '#d8b979'))}, 0.36);">
@@ -860,9 +991,9 @@ def build_site() -> dict:
               </span>
               {status_badge_html(v.get('status', 'planned'))}
             </div>
-            <h3 class="font-nouveau text-2xl font-semibold text-[#f0eadc] group-hover:text-[#f0dba8] transition leading-snug">
+            <h4 class="font-nouveau text-2xl font-semibold text-[#f0eadc] group-hover:text-[#f0dba8] transition leading-snug">
               {html.escape(v['title'])}
-            </h3>
+            </h4>
             <p class="text-xs sm:text-[13.5px] text-[#a69f90] leading-relaxed">
               {html.escape(v['summary'])}
             </p>
@@ -873,8 +1004,31 @@ def build_site() -> dict:
           </div>
         </a>
         """
-        for v in volumes
-    )
+
+    def render_book_section(b: dict) -> str:
+        b_vols = [v for v in volumes if v.get("book") == b["id"]]
+        grid_cls = (
+            "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5"
+            if len(b_vols) == 3
+            else "grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5"
+        )
+        cards_html = "\n".join(render_vol_card(v) for v in b_vols)
+        return f"""
+        <div id="book-{html.escape(b['id'], quote=True)}" class="space-y-4 scroll-mt-24">
+          <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-[#d8b979]/20 pb-2">
+            <div>
+              <span class="text-[11px] uppercase tracking-[0.22em] text-[#d8b979] font-semibold">{html.escape(b['num'])}</span>
+              <h3 class="font-nouveau text-2xl sm:text-[1.7rem] font-semibold text-[#f0eadc] leading-snug">{html.escape(b['title'])}</h3>
+            </div>
+            <p class="text-xs text-[#a69f90]">{html.escape(b['subtitle'])}</p>
+          </div>
+          <div class="{grid_cls}">
+            {cards_html}
+          </div>
+        </div>
+        """
+
+    book_sections_html = "\n".join(render_book_section(b) for b in books)
 
     kith_strip_html = "\n".join(
         f"""
@@ -960,23 +1114,8 @@ def build_site() -> dict:
             <a href="01-world-and-creation/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#f0dba8]/80 bg-[#d8b979]/22 text-[#f0dba8] hover:bg-[#d8b979]/32 transition">
               ✦ Начать с Части Первой
             </a>
-            <a href="02-kiths/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
-              Витражные Арканы Китов
-            </a>
-            <a href="03-noble-houses/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
-              Благородные Дома
-            </a>
-            <a href="04-legacies-thresholds/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
-              Наследия и Пороги
-            </a>
-            <a href="05-traits-backgrounds/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
-              Черты и Дополнения
-            </a>
-            <a href="06-merits-flaws/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
-              Достоинства и Недостатки
-            </a>
-            <a href="07-laws-of-glamour-realms/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
-              Законы Магии и Владения
+            <a href="#volumes" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
+              ☰ Оглавление книги
             </a>
             <a href="08-grimoire-arts/index.html" class="px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-[#d8b979]/45 bg-[#15211d]/90 text-[#f0eadc] hover:border-[#f0dba8] transition">
               Гримуар Искусств
@@ -993,14 +1132,17 @@ def build_site() -> dict:
         </div>
       </section>
 
-      <!-- 10 VOLUMES GRID -->
-      <section id="volumes" class="space-y-6 scroll-mt-24">
-        <div class="text-center space-y-1.5">
-          <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Путеводитель по Конкордии</p>
+      <!-- 3 BOOKS / 11 VOLUMES GRID -->
+      <section id="volumes" class="space-y-8 scroll-mt-24">
+        <div class="text-center space-y-2">
+          <div class="flex items-center justify-center gap-2">
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979]">Путеводитель по Конкордии</p>
+            <span class="text-[11px] px-2.5 py-0.5 rounded-full border border-[#d8b979]/35 bg-[#0b110f]/70 text-[#f0dba8]">Открыто {ready_count} из {len(volumes)} глав</span>
+          </div>
           <h2 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc]">Оглавление Книги Игрока</h2>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-          {vol_cards_html}
+        <div class="space-y-9">
+          {book_sections_html}
         </div>
       </section>
 
@@ -1059,6 +1201,7 @@ def build_site() -> dict:
             aura_hex=site_meta.get("auraHex", "#d8b979"),
             active_slug="home",
             main_html=portal_main,
+            books=books,
             volumes=volumes,
             site_meta=site_meta,
         ),
@@ -1076,6 +1219,7 @@ def build_site() -> dict:
         "meritsFlaws": merits_flaws_data,
         "realmsData": realms_data,
         "artsData": arts_data,
+        "books": books,
         "volumes": volumes,
         "search": all_search_entries,
     }

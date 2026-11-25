@@ -5257,18 +5257,21 @@
   function applyTableModeUI() {
     document.body.classList.toggle('mode-table', state.tableMode);
     localStorage.setItem('ctd20_table_mode', state.tableMode ? '1' : '0');
-    const textEl = document.getElementById('depth-text');
-    const dotEl = document.getElementById('depth-dot');
-    const btn = document.getElementById('btn-depth-toggle');
-    if (textEl && dotEl && btn) {
-      textEl.textContent = state.tableMode ? 'Режим стола' : 'Лор + Правила';
-      dotEl.style.backgroundColor = state.tableMode ? '#f0dba8' : '#d8b979';
-      dotEl.style.boxShadow = state.tableMode ? '0 0 8px #f0dba8' : '';
+    document.querySelectorAll('[data-toggle-depth]').forEach((btn) => {
+      const dotEl = btn.querySelector('.depth-dot');
+      const shortEl = btn.querySelector('.depth-label-short');
+      const fullEl = btn.querySelector('.depth-label-full');
+      if (shortEl) shortEl.textContent = state.tableMode ? 'Стол' : 'Лор';
+      if (fullEl) fullEl.textContent = state.tableMode ? 'Режим стола' : 'Лор + Правила';
+      if (dotEl) {
+        dotEl.style.backgroundColor = state.tableMode ? '#f0dba8' : '#d8b979';
+        dotEl.style.boxShadow = state.tableMode ? '0 0 8px #f0dba8' : '';
+      }
       btn.style.borderColor = state.tableMode ? '#f0dba8' : 'rgba(216, 185, 121, 0.30)';
       btn.style.backgroundColor = state.tableMode ? 'rgba(216, 185, 121, 0.24)' : '';
       btn.style.boxShadow = state.tableMode ? '0 0 16px rgba(216, 185, 121, 0.28)' : '';
       btn.style.color = state.tableMode ? '#f0dba8' : '';
-    }
+    });
     if (state.tableMode && state.kithDetailTab === 'essence') {
       state.kithDetailTab = 'powers';
       renderKithSpotlight();
@@ -5276,6 +5279,57 @@
     if (state.tableMode && state.houseDetailTab === 'lore') {
       state.houseDetailTab = 'powers';
       renderHouseSpotlight();
+    }
+  }
+
+  function closeAllNavDropdowns() {
+    document.querySelectorAll('.nav-dropdown.open').forEach((dd) => {
+      dd.classList.remove('open');
+      const trg = dd.querySelector('[data-nav-trigger]');
+      if (trg) trg.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function initNavigation() {
+    document.querySelectorAll('[data-nav-trigger]').forEach((trigger) => {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const parent = trigger.closest('.nav-dropdown');
+        if (!parent) return;
+        const willOpen = !parent.classList.contains('open');
+        closeAllNavDropdowns();
+        if (willOpen) {
+          parent.classList.add('open');
+          trigger.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.nav-dropdown')) {
+        closeAllNavDropdowns();
+      }
+    });
+
+    const mobileToc = document.getElementById('mobile-chapter-toc');
+    if (mobileToc) {
+      mobileToc.querySelectorAll('a').forEach((a) => {
+        a.addEventListener('click', () => {
+          mobileToc.removeAttribute('open');
+        });
+      });
+    }
+
+    const backBtn = document.getElementById('btn-back-to-top');
+    if (backBtn) {
+      const updateBackBtn = () => {
+        backBtn.classList.toggle('visible', window.scrollY > 420);
+      };
+      window.addEventListener('scroll', updateBackBtn, { passive: true });
+      updateBackBtn();
+      backBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
     }
   }
 
@@ -5604,18 +5658,18 @@
     initTempersWidget();
     initCantripWidget();
     initLexiconDirectory();
+    initNavigation();
     applyTableModeUI();
     initScrollSpy();
     buildPrintArtifacts();
 
-    // Topbar button bindings
-    const depthBtn = document.getElementById('btn-depth-toggle');
-    if (depthBtn) {
-      depthBtn.addEventListener('click', () => {
+    // Topbar & drawer mode bindings
+    document.querySelectorAll('[data-toggle-depth]').forEach((btn) => {
+      btn.addEventListener('click', () => {
         state.tableMode = !state.tableMode;
         applyTableModeUI();
       });
-    }
+    });
     const restoreBtn = document.getElementById('btn-restore-lore');
     if (restoreBtn) {
       restoreBtn.addEventListener('click', () => {
@@ -5647,7 +5701,16 @@
 
     const volDrawer = document.getElementById('volumes-drawer');
     document.querySelectorAll('[data-open-volumes]').forEach((b) =>
-      b.addEventListener('click', () => volDrawer && volDrawer.classList.add('open'))
+      b.addEventListener('click', () => {
+        closeAllNavDropdowns();
+        if (volDrawer) {
+          volDrawer.classList.add('open');
+          const activeItem = volDrawer.querySelector('[data-active-drawer-item="true"]');
+          if (activeItem) {
+            requestAnimationFrame(() => activeItem.scrollIntoView({ block: 'nearest' }));
+          }
+        }
+      })
     );
     document.querySelectorAll('[data-close-volumes]').forEach((b) =>
       b.addEventListener('click', () => volDrawer && volDrawer.classList.remove('open'))
@@ -5731,6 +5794,7 @@
         e.preventDefault();
         openSearchModal();
       } else if (e.key === 'Escape') {
+        closeAllNavDropdowns();
         closePopover(true);
         closeBottomSheet();
         closeSearchModal();
