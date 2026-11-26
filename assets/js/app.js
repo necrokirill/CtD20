@@ -29,6 +29,9 @@
   const ARTS_DATA = BUNDLE.artsData || { groups: [], arts: [] };
   const ARTS = ARTS_DATA.arts || [];
   const ART_GROUPS = ARTS_DATA.groups || [];
+  const REDES_DATA = BUNDLE.redesData || { categories: [], items: [] };
+  const REDE_CATS = REDES_DATA.categories || [];
+  const REDES = REDES_DATA.items || [];
   const CREATION_DATA = BUNDLE.creationData || {};
   const CREATION_STEPS = CREATION_DATA.steps || [];
   const LEX_MAP = Object.fromEntries(LEXICON.map((item) => [item.id, item]));
@@ -481,6 +484,11 @@
     artDotFilter: 'all',      // 'all' | 1..5
     artQuery: '',
     artViewMode: 'atlas',     // 'atlas' | 'scroll'
+    selectedRedeId: REDES[0] ? REDES[0].id : 'aggravated_damage',
+    redeCatFilter: 'all',
+    redeUseFilter: 'all',
+    redeQuery: '',
+    redeViewMode: 'atlas',    // 'atlas' | 'scroll'
     chrysalisStepIdx: 0,
     chrysalisViewMode: 'interactive', // 'interactive' | 'dossier' | 'scroll'
     chrysalisMfKind: 'all',   // 'all' | 'merit' | 'flaw'
@@ -4588,6 +4596,406 @@
   }
 
   /* ------------------------------------------------------------------------
+     3I. WIDGET: CHIMERA REDES ATLAS (22 REDES IN 5 CATEGORIES, PART 11)
+     ------------------------------------------------------------------------ */
+  function redeCatById(catId) {
+    return REDE_CATS.find((c) => c.id === catId) || { id: catId, ru: catId, auraHex: '#d8b979', icon: '✦', desc: '' };
+  }
+
+  function redeExcludeLexId(r) {
+    if (!r) return null;
+    if (r.id === 'wyrd') return 'wyrd';
+    if (r.id === 'aggravated_damage') return 'aggravated_damage';
+    return null;
+  }
+
+  function initRedesAtlas() {
+    const mount = document.getElementById('redes-widget-mount');
+    if (!mount || !REDES.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const qRede = params.get('rede');
+    if (qRede && REDES.some((r) => r.id === qRede)) {
+      state.selectedRedeId = qRede;
+    } else if (!REDES.some((r) => r.id === state.selectedRedeId)) {
+      state.selectedRedeId = REDES[0].id;
+    }
+
+    const catButtons = [
+      { id: 'all', label: `Все (${REDES.length})`, auraHex: '#d8b979' },
+      ...REDE_CATS.map((c) => ({
+        id: c.id,
+        label: `${c.icon} ${c.ru} (${REDES.filter((r) => r.category === c.id).length})`,
+        auraHex: c.auraHex
+      }))
+    ];
+
+    const useFilters = [
+      { id: 'all', label: 'Любая цена' },
+      { id: 'none', label: 'Пассивные' },
+      { id: 'glamour', label: 'За Гламур' },
+      { id: 'special', label: 'Сила Воли и Пакт' }
+    ];
+
+    mount.innerHTML = `
+      <section id="redes-atlas" class="space-y-5 my-8 scroll-mt-24">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#d8b979]/20 pb-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-[#d8b979] !mt-0 !mb-0">Двадцать две силы Химер · Пять категорий</p>
+            <h3 class="font-nouveau fluid-section-title font-semibold text-[#f0eadc] !mt-1 !mb-0 !border-0 !pb-0">
+              Атлас Ридов
+            </h3>
+          </div>
+          <div class="no-print inline-flex rounded-full border border-[#d8b979]/35 bg-[#0b110f]/75 p-1 self-start md:self-auto">
+            <button type="button" id="redevw-atlas" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ✦ Атлас Ридов
+            </button>
+            <button type="button" id="redevw-scroll" class="px-3.5 py-1.5 rounded-full text-xs font-medium transition">
+              ☰ Книжный свиток
+            </button>
+          </div>
+        </div>
+
+        <div id="redes-interactive-area" class="space-y-4">
+          <div class="no-print space-y-2.5">
+            <div class="flex flex-wrap gap-1.5">
+              ${catButtons
+                .map(
+                  (c) => `
+                <button type="button" data-rede-cat="${c.id}" class="rede-cat-btn px-3 py-1 rounded-full text-xs border transition">
+                  ${c.label}
+                </button>`
+                )
+                .join('')}
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+              <div class="flex flex-wrap gap-1.5">
+                ${useFilters
+                  .map(
+                    (uf) => `
+                  <button type="button" data-rede-use="${uf.id}" class="rede-use-btn px-2.5 py-1 rounded-full text-[11.5px] border transition">
+                    ${uf.label}
+                  </button>`
+                  )
+                  .join('')}
+              </div>
+              <input type="search" id="rede-search-input" placeholder="Поиск по названию, цене или эффекту..."
+                class="w-full sm:w-64 rounded-full border border-[#d8b979]/30 bg-[#0b110f]/75 px-3.5 py-1.5 text-xs text-[#f0eadc] placeholder-[#7b7669] focus:outline-none focus:border-[#f0dba8]" />
+            </div>
+          </div>
+
+          <div id="rede-cat-banner" class="no-print hidden rounded-xl border px-3.5 py-2 text-xs leading-snug"></div>
+          <div id="rede-count-line" class="no-print flex flex-wrap items-center justify-between gap-2 text-[11.5px] text-[#a69f90]"></div>
+
+          <div id="redes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[380px] overflow-y-auto pr-1.5 rounded-xl border border-[#d8b979]/18 bg-[#0b110f]/35 p-2.5"></div>
+
+          <div id="rede-spotlight" class="nouveau-panel p-5 sm:p-7 scroll-mt-24" aria-live="polite"></div>
+        </div>
+
+        <div id="redes-scroll-area" class="hidden space-y-6 no-print"></div>
+        <div id="print-redes-container" class="print-only space-y-3"></div>
+      </section>
+    `;
+
+    document.getElementById('redevw-atlas').addEventListener('click', () => {
+      state.redeViewMode = 'atlas';
+      syncRedeViewMode();
+    });
+    document.getElementById('redevw-scroll').addEventListener('click', () => {
+      state.redeViewMode = 'scroll';
+      syncRedeViewMode();
+    });
+    mount.querySelectorAll('.rede-cat-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.redeCatFilter = btn.getAttribute('data-rede-cat');
+        renderRedesGrid();
+      });
+    });
+    mount.querySelectorAll('.rede-use-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.redeUseFilter = btn.getAttribute('data-rede-use');
+        renderRedesGrid();
+      });
+    });
+    document.getElementById('rede-search-input').addEventListener('input', (e) => {
+      state.redeQuery = e.target.value.trim().toLowerCase();
+      renderRedesGrid();
+    });
+
+    renderRedesGrid();
+    renderRedeSpotlight(false);
+    renderRedesScrollArea();
+    syncRedeViewMode();
+  }
+
+  function syncRedeViewMode() {
+    const atlas = document.getElementById('redes-interactive-area');
+    const scroll = document.getElementById('redes-scroll-area');
+    const bAtl = document.getElementById('redevw-atlas');
+    const bScr = document.getElementById('redevw-scroll');
+    if (!atlas || !scroll) return;
+    const isAtl = state.redeViewMode === 'atlas';
+    atlas.classList.toggle('hidden', !isAtl);
+    scroll.classList.toggle('hidden', isAtl);
+    bAtl.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+    bScr.className = `px-3.5 py-1.5 rounded-full text-xs font-medium transition ${
+      !isAtl ? 'bg-[#d8b979]/25 text-[#f0dba8]' : 'text-[#a69f90] hover:text-[#f0eadc]'
+    }`;
+  }
+
+  function renderRedesGrid() {
+    const grid = document.getElementById('redes-grid');
+    const countLine = document.getElementById('rede-count-line');
+    const catBanner = document.getElementById('rede-cat-banner');
+    if (!grid) return;
+
+    document.querySelectorAll('.rede-cat-btn').forEach((btn) => {
+      const id = btn.getAttribute('data-rede-cat');
+      const act = id === state.redeCatFilter;
+      btn.className = `rede-cat-btn px-3 py-1 rounded-full text-xs border transition ${
+        act
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/22 bg-[#0b110f]/55 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+    document.querySelectorAll('.rede-use-btn').forEach((btn) => {
+      const act = btn.getAttribute('data-rede-use') === state.redeUseFilter;
+      btn.className = `rede-use-btn px-2.5 py-1 rounded-full text-[11.5px] border transition ${
+        act
+          ? 'border-[#f0dba8]/75 bg-[#d8b979]/20 text-[#f0dba8]'
+          : 'border-[#d8b979]/20 bg-[#0b110f]/50 text-[#a69f90] hover:text-[#f0eadc]'
+      }`;
+    });
+
+    if (catBanner) {
+      if (state.redeCatFilter !== 'all') {
+        const cat = redeCatById(state.redeCatFilter);
+        const rgb = hexToRgbStr(cat.auraHex);
+        catBanner.classList.remove('hidden');
+        catBanner.style.borderColor = `rgba(${rgb}, 0.45)`;
+        catBanner.style.backgroundColor = `rgba(${rgb}, 0.09)`;
+        catBanner.innerHTML = `<strong class="text-[#f0dba8]">${cat.icon} ${cat.ru}:</strong> <span class="text-[#f0eadc]/90">${cat.desc}</span>`;
+      } else {
+        catBanner.classList.add('hidden');
+      }
+    }
+
+    const filtered = REDES.filter((r) => {
+      if (state.redeCatFilter !== 'all' && r.category !== state.redeCatFilter) return false;
+      if (state.redeUseFilter !== 'all' && r.useType !== state.redeUseFilter) return false;
+      if (state.redeQuery) {
+        const cat = redeCatById(r.category);
+        const hay = `${r.ru} ${r.en} ${cat.ru} ${r.costLabel} ${r.costFull} ${r.useLabel} ${r.useFull} ${r.summary} ${r.roll || ''} ${(r.desc || []).join(' ')}`.toLowerCase();
+        if (!hay.includes(state.redeQuery)) return false;
+      }
+      return true;
+    });
+
+    if (countLine) {
+      const isFiltered = state.redeCatFilter !== 'all' || state.redeUseFilter !== 'all' || Boolean(state.redeQuery);
+      countLine.innerHTML = `
+        <span>Показано Ридов: <strong class="text-[#f0eadc]">${filtered.length}</strong> из ${REDES.length}</span>
+        ${isFiltered ? '<button type="button" id="rede-reset-filters" class="text-[#d8b979] hover:text-[#f0dba8] underline decoration-dotted">Сбросить фильтры</button>' : ''}
+      `;
+      const rst = document.getElementById('rede-reset-filters');
+      if (rst) {
+        rst.addEventListener('click', () => {
+          state.redeCatFilter = 'all';
+          state.redeUseFilter = 'all';
+          state.redeQuery = '';
+          const inp = document.getElementById('rede-search-input');
+          if (inp) inp.value = '';
+          renderRedesGrid();
+        });
+      }
+    }
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-[#a69f90]">Ни один Рид не подходит под выбранные условия.</div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered
+      .map((r) => {
+        const active = r.id === state.selectedRedeId;
+        const cat = redeCatById(r.category);
+        const useBadge =
+          r.useType === 'none'
+            ? 'border-[#5b9987]/40 bg-[#5b9987]/10 text-[#9ce0cc]'
+            : r.useType === 'glamour'
+              ? 'border-[#d8b979]/40 bg-[#d8b979]/10 text-[#f0dba8]'
+              : 'border-[#c4a8ff]/45 bg-[#c4a8ff]/12 text-[#dfd0ff]';
+        return `
+          <button type="button" data-rede-card="${r.id}"
+            class="text-left p-3 rounded-xl border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0dba8] flex flex-col justify-between gap-2 ${
+              active
+                ? 'border-[#f0dba8]/85 bg-[#d8b979]/18 shadow-[0_0_20px_rgba(216,185,121,0.16)]'
+                : 'border-[#d8b979]/20 bg-[#101916]/85 hover:border-[#d8b979]/55 hover:bg-[#15211d]'
+            }">
+            <div>
+              <div class="flex items-start justify-between gap-1.5">
+                <span class="font-nouveau text-lg sm:text-[19px] font-semibold text-[#f0eadc] leading-tight flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full shrink-0" style="background-color:${cat.auraHex};"></span>
+                  <span>${r.ru}</span>
+                </span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] border border-[#d8b979]/30 bg-[#0b110f]/75 text-[#f0dba8] shrink-0">${r.costLabel}</span>
+              </div>
+              <div class="text-[10px] uppercase tracking-[0.12em] text-[#a69f90] mt-0.5">${r.en}</div>
+              <p class="text-[11.5px] text-[#a69f90] leading-snug !mt-1.5 !mb-0">${r.summary}</p>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-1 pt-0.5">
+              <span class="px-2 py-0.5 rounded-full text-[10px] border ${useBadge}">${r.useType === 'none' ? 'Пассивно' : r.useLabel}</span>
+              <span class="text-[10px] text-[#7b7669]">${r.wyrdCombo ? '<strong class="text-[#dfd0ff]">◈ + Вирд</strong> · ' : ''}${cat.ru}</span>
+            </div>
+          </button>
+        `;
+      })
+      .join('');
+
+    grid.querySelectorAll('[data-rede-card]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.selectedRedeId = btn.getAttribute('data-rede-card');
+        renderRedesGrid();
+        renderRedeSpotlight(true);
+      });
+    });
+  }
+
+  function renderRedeSpotlight(scrollToPanel = false) {
+    const spot = document.getElementById('rede-spotlight');
+    if (!spot) return;
+    const r = REDES.find((x) => x.id === state.selectedRedeId) || REDES[0];
+    if (!r) return;
+
+    const cat = redeCatById(r.category);
+    const rgb = hexToRgbStr(cat.auraHex);
+    const exId = redeExcludeLexId(r);
+    const relHref = r.relatedLink ? (r.relatedLink.href.startsWith('#') ? r.relatedLink.href : ROOT + r.relatedLink.href) : '';
+
+    spot.innerHTML = `
+      <div class="spotlight-anim relative z-10 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-[#d8b979]/20 pb-3">
+          <div>
+            <h3 class="font-nouveau text-3xl font-semibold text-[#f0eadc] !mt-0 !mb-0 leading-none">${r.ru}</h3>
+            <div class="text-xs uppercase tracking-[0.16em] text-[#a69f90] mt-1">${r.en}</div>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="px-2.5 py-1 rounded-full text-xs border" style="border-color:rgba(${rgb},0.55);background-color:rgba(${rgb},0.14);color:#f0eadc;">${cat.icon} ${cat.ru}</span>
+            ${r.wyrdCombo ? '<span class="px-2.5 py-1 rounded-full text-xs border border-[#c4a8ff]/45 bg-[#c4a8ff]/12 text-[#dfd0ff]">◈ Усиливается Вирдом</span>' : ''}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div class="rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/65 px-3.5 py-2.5">
+            <div class="text-[10.5px] uppercase tracking-[0.14em] text-[#a69f90]">Стоимость создания</div>
+            <div class="text-xs sm:text-[13.5px] font-medium text-[#f0dba8] mt-0.5">${r.costFull}</div>
+          </div>
+          <div class="rounded-xl border border-[#d8b979]/25 bg-[#0b110f]/65 px-3.5 py-2.5">
+            <div class="text-[10.5px] uppercase tracking-[0.14em] text-[#a69f90]">Цена применения</div>
+            <div class="text-xs sm:text-[13.5px] font-medium text-[#f0eadc] mt-0.5">${r.useFull}</div>
+          </div>
+        </div>
+
+        <div class="space-y-2.5 text-sm sm:text-[15px] text-[#f0eadc]/92 leading-relaxed">
+          ${(r.desc || []).map((p) => `<p class="!my-0">${linkifyHTML(formatInlineMd(p), exId)}</p>`).join('')}
+        </div>
+
+        ${
+          r.roll
+            ? `<div class="rounded-xl border border-[#d8b979]/35 bg-[#0b110f]/70 px-4 py-3 text-xs sm:text-[13.5px] text-[#f0eadc]/92 leading-relaxed">
+                 <span class="font-semibold text-[#f0dba8]">◈ Проверка и параметры:</span> ${linkifyHTML(formatInlineMd(r.roll), exId)}
+               </div>`
+            : ''
+        }
+
+        ${
+          r.wyrdCombo || r.relatedLink
+            ? `<div class="no-print flex flex-wrap items-center gap-2 pt-1">
+                 ${
+                   r.wyrdCombo
+                     ? '<button type="button" data-goto-rede="wyrd" class="px-3 py-1 rounded-full text-xs border border-[#c4a8ff]/45 bg-[#c4a8ff]/12 text-[#dfd0ff] hover:border-[#c4a8ff]/80 transition">◈ Перейти к Риду «Вирд»</button>'
+                     : ''
+                 }
+                 ${
+                   r.relatedLink
+                     ? `<a href="${relHref}" class="px-3 py-1 rounded-full text-xs border border-[#d8b979]/40 bg-[#d8b979]/12 text-[#f0dba8] hover:border-[#f0dba8]/80 transition">↗ ${r.relatedLink.label}</a>`
+                     : ''
+                 }
+               </div>`
+            : ''
+        }
+      </div>
+    `;
+
+    spot.querySelectorAll('[data-goto-rede]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-goto-rede');
+        state.selectedRedeId = targetId;
+        const target = REDES.find((x) => x.id === targetId);
+        if (target && state.redeCatFilter !== 'all' && state.redeCatFilter !== target.category) {
+          state.redeCatFilter = 'all';
+        }
+        if (target && state.redeUseFilter !== 'all' && state.redeUseFilter !== target.useType) {
+          state.redeUseFilter = 'all';
+        }
+        renderRedesGrid();
+        renderRedeSpotlight(true);
+      });
+    });
+
+    if (scrollToPanel) {
+      const rect = spot.getBoundingClientRect();
+      if (rect.top < 60 || rect.top > window.innerHeight * 0.72) {
+        spot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  function renderRedesScrollArea() {
+    const area = document.getElementById('redes-scroll-area');
+    if (!area) return;
+
+    area.innerHTML = REDE_CATS.map((cat) => {
+      const items = REDES.filter((r) => r.category === cat.id);
+      return `
+        <div class="space-y-4">
+          <div class="border-b border-[#d8b979]/25 pb-2">
+            <div class="flex items-baseline justify-between gap-2">
+              <h3 class="font-nouveau text-2xl sm:text-3xl font-semibold text-[#f0dba8] !mt-0 !mb-0">${cat.icon} ${cat.ru}</h3>
+              <span class="text-xs text-[#a69f90]">${items.length}</span>
+            </div>
+            <p class="text-xs text-[#a69f90] !mt-1 !mb-0">${cat.desc}</p>
+          </div>
+          <div class="space-y-4">
+            ${items
+              .map((r) => {
+                const exId = redeExcludeLexId(r);
+                const relHref = r.relatedLink ? (r.relatedLink.href.startsWith('#') ? r.relatedLink.href : ROOT + r.relatedLink.href) : '';
+                return `
+                  <article class="nouveau-panel p-4 sm:p-5 space-y-2.5">
+                    <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-[#d8b979]/15 pb-2">
+                      <h4 class="font-nouveau text-2xl font-semibold text-[#f0eadc] !mt-0 !mb-0">${r.ru} <span class="text-xs font-sans font-normal text-[#a69f90]">(${r.en})</span></h4>
+                      <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <span class="px-2 py-0.5 rounded-full border border-[#d8b979]/35 text-[#f0dba8]">${r.costFull}</span>
+                        <span class="text-[#a69f90]">Применение: ${r.useType === 'none' ? 'нет' : r.useLabel}</span>
+                      </div>
+                    </div>
+                    ${(r.desc || []).map((p) => `<p class="text-xs sm:text-[13.5px] leading-relaxed !my-0">${linkifyHTML(formatInlineMd(p), exId)}</p>`).join('')}
+                    ${r.roll ? `<p class="text-xs text-[#f0dba8]/90 !my-0"><strong class="text-[#f0dba8]">◈ Проверка и параметры:</strong> ${linkifyHTML(formatInlineMd(r.roll), exId)}</p>` : ''}
+                    ${r.relatedLink ? `<p class="text-xs !my-0"><a href="${relHref}" class="text-[#d8b979] hover:text-[#f0dba8] underline decoration-dotted">↗ ${r.relatedLink.label}</a></p>` : ''}
+                  </article>`;
+              })
+              .join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ------------------------------------------------------------------------
      3F. CHRYSALIS PATH & CHARACTER SHEET (PART 1)
      ------------------------------------------------------------------------ */
   const CHRYSALIS_STORAGE_KEY = 'ctd20_chrysalis_sheet_v1';
@@ -7868,6 +8276,20 @@
       });
     });
 
+    // 2i. Redes hits
+    REDES.forEach((r) => {
+      const cat = redeCatById(r.category);
+      const hay = `${r.ru} ${r.en} ${cat.ru} ${r.costLabel} ${r.costFull} ${r.useLabel} ${r.useFull} ${r.summary} ${r.roll || ''} ${(r.desc || []).join(' ')}`.toLowerCase();
+      if (hay.includes(q)) {
+        hits.push({
+          badge: `Рид · ${cat.ru}`,
+          title: `${r.ru} (${r.en})`,
+          snippet: r.summary,
+          url: `${ROOT}11-mists-bedlam-chimera/index.html?rede=${r.id}#redes-atlas`
+        });
+      }
+    });
+
     // 3. Chapter section hits
     (BUNDLE.search || []).forEach((s) => {
       if (s.title.toLowerCase().includes(q) || s.text.toLowerCase().includes(q)) {
@@ -8273,6 +8695,28 @@
       ).join('');
     }
 
+    const redesPrint = document.getElementById('print-redes-container');
+    if (redesPrint && REDES.length) {
+      redesPrint.innerHTML = REDE_CATS.map((cat) => {
+        const items = REDES.filter((r) => r.category === cat.id);
+        return `
+          <article class="print-rede-card p-3 space-y-1.5">
+            <div class="flex items-baseline justify-between border-b border-[#ccc] pb-0.5">
+              <h4 class="font-nouveau text-lg font-bold">${cat.icon} ${cat.ru}</h4>
+              <span class="text-xs font-semibold">${items.length} Ридов</span>
+            </div>
+            <div class="text-[11px] leading-snug space-y-1 pt-0.5">
+              ${items
+                .map(
+                  (r) =>
+                    `<div><strong>${r.ru} (${r.en})</strong> <em>[Создание: ${r.costLabel} · Применение: ${r.useType === 'none' ? 'нет' : r.useLabel}]</em> — ${(r.desc || []).map((d) => formatInlineMd(d)).join(' ')}</div>`
+                )
+                .join('')}
+            </div>
+          </article>`;
+      }).join('');
+    }
+
     const chrysalisPrint = document.getElementById('print-chrysalis-container');
     if (chrysalisPrint && CREATION_STEPS.length) {
       chrysalisPrint.innerHTML = CREATION_STEPS.map(
@@ -8323,6 +8767,7 @@
     initCantripForge();
     initRealmsAtlas();
     initArtsGrimoire();
+    initRedesAtlas();
     initChrysalisPath();
     initTempersWidget();
     initCantripWidget();

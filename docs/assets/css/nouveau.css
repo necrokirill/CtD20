@@ -1574,6 +1574,7 @@ body.mode-table .table-mode-only {
   .print-art-card,
   .print-chrysalis-card,
   .print-dossier-card,
+  .print-rede-card,
   .callout-sidebar,
   .callout-mechanics {
     background: #ffffff !important;
@@ -1599,6 +1600,7 @@ body.mode-table .table-mode-only {
   .print-art-card::after,
   .print-chrysalis-card::after,
   .print-dossier-card::after,
+  .print-rede-card::after,
   .callout-sidebar::after {
     content: "";
     position: absolute;

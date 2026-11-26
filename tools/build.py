@@ -173,6 +173,10 @@ def render_markdown(md_text: str, root_prefix: str = "./", apply_drop_cap: bool 
             out.append('<div id="arts-widget-mount" class="no-lex"></div>')
             i += 1
             continue
+        if stripped == "{{widget:redes-atlas}}":
+            out.append('<div id="redes-widget-mount" class="no-lex"></div>')
+            i += 1
+            continue
         if stripped == "{{widget:chrysalis-path}}":
             out.append('<div id="chrysalis-path-widget-mount" class="no-lex"></div>')
             i += 1
@@ -704,6 +708,9 @@ def build_site() -> dict:
     creation_path = CONTENT_DIR / "creation.json"
     creation_data = json.loads(creation_path.read_text(encoding="utf-8")) if creation_path.exists() else {"steps": []}
 
+    redes_path = CONTENT_DIR / "redes.json"
+    redes_data = json.loads(redes_path.read_text(encoding="utf-8")) if redes_path.exists() else {"categories": [], "items": []}
+
     site_meta = manifest["site"]
     books = manifest.get("books", [])
     book_by_id = {b["id"]: b for b in books}
@@ -787,6 +794,13 @@ def build_site() -> dict:
                     for c in a.get("cantrips", [])
                 )
                 for a in arts_data.get("arts", [])
+            )
+        elif slug == "11-mists-bedlam-chimera":
+            plain_words += sum(
+                len(r.get("summary", "")) // 6
+                + len(r.get("roll", "")) // 6
+                + len(" ".join(r.get("desc", []))) // 6
+                for r in redes_data.get("items", [])
             )
         read_mins = max(2, round(plain_words / 190))
 
@@ -1243,6 +1257,7 @@ def build_site() -> dict:
         "meritsFlaws": merits_flaws_data,
         "realmsData": realms_data,
         "artsData": arts_data,
+        "redesData": redes_data,
         "creationData": creation_data,
         "books": books,
         "volumes": volumes,
@@ -1269,6 +1284,7 @@ def build_site() -> dict:
         "bunkExamples": len(realms_data.get("bunkExamples", [])),
         "arts": len(arts_data.get("arts", [])),
         "cantrips": sum(len(a.get("cantrips", [])) for a in arts_data.get("arts", [])),
+        "redes": len(redes_data.get("items", [])),
         "lexicon": len(lexicon),
         "searchChunks": len(all_search_entries),
     }
